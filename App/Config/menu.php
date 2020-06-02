@@ -1,0 +1,94 @@
+<?php
+
+//后台menu设置成动态
+return [
+    'auth' => [
+        'name' => '管理用户',
+        'list' => [
+            'auth.auth' => [
+                'name' => '管理员列表',
+                'fa' => 'fa-user',
+                'menu' => [
+                    ['url' => '/auth', 'rule' => 'auth.auth.view', 'name' => '管理员列表'],
+                    ['url' => '/auth/add', 'rule' => 'auth.auth.add', 'name' => '添加管理员'],
+                ]
+            ],
+            'auth.role' => [
+                'name' => '角色管理',
+                'fa' => 'fa-users',
+                'menu' => [
+                    ['url' => '/role', 'rule' => 'auth.role.view', 'name' => '角色列表'],
+                    ['url' => '/role/add', 'rule' => 'auth.role.add', 'name' => '添加角色'],
+                ]
+            ],
+            'auth.rule' => [
+                'name' => '权限管理',
+                'fa' => 'fa-key fa-fw',
+                'menu' => [
+                    ['url' => '/rule', 'rule' => 'auth.rule.view', 'name' => '权限列表'],
+                    ['url' => '/rule/add', 'rule' => 'auth.rule.add', 'name' => '添加权限'],
+                ]
+            ]
+        ]
+    ],
+    'user' => [
+        'name' => '用户管理',
+        'list' => [
+            'user.user' => [
+                'name' => '用户管理',
+                'fa' => 'fa-user',
+                'menu' => [
+                    ['url' => '/user', 'rule' => 'auth.user', 'name' => '用户列表'],
+                    ['url' => '/user/add', 'rule' => 'user.user.add', 'name' => '添加用户'],
+                    ['url' => '/user/online', 'rule' => 'user.user.online', 'name' => '在线用户列表'],
+                    ['url' => '/user/statistics', 'rule' => 'user.user.statistics', 'name' => '用户统计'],
+                    ['url' => '/user/post', 'rule' => 'user.user.post', 'name' => '发帖管理'],
+                ]
+            ]
+        ]
+    ],
+    'core' => [
+        'name' => '核心管理',
+        'list' => [
+            'core.play' => [
+                'name' => '播放源管理',
+                'fa' => 'fa-key fa-fw',
+                'menu' => [
+                    ['url' => '/core/play', 'rule' => 'auth.user', 'name' => '播放源列表'],
+                    ['url' => '/core/play/add', 'rule' => 'user.user.add', 'name' => '添加播放源'],
+                ]
+            ],
+            'core.match' => [
+                'name' => '赛程管理',
+                'fa' => 'fa-balance-scale',
+                'menu' => [
+                    ['url' => '/core/match/category', 'rule' => 'auth.user', 'name' => '分类管理'],
+                    ['url' => '/core/match/team', 'rule' => 'user.user.add', 'name' => '球队管理'],
+                    ['url' => '/core/match/history', 'rule' => 'user.user.add', 'name' => '赛事管理'],
+                ]
+            ]
+        ]
+    ],
+    'setting' => [
+        'name' => '系统设置',
+        'list' => [
+            'setting.sys' => [
+                'name' => '配置设置',
+                'fa' => 'fa-balance-scale',
+                'menu' => [
+                    ['url' => '/setting/sys', 'rule' => 'setting.sys', 'name' => '配置管理'],
+                    ['url' => '/setting/user/option', 'rule' => 'setting.option', 'name' => '投诉管理'],
+                ]
+            ],
+            'setting.content' => [
+                'name' => '消息管理',
+                'fa' => ' fa-arrows-alt',
+                'menu' => [
+                    ['url' => '/setting/category', 'rule' => 'setting.content.category', 'name' => '消息类型'],
+                    ['url' => '/setting/message', 'rule' => 'setting.content.message', 'name' => '消息列表'],
+                    ['url' => '/setting/phonecode', 'rule' => 'setting.content.phonecode', 'name' => '短信列表'],
+                ]
+            ]
+        ]
+    ]
+];

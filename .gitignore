@@ -1,0 +1,11 @@
+
+# System Files
+vendor
+/Log
+Temp
+composer.lock
+easyswoole
+
+App/Config/Database.php
+/mysql/data
+/.idea
