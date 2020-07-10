@@ -16,7 +16,7 @@
                         </div>
                         <div class="layui-col-md1">
                             <div class="layui-inline">
-                                <input class="layui-input layui-btn-sm" name="nickname" id="nickname" autocomplete="off" placeholder="昵称">
+                                <input class="layui-input layui-btn-sm" name="nickaname" id="nickaname" autocomplete="off" placeholder="昵称">
                             </div>
                         </div>
                         <div class="layui-col-md2" style="margin-left: 10px; margin-right:10px;">
@@ -45,11 +45,11 @@
             @if($role_group->hasRule('user.post.set'))
             <a class="layui-btn layui-btn-xs" lay-event="edit">查看</a>
             @endif
-            @if($role_group->hasRule('user.post.comment'))
-            <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="set_top">置顶</a>
+            @if($role_group->hasRule('user.post.del'))
+            <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="post_confirm">标记处理</a>
             @endif
             @if($role_group->hasRule('user.post.del'))
-            <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+            <a class="layui-btn layui-btn-xs" lay-event="post_del">删除</a>
             @endif
         </script>
     </div>
@@ -74,7 +74,7 @@
         $(document).on('click','.searchBtn',function () {
             datatable.reload({
                 where:{
-                    nickname:$('#nickname').val().trim(),
+                    nickname:$('#nickaname').val().trim(),
                     title:$('#title').val().trim(),
                     time: $('#time').val()
                 },
@@ -92,16 +92,20 @@
                 , method: 'post'
                 , toolbar: '#toolbarDemo'
                 , title: '用户列表'
+                , where: {where: 'accusation'}
                 , cols: [[
                     {field: 'id', title: 'ID', width: 80, fixed: 'left'}
                     , {field: 'title', title: '帖子标题', width: 200}
                     , {field: 'nickname', title: '发帖人昵称', width: 150}
                     , {field: 'respon_number', title: '回复数', width: 150}
                     , {field: 'created_at', title: '提交时间', width: 180}
+                    , {field: 'status', title: '状态', width: 100, templet: function(res) {
+                            return res.status == 1 ? '处理中' : '已处理'
+                        }}
                     , {fixed: 'right', title: '操作', toolbar: '#barDemo', width: 290}
                 ]]
                 ,	parseData:function(res){
-                    console.log(res.data)
+                    console.log(res)
                     //这个函数非常实用，是2.4.0版本新增的，当后端返回的数据格式不符合layuitable需要的格式，用这个函数对返回的数据做处理，在2.4.0版本之前，只能通过修改table源码来解决这个问题
                     $('#nickaname').val(res.params.nickname)
                     layui.use('laydate', function(){
@@ -134,8 +138,17 @@
             table.on('toolbar(test)', function (obj) {
                 var checkStatus = table.checkStatus(obj.config.id);
                 switch (obj.event) {
-                    case 'add':
-                        location.href = "/user/add";
+                    case 'post_confirm':
+                        layer.confirm('确定举报不成功吗', function (index) {
+                            $.post('/post/cstatus/' + data.id + '/status/2', '', function (data) {
+                                layer.close(index);
+                                if (data.code != 0) {
+                                    layer.msg(data.msg);
+                                } else {
+                                    obj.del();
+                                }
+                            });
+                        });
                         break;
                 }
                 ;
@@ -176,9 +189,9 @@
                             });
                         });
                         break;
-                    case 'set_top':
-                        layer.confirm('确定置顶吗', function (index) {
-                            $.post('/user/post/setTop/' + data.id, '', function (data) {
+                    case 'confirm':
+                        layer.confirm('确定通过？', function (index) {
+                            $.post('/user/post/confirm/' + data.id, '', function (data) {
                                 layer.close(index);
                                 if (data.code != 0) {
                                     layer.msg(data.msg);

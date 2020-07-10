@@ -3,7 +3,7 @@
 //后台menu设置成动态
 return [
     'auth' => [
-        'name' => '管理用户',
+        'name' => '管理员及权限',
         'list' => [
             'auth.auth' => [
                 'name' => '管理员列表',
@@ -42,7 +42,33 @@ return [
                     ['url' => '/user/add', 'rule' => 'user.user.add', 'name' => '添加用户'],
                     ['url' => '/user/online', 'rule' => 'user.user.online', 'name' => '在线用户列表'],
                     ['url' => '/user/statistics', 'rule' => 'user.user.statistics', 'name' => '用户统计'],
-                    ['url' => '/user/post', 'rule' => 'user.user.post', 'name' => '发帖管理'],
+                    ['url' => '/user/apply', 'rule' => 'user.user.apply', 'name' => '用户信息审核'],
+                ]
+            ]
+        ]
+    ],
+    'talking' => [
+        'name' => '聊天管理',
+        'list' => [
+            'talking.manage' => [
+                'name' => '聊天管理',
+                'fa' => 'fa-talking',
+                'menu' => [
+                    ['url' => '/content', 'rule' => 'auth.content', 'name' => '聊天内容列表'],
+                ]
+            ]
+        ]
+    ],
+    'post' => [
+        'name' => '帖子管理',
+        'list' => [
+            'post.manage' => [
+                'name' => '帖子管理',
+                'fa' => 'fa-post',
+                'menu' => [
+                    ['url' => '/user/post', 'rule' => 'user.post', 'name' => '帖子列表'],
+                    ['url' => '/user/post/accusation', 'rule' => 'user.post.accusation', 'name' => '帖子举报管理'],
+                    ['url' => '/user/post/examine', 'rule' => 'user.post.examine', 'name' => '帖子审核管理'],
                 ]
             ]
         ]

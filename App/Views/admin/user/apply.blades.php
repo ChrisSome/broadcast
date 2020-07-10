@@ -6,16 +6,26 @@
 
         <!-- 表头 -->
         <script type="text/html" id="toolbarDemo">
-            @if($role_group->hasRule('auth.user.add'))
-            <div class="layui-btn-container">
-                <button class="layui-btn layui-btn-normal layui-btn-sm" lay-event="add">添加用户</button>
-            </div>
             <div class="layui-btn-container" style="margin-top: 10px;">
                 <form class="layui-form" action="" lay-filter="form">
                     <div class="layui-row">
                         <div class="layui-col-md2">
                             <div class="layui-inline">
-                                <input class="layui-input layui-btn-sm" name="mobile" id="mobile" autocomplete="off" placeholder="手机号">
+                                <input class="layui-input layui-btn-sm" name="nickname" id="nickname" autocomplete="off" placeholder="用户昵称">
+                            </div>
+                        </div>
+                        <div class="layui-col-md2">
+                            <div class="layui-inline">
+                                <select name="pre_status">
+                                    <option value="1">处理中</option>
+                                    <option value="2">申请通过</option>
+                                    <option value="3">申请拒绝</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="layui-col-md2" style="margin-left: 10px; margin-right:10px;">
+                            <div class="layui-inline" style="width: 100%;"> <!-- 注意：这一层元素并不是必须的 -->
+                                <input type="text" class="layui-input layui-btn-sm" id="updated_at" placeholder="时间">
                             </div>
                         </div>
                         <div class="layui-col-md2">
@@ -24,25 +34,17 @@
                     </div>
                 </form>
             </div>
-            @endif
-        </script>
-
-        <!-- 状态 -->
-        <script type="text/html" id="switchStatus">
-            <input type="checkbox" name="status" value="@{{d.id}}" lay-skin="switch"
-                   @if(!$role_group->hasRule('auth.rule.set')) disabled="off" @endif lay-text="启动|禁用"
-                   lay-filter="status" @{{ d.status== 1 ? 'checked' : '' }}>
         </script>
 
 
         <!-- 操作 -->
         <script type="text/html" id="barDemo">
             @if($role_group->hasRule('auth.user.set'))
-            <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+            <a class="layui-btn layui-btn-xs" lay-event="apply_confirm">审核通过</a>
             @endif
 
             @if($role_group->hasRule('auth.user.del'))
-            <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+            <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="apply_refuse">审核驳回</a>
             @endif
         </script>
     </div>
@@ -51,11 +53,25 @@
 
 @section('javascriptFooter')
     <script>
+        layui.use('laydate', function(){
+            var laydate = layui.laydate;
+
+            //执行一个laydate实例
+            laydate.render({
+                elem: '#time' //指定元素
+                ,range: true
+                ,theme: 'grid'
+                ,calendar: true
+            });
+
+        });
         var datatable;
         $(document).on('click','.searchBtn',function () {
             datatable.reload({
                 where:{
-                    mobile:$('#mobile').val().trim()
+                    nickname:$('#nickaname').val().trim(),
+                    title:$('#title').val().trim(),
+                    time: $('#time').val()
                 },
                 page:{
                     curr:1
@@ -67,24 +83,26 @@
 
             datatable = table.render({
                 elem: '#test'
-                , url: '/user/list'
+                , url: '/user/apply'
                 , method: 'post'
                 , toolbar: '#toolbarDemo'
                 , title: '用户列表'
                 , cols: [[
-                    {field: 'id', title: 'ID', width: 80, fixed: 'left'}
-                    , {field: 'nickname', title: '昵称', width: 100}
-                    , {field: 'mobile', title: '号码', width: 150}
-                    , {field: 'wx_name', title: '微信昵称', width: 100}
-                    , {field: 'wx_photo', title: '微信头像', width: 100}
-                    , {field: 'sign_at', title: '最后登陆时间', width: 220}
-                    , {field: 'created_at', title: '注册时间', width: 150}
-                    , {field: 'status', title: '是否启用', templet: '#switchStatus', width: 100}
-                    , {fixed: 'right', title: '操作', toolbar: '#barDemo', width: 150}
+                    {field: 'id', title: '用户ID', width: 80, fixed: 'left'}
+                    , {field: 'nickname', title: '昵称', width: 150}
+                    , {field: 'pre_nickname', title: '申请昵称', width: 150}
+                    , {field: 'pre_photo',  title: '申请头像', width: 220, templet:function (res) {
+                            return '<div><img src=' + res.pre_photo +'> </div>'
+                        }}
+                    , {field: 'updated_at', title: '申请时间', width: 250}
+                    , {field: 'status', title: '状态', width: 100, templet: function(res) {
+                            return res.status == 1 ? '处理中' : '审核通过'
+                        }}
+                    , {fixed: 'right', title: '操作', toolbar: '#barDemo', width: 200}
                 ]]
                 ,	parseData:function(res){
                     //这个函数非常实用，是2.4.0版本新增的，当后端返回的数据格式不符合layuitable需要的格式，用这个函数对返回的数据做处理，在2.4.0版本之前，只能通过修改table源码来解决这个问题
-                    $('#mobile').val(res.params.mobile)
+                    $('#imgtmp').attr('src', res.params.pre_photo)
                     return {
                         code: res.code,
                         msg:res.status,
@@ -131,12 +149,21 @@
             table.on('tool(test)', function (obj) {
                 var data = obj.data;
                 switch (obj.event) {
-                    case 'add_rule':
-                        location.href = '/user/add/' + data.id;
+                    case 'apply_confirm':
+                        layer.confirm('确定审核通过吗', function (index) {
+                            $.post('/user/apply/' + data.id + '/pre_status/2', '', function (data) {
+                                layer.close(index);
+                                if (data.code != 0) {
+                                    layer.msg(data.msg);
+                                } else {
+                                    obj.del();
+                                }
+                            });
+                        });
                         break;
-                    case 'del':
-                        layer.confirm('真的删除行么', function (index) {
-                            $.post('/user/del/' + data.id, '', function (data) {
+                    case 'confirm_refuse':
+                        layer.confirm('确认审核拒绝吗', function (index) {
+                            $.post('/user/apply/' + data.id + '/pre_status/3', '', function (data) {
                                 layer.close(index);
                                 if (data.code != 0) {
                                     layer.msg(data.msg);

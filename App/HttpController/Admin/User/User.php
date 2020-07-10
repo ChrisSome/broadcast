@@ -8,8 +8,11 @@ use App\Base\AdminController;
 use App\Common\AppFunc;
 use App\lib\PasswordTool;
 use App\Model\AdminUser as UserModel;
+use App\Model\AdminUserPost;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
+use EasySwoole\ORM\DbManager;
+
 
 class User extends AdminController
 {
@@ -19,7 +22,11 @@ class User extends AdminController
     private $rule_rule_set = 'user.user.set';
     private $rule_rule_del = 'user.user.del';
 
+    private $rule_user_apply = 'user.user.apply';
 
+    const PRE_STATUS_HANDING = 1;       //申请处理中
+    const PRE_STATUS_SUCC = 2;          //申请成功
+    const PRE_STATUS_FAIL = 3;          //申请失败
     public function index()
     {
         if (!$this->hasRuleForGet($this->rule_rule_view)) return;
@@ -37,6 +44,9 @@ class User extends AdminController
         $query = UserModel::getInstance();
         if (isset($params['mobile']) && !empty($params['mobile'])) {
             $query->where('mobile', $params['mobile']);
+        }
+        if (isset($params['nickname']) && !empty($params['nickname'])) {
+            $query->where('nickname', $params['nickname'], 'like');
         }
         $data = $query->findAll($page, $offset, $where);
         $count = $query->count();
@@ -202,4 +212,94 @@ class User extends AdminController
             Log::getInstance()->error("rule--del:" . $id . "没有删除失败");
         }
     }
+
+    /**
+     * 用户申请
+     */
+    public function apply()
+    {
+        if ($this->request()->getMethod() == 'GET') {
+            if (!$this->hasRuleForPost($this->rule_user_apply)) return;
+            $this->render('admin.user.apply');
+        } else {
+            if (!$this->hasRuleForPost($this->rule_user_apply)) return;
+            $params = $this->request()->getRequestParam();
+            $page = isset($params['page']) ? $params['page'] : 1;
+            $offset = isset($params['offset']) ? $params['offset'] : 10;
+            $where = [];
+            $query = UserModel::getInstance();
+            if (isset($params['nickname']) && !empty($params['nickname'])) {
+                $query->where('nickname', $params['nickname'], 'like');
+            }
+            if (isset($params['pre_status']) && !empty($params['pre_status'])) {
+                $query->where('pre_status', $params['pre_status']);
+            }
+            if (isset($params['updated_at']) && !empty($params['updated_at'])) {
+                $times = explode(' - ', $params['updated_at']);
+                $query->where('updated_at', $times, 'between');
+            }
+            $data = $query->findAll($page, $offset, $where);
+            $count = $query->count();
+            $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count, 'params' => $params];
+
+            $this->dataJson($data);
+        }
+    }
+    public function applyIndex()
+    {
+        if (!$this->hasRuleForPost($this->rule_user_apply)) return;
+        $this->render('admin.user.apply');
+    }
+
+    public function userApply()
+    {
+        $request = $this->request();
+        $id = $request->getQueryParam('id');
+        $pre_status = $request->getQueryParam('pre_status');
+
+        $data = UserModel::create()->get($id);
+        if ($pre_status == self::PRE_STATUS_SUCC) {
+            if (!$data) {
+                $this->writeJson(Status::CODE_ERR, '操作失败');
+
+            } else {
+                if ($data['pre_photo']) {
+                    $updataData['photo'] = $data['pre_photo'];
+                }
+
+                if ($data['pre_nickname']) {
+                    $updataData['nickname'] = $data['pre_nickname'];
+                }
+
+            }
+            try{
+                DbManager::getInstance()->startTransaction();
+                UserModel::getInstance()->saveIdData($id, $updataData);
+                $updataPrestatus = ['pre_status' => self::PRE_STATUS_SUCC];
+                UserModel::getInstance()->saveIdData($id, $updataPrestatus);
+            } catch (\Throwable  $e) {
+                //回滚事务
+                DbManager::getInstance()->rollback();
+                Log::getInstance()->error("id :" . $id . " pre_status:" . $pre_status . "修改失败");
+
+            } finally {
+                //提交事务
+                DbManager::getInstance()->commit();
+                $this->writeJson(Status::CODE_OK, '');
+
+            }
+        } else {
+            $updataPrestatus = ['pre_status' => self::PRE_STATUS_FAIL];
+            $bool = UserModel::getInstance()->saveIdData($id, $updataPrestatus);
+            if ($bool) {
+                $this->writeJson(Status::CODE_OK, '');
+            } else {
+                $this->writeJson(Status::CODE_ERR, '操作失败');
+            }
+
+        }
+
+
+    }
+
 }

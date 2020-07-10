@@ -10,6 +10,10 @@ use App\lib\pool\Login;
 use App\Model\AdminSysSettings as SystemModel;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
+use App\Model\AdminPrivacy as PrivacyModel;
+use App\Model\AdminProblem as ProblemModel;
+use App\Model\AdminNotice as NoticeModel;
+use App\Model\AdminSensitive as SensitiveModel;
 
 class System extends AdminController
 {
@@ -18,6 +22,7 @@ class System extends AdminController
     private $rule_rule_add  = 'auth.setting.system.add';
     private $rule_rule_set  = 'auth.setting.system.set';
     private $rule_rule_del  = 'auth.setting.system.del';
+    private $rule_problem  = 'auth.setting.system.problem';
 
     public function index()
     {
@@ -149,4 +154,95 @@ class System extends AdminController
             Log::getInstance()->error("system--del:" . $id . "没有删除失败");
         }
     }
+
+    /**
+     * 隐私与协议
+     */
+    public function privacy()
+    {
+        if ($this->request()->getMethod() == 'GET') {
+            $this->render('admin.privacy.index');
+        } else {
+            if(!$this->hasRuleForPost($this->rule_rule_view)) return ;
+            $request = $this->request();
+            $params    = $request->getRequestParam('page', 'limit');
+            $page = isset($params['page']) ? $params['page'] : 1;
+            $size = isset($params['limit']) ? $params['limit'] : 10;
+            $data = PrivacyModel::getInstance()->findAll($page, $size);
+            $count = PrivacyModel::getInstance()->count();
+
+            $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count];
+            $this->dataJson($data);
+        }
+    }
+
+    /**
+     * 问题反馈
+     */
+    public function problem()
+    {
+        if ($this->request()->getMethod() == 'GET') {
+            $this->render('admin.privacy.problem');
+        } else {
+            if(!$this->hasRuleForPost($this->rule_rule_view)) return ;
+            $request = $this->request();
+            $params    = $request->getRequestParam('page', 'limit');
+            $page = isset($params['page']) ? $params['page'] : 1;
+            $size = isset($params['limit']) ? $params['limit'] : 10;
+            $data = ProblemModel::getInstance()->findAll($page, $size);
+            $count = ProblemModel::getInstance()->count();
+
+            $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count];
+            $this->dataJson($data);
+        }
+    }
+
+    /**
+     * 公告管理
+     */
+    public function notice()
+    {
+        if ($this->request()->getMethod() == 'GET') {
+            $this->render('admin.privacy.notice');
+        } else {
+            if(!$this->hasRuleForPost($this->rule_rule_view)) return ;
+            $request = $this->request();
+            $params    = $request->getRequestParam('page', 'limit');
+            $page = isset($params['page']) ? $params['page'] : 1;
+            $size = isset($params['limit']) ? $params['limit'] : 10;
+            $data = NoticeModel::getInstance()->findAll($page, $size);
+            $count = NoticeModel::getInstance()->count();
+
+            $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count];
+            $this->dataJson($data);
+            
+        }
+    }
+
+    /**
+     * 敏感词
+     */
+    public function sensitive()
+    {
+        if ($this->request()->getMethod() == 'GET') {
+            $this->render('admin.privacy.sensitive');
+        } else {
+            if(!$this->hasRuleForPost($this->rule_rule_view)) return ;
+            $request = $this->request();
+            $params    = $request->getRequestParam('page', 'limit');
+            $page = isset($params['page']) ? $params['page'] : 1;
+            $size = isset($params['limit']) ? $params['limit'] : 10;
+            $query = SensitiveModel::getInstance();
+            if (isset($params['word']) && !empty($params['word'])) {
+                $query->where(SensitiveModel::findLike('word', $params['word']));
+            }
+            $data = $query->findAll($page, $size);
+            $count = $query->count();
+
+            $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count];
+            $this->dataJson($data);
+
+        }
+    }
+
 }

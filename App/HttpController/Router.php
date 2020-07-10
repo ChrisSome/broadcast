@@ -116,6 +116,10 @@ class Router extends AbstractRouter
                 $r->addRoute(['GET'], '', '/Admin/User/User');
                 $r->addRoute(['POST'], '/list', '/Admin/User/User/getAll');
 
+                //用户信息审核
+                $r->get('/apply', 'Admin/User/User/apply');
+                $r->post('/apply', 'Admin/User/User/apply');
+                $r->post('/userApply/{id:\d+}/pre_status/{pre_status:\d+}', 'Admin/User/User/userApply');
                 // 添加子节点
                 $r->get('/add', '/Admin/User/User/add');
                 $r->post('/add', '/Admin/User/User/addData');
@@ -131,13 +135,32 @@ class Router extends AbstractRouter
                 //帖子管理
                 $r->addRoute(['GET'], '/post', '/Admin/User/Post');
                 $r->addRoute(['POST'], '/post/list', '/Admin/User/Post/getAll');
+                //帖子举报
+
+                $r->addRoute(['GET'], '/post/accusation', '/Admin/User/Post/postAccusation');
+                $r->addRoute(['POST'], '/post/accusation', '/Admin/User/Post/getAll');
+                //帖子审核
+                $r->addRoute(['GET'], '/post/examine', '/Admin/User/Post/postExamine');
+                $r->addRoute(['POST'], '/post/examine', '/Admin/User/Post/getAll');
+
                 $r->get('/post/edit/{id:\d+}', '/Admin/User/Post/edit');
                 $r->post('/post/edit/{id:\d+}', '/Admin/User/Post/editData');
                 $r->post('/post/set/{id:\d+}', '/Admin/User/Post/set');
                 $r->post('/post/del/{id:\d+}', '/Admin/User/Post/del');
+                $r->post('/post/confirm/{id:\d+}', '/Admin/User/Post/confirm');
+                $r->post('/post/setTop/{id:\d+}', '/Admin/User/Post/setTop');
                 $r->get('/post/comment/{id:\d+}', '/Admin/User/Comment/index');
                 $r->post('/post/comment/list/{id:\d+}', '/Admin/User/Comment/getAll');
                 $r->post('/post/comment/del/{id:\d+}', '/Admin/User/Comment/del');
+            });
+
+            //聊天管理
+            $route->addGroup('/content', function (RouteCollector $r) {
+                $r->addRoute(['GET'], '', '/Admin/Talking/Content');
+                $r->addRoute(['POST'], '/list', '/Admin/Talking/Content/getAll');
+//                $r->addRoute(['GET'], '', '/Admin/Talking/Content/getAll');
+
+
             });
             //配置累类
             $route->addGroup('/setting', function (RouteCollector $r) {
@@ -160,6 +183,15 @@ class Router extends AbstractRouter
                 $r->post('/cate/set/{id:\d+}', '/Admin/Setting/Category/set');
                 $r->post('/cate/del/{id:\d+}', '/Admin/Setting/Category/del');
 
+                //乱七八糟
+                $r->get('/privacy', 'Admin/Setting/System/privacy');
+                $r->post('/privacy', 'Admin/Setting/System/privacy');
+                $r->get('/problem', 'Admin/Setting/System/problem');
+                $r->post('/problem', 'Admin/Setting/System/problem');
+                $r->get('/notice', 'Admin/Setting/System/notice');
+                $r->post('/notice', 'Admin/Setting/System/notice');
+                $r->get('/sensitive', 'Admin/Setting/System/sensitive');
+                $r->post('/sensitive', 'Admin/Setting/System/sensitive');
                 //消息列表
                 $r->addRoute(['GET'], '/message', '/Admin/Setting/Message');
                 $r->addRoute(['POST'], '/message/list', '/Admin/Setting/Message/getAll');
@@ -188,10 +220,11 @@ class Router extends AbstractRouter
                 $r->addRoute(['GET'], '/user/login', '/User/Login');
                 $r->addRoute(['POST'], '/user/upload', '/User/Upload');
                 $r->addRoute(['POST'], '/user/info', '/User/User/info');
-                $r->addRoute(['POST'], '/user/operate', '/User/User/operate');
+                $r->addRoute(['POST'], '/user/operate', '/User/User/operate');  //用户信息更改
                 $r->addRoute(['POST'], '/user/doLogin', '/User/Login/doLogin'); //登陆接口
                 $r->addRoute(['POST'], '/user/thirdLogin', '/User/Login/thirdLogin'); //三方微信登陆
-                $r->addRoute(['POST'], '/user/get-phone-code', '/User/Login/getPhoneCode'); //获取验证码接口
+//                $r->addRoute(['POST'], '/user/get-phone-code', '/User/Login/getPhoneCode'); //获取验证码接口
+                $r->addRoute(['GET'], '/user/get-phone-code', '/User/Login/userSendSmg'); //获取验证码接口
                 $r->addRoute(['POST', 'GET'], '/user/logout', '/User/Login/doLogout'); //退出接口
                 $r->addRoute(['GET'], '/broad/list', '/User/Broad');
                 $r->addRoute(['POST'], '/user/option', '/User/Option/add'); //添加建议
@@ -203,13 +236,36 @@ class Router extends AbstractRouter
                 $r->addRoute(['GET'], '/user/post/mine', '/User/Post/getList'); //我的帖子列表页面
                 $r->addRoute(['POST'], '/user/post/mineList', '/User/Post/getMineList'); //我的帖子列表
                 $r->addRoute(['POST'], '/user/post/add', '/User/Post/addPost'); //发布帖子
-                $r->addRoute(['POST'], '/user/post/detail/{id:\d+}', '/User/Post/detail'); //帖子详情
-                $r->addRoute(['POST'], '/user/post/comment/{id:\d+}', '/User/Post/comment'); //用户评论
-                $r->addRoute(['POST'], '/user/post/operate/{id:\d+}', '/User/Post/operate'); //操作行为
+                $r->addRoute(['POST'], '/user/post/detail', '/User/Post/detail'); //帖子详情
+                $r->addRoute(['POST'], '/user/post/comment', '/User/Post/comment'); //用户评论
+                $r->addRoute(['POST'], '/user/post/operate', '/User/Post/operate'); //操作行为
                 $r->addRoute(['POST'], '/user/comment/list/{id:\d+}', '/User/Post/detail'); //评论详情
+                $r->addRoute(['POST'], '/user/edit-user', '/User/User/editUser'); //用户编辑资料
+                $r->addRoute(['POST'], '/user/comment/getList', '/User/Post/commentList'); //用户发表的评论
+                $r->addRoute(['POST'], '/user/userOperate/posts', '/User/User/userOperatePosts'); //用户操作帖子列表
+
+
+                $r->addRoute(['POST'], '/user/post/del', '/User/Post/del'); //用户删除帖子
+                $r->addRoute(['POST'], '/user/user/follow', '/User/User/userFollowings'); //关注用户
+                $r->addRoute(['POST'], '/user/userOperate/fabolus', '/User/User/myFabolusInfo'); //用户被点赞的帖子及评论列表
+                $r->addRoute(['POST'], '/user/user/replyComments', '/User/User/myReplys'); //回复给我的评论
 
                 $r->addRoute(['GET'], '/user/websocket', 'User/WebSocket');
+
+
+                //社区部分
+                $r->addRoute(['GET'], '/community/pList', '/User/Community/pLists');
+                $r->addRoute(['GET'], '/community/mess', '/User/Community/messAndRefinePosts');
+                $r->addRoute(['GET'], '/community/followings', '/User/Community/myFollowings');   //我的关注列表
+
+                $r->addRoute(['GET'], '/user/post/getChildComments', '/User/Post/getPostChildComments');   //我的关注列表
+                $r->addRoute(['GET'], '/user/post/childComments', '/User/Post/childComment');   //二级评论列表
+                $r->addRoute(['POST'], '/user/post/reprint', '/User/Post/rePrint');   //用户转载评论
+
             });
+
+
+
         });
     }
 }

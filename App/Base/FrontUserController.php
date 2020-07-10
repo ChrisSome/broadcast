@@ -27,7 +27,7 @@ class FrontUserController extends BaseController
 	protected $role_group;
 	protected $isCheckSign = false;
 
-	public function render(string $template, array $data = [])
+    public function render(string $template, array $data = [])
     {
         $api = $this->request()->getUri()->getPath();
         $apis = explode('/', $api);
@@ -50,7 +50,10 @@ class FrontUserController extends BaseController
      * @param bool $checked
      * @return bool|string
      */
-    public function checkSign($params) {
+    public function checkSign($params) {return true;
+        if (!$params) {
+            return true;
+        }
         ksort($params); //ascii升序
         $sSafeStr = ''; //加密字段
         foreach ($params as $k => $v) {
@@ -60,11 +63,11 @@ class FrontUserController extends BaseController
         }
 
         $sSafeStr = rtrim($sSafeStr, '&');
-        var_dump( md5($sSafeStr), $sSafeStr);
         if (!isset($params[$this->sign_key]) || md5($sSafeStr) != $params[$this->sign_key]) {
             $this->writeJson(403, '验签不通过');
             return false;
         }
+        return true;
     }
 
 	// 检查token 是否合法
@@ -135,7 +138,8 @@ class FrontUserController extends BaseController
 	public $no_need_check_rule = [
         '/User/Login',
         '/User/System/detail',
-        '/User/Post/detail'
+        '/User/Post/detail',
+        '/User/User/userSendSmg',
     ];
 
 	public function onRequest(?string $action): ?bool

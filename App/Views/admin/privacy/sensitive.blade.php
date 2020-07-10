@@ -7,15 +7,13 @@
         <!-- 表头 -->
         <script type="text/html" id="toolbarDemo">
             @if($role_group->hasRule('auth.user.add'))
-            <div class="layui-btn-container">
-                <button class="layui-btn layui-btn-normal layui-btn-sm" lay-event="add">添加用户</button>
-            </div>
+
             <div class="layui-btn-container" style="margin-top: 10px;">
                 <form class="layui-form" action="" lay-filter="form">
                     <div class="layui-row">
                         <div class="layui-col-md2">
                             <div class="layui-inline">
-                                <input class="layui-input layui-btn-sm" name="mobile" id="mobile" autocomplete="off" placeholder="手机号">
+                                <input class="layui-input layui-btn-sm" name="word" id="word" autocomplete="off" placeholder="敏感词">
                             </div>
                         </div>
                         <div class="layui-col-md2">
@@ -37,9 +35,6 @@
 
         <!-- 操作 -->
         <script type="text/html" id="barDemo">
-            @if($role_group->hasRule('auth.user.set'))
-            <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-            @endif
 
             @if($role_group->hasRule('auth.user.del'))
             <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
@@ -55,7 +50,7 @@
         $(document).on('click','.searchBtn',function () {
             datatable.reload({
                 where:{
-                    mobile:$('#mobile').val().trim()
+                    word:$('#word').val().trim()
                 },
                 page:{
                     curr:1
@@ -67,24 +62,18 @@
 
             datatable = table.render({
                 elem: '#test'
-                , url: '/user/list'
+                , url: '/setting/sensitive'
                 , method: 'post'
                 , toolbar: '#toolbarDemo'
                 , title: '用户列表'
                 , cols: [[
                     {field: 'id', title: 'ID', width: 80, fixed: 'left'}
-                    , {field: 'nickname', title: '昵称', width: 100}
-                    , {field: 'mobile', title: '号码', width: 150}
-                    , {field: 'wx_name', title: '微信昵称', width: 100}
-                    , {field: 'wx_photo', title: '微信头像', width: 100}
-                    , {field: 'sign_at', title: '最后登陆时间', width: 220}
-                    , {field: 'created_at', title: '注册时间', width: 150}
-                    , {field: 'status', title: '是否启用', templet: '#switchStatus', width: 100}
+                    , {field: 'word', title: '敏感词', width: 200}
+                    , {field: 'created_at', title: '发布时间', width: 200}
                     , {fixed: 'right', title: '操作', toolbar: '#barDemo', width: 150}
                 ]]
                 ,	parseData:function(res){
                     //这个函数非常实用，是2.4.0版本新增的，当后端返回的数据格式不符合layuitable需要的格式，用这个函数对返回的数据做处理，在2.4.0版本之前，只能通过修改table源码来解决这个问题
-                    $('#mobile').val(res.params.mobile)
                     return {
                         code: res.code,
                         msg:res.status,

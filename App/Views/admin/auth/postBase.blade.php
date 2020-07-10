@@ -9,6 +9,13 @@
 				<div class="layui-col-md9">
 					<form class="layui-form" action="" lay-filter="form">
 						<div class="layui-form-item">
+							<label class="layui-form-label">标题</label>
+							<div class="layui-input-block">
+								<input type="text" name="title" placeholder="备注" autocomplete="off" class="layui-input">
+							</div>
+						</div>
+
+						<div class="layui-form-item">
 							<label class="layui-form-label">内容</label>
 							<div class="layui-input-block">
 								<textarea name="content" id="content_message" cols="30" rows="10" disabled>
@@ -20,7 +27,7 @@
 							<label class="layui-form-label">审核状态</label>
 							<div class="layui-input-block">
 								<select name="status">
-									@foreach(['0' => '待审核', 1 => '审核通过', 2 => '审核拒绝'] as $k=>$v)
+									@foreach(['0' => '待审核', '1'=>'被举报', 3 => '审核拒绝', 4 => '审核通过', 5=>'举报成功', 6=>'发布'] as $k=>$v)
 										<option value="{{$k}}" @if($info['status'] == $k) selected @endif>{{$v}}</option>
 									@endforeach
 								</select>

@@ -39,7 +39,7 @@ class AdminSysSettings extends BaseModel
         $value = Login::getInstance()->get($key);
         if (!$value) {
             $value = $this->where('sys_key', $sys_key)->get('sys_value');
-            $value = $value ? $value['sys_value'] : true;
+            $value = $value ? $value['sys_value'] : false;
             Login::getInstance()->set($key, $value);
         }
 

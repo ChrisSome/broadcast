@@ -117,4 +117,44 @@ class AppFunc
         }
         return $str;
     }
+
+    /**
+     * easyswoole where 条件不支持or，此处改造
+     * @param string $col
+     * @param array $where
+     * @return string
+     */
+    public static function getWhereArray(string $col, array $where)
+    {
+        if (!$where) return '';
+
+        $str = '';
+        foreach ($where as $v) {
+            $str .= ($col . '=' . $v . ' or ');
+        }
+        return '(' . rtrim($str, 'or ') . ')';
+    }
+
+    /**
+     * 验证必须存在
+     * @param $col
+     */
+    public static function validateRequired($col)
+    {
+        if (is_array($col)) {
+            foreach ($col as $item) {
+
+            }
+        }
+    }
+
+    /**
+     * @param $col
+     * @param $item
+     * @return string
+     */
+    public static function whereLike($col, $item)
+    {
+        return $col .  "like '%" . $item . "%'";
+    }
 }

@@ -7,15 +7,37 @@
         <!-- 表头 -->
         <script type="text/html" id="toolbarDemo">
             @if($role_group->hasRule('auth.user.add'))
-            <div class="layui-btn-container">
-                <button class="layui-btn layui-btn-normal layui-btn-sm" lay-event="add">添加用户</button>
-            </div>
+{{--            <div class="layui-btn-container">--}}
+{{--                <button hidden class="layui-btn layui-btn-normal layui-btn-sm" lay-event="add">添加用户</button>--}}
+{{--            </div>--}}
             <div class="layui-btn-container" style="margin-top: 10px;">
                 <form class="layui-form" action="" lay-filter="form">
                     <div class="layui-row">
                         <div class="layui-col-md2">
                             <div class="layui-inline">
-                                <input class="layui-input layui-btn-sm" name="mobile" id="mobile" autocomplete="off" placeholder="手机号">
+                                <input class="layui-input layui-btn-sm" name="initiative_nicname" id="initiative_nicname" autocomplete="off" placeholder="举报人昵称">
+                            </div>
+
+                        </div>
+                        <div class="layui-col-md2">
+                            <div class="layui-inline">
+                                <input class="layui-input layui-btn-sm" name="passive_nicname" id="passive_nicname" autocomplete="off" placeholder="被举报人昵称">
+                            </div>
+                        </div>
+                        <div class="layui-col-md2">
+                            <div class="layui-inline" style="width: 50px">
+{{--                                <input class="layui-input layui-btn-sm" name="status" id="status" autocomplete="off" placeholder="举报人昵称">--}}
+                                <select name="status" lay-verify="" lay-filter="test" id="status">
+                                    <option value="">请选择一个城市</option>
+                                    <option value="010">北京</option>
+                                    <option value="021">上海</option>
+                                    <option value="0571">杭州</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="layui-col-md2" style="margin-left: 10px; margin-right:10px;">
+                            <div class="layui-inline" style="width: 100%;"> <!-- 注意：这一层元素并不是必须的 -->
+                                <input type="text" class="layui-input layui-btn-sm" id="time" placeholder="时间">
                             </div>
                         </div>
                         <div class="layui-col-md2">
@@ -51,11 +73,26 @@
 
 @section('javascriptFooter')
     <script>
+        layui.use('laydate', function(){
+            var laydate = layui.laydate;
+
+            //执行一个laydate实例
+            laydate.render({
+                elem: '#time' //指定元素
+                ,range: true
+                ,theme: 'grid'
+                ,calendar: true
+            });
+
+        });
         var datatable;
         $(document).on('click','.searchBtn',function () {
             datatable.reload({
                 where:{
-                    mobile:$('#mobile').val().trim()
+                    initiative_nicname:$('#initiative_nicname').val().trim(),
+                    passive_nicname:$('#passive_nicname').val().trim(),
+                    status:$('#status').val().trim(),
+                    created_at:$('#time').val().trim()
                 },
                 page:{
                     curr:1
@@ -67,24 +104,38 @@
 
             datatable = table.render({
                 elem: '#test'
-                , url: '/user/list'
+                , url: '/content/list'
                 , method: 'post'
                 , toolbar: '#toolbarDemo'
-                , title: '用户列表'
+                , title: '聊天内容列表'
                 , cols: [[
                     {field: 'id', title: 'ID', width: 80, fixed: 'left'}
-                    , {field: 'nickname', title: '昵称', width: 100}
-                    , {field: 'mobile', title: '号码', width: 150}
-                    , {field: 'wx_name', title: '微信昵称', width: 100}
-                    , {field: 'wx_photo', title: '微信头像', width: 100}
-                    , {field: 'sign_at', title: '最后登陆时间', width: 220}
-                    , {field: 'created_at', title: '注册时间', width: 150}
-                    , {field: 'status', title: '是否启用', templet: '#switchStatus', width: 100}
+                    , {field: 'initiative_id', title: '举报人id', width: 100}
+                    , {field: 'initiative_nicname', title: '举报人昵称', width: 150}
+                    , {field: 'passive_id', title: '被举报人id', width: 100}
+                    , {field: 'count_num', title: '被举报次数', width: 100}
+                    , {field: 'content', title: '内容', width: 220}
+                    , {field: 'created_at', title: '举报时间', width: 150}
+                    , {field: 'status', title: '状态', templet: '#switchStatus', width: 100}
                     , {fixed: 'right', title: '操作', toolbar: '#barDemo', width: 150}
                 ]]
                 ,	parseData:function(res){
                     //这个函数非常实用，是2.4.0版本新增的，当后端返回的数据格式不符合layuitable需要的格式，用这个函数对返回的数据做处理，在2.4.0版本之前，只能通过修改table源码来解决这个问题
                     $('#mobile').val(res.params.mobile)
+                    layui.use('laydate', function(){
+                        var laydate = layui.laydate;
+
+                        //执行一个laydate实例
+                        laydate.render({
+                            elem: '#time' //指定元素
+                            ,range: true
+                            ,theme: 'grid'
+                            ,calendar: true
+                            ,sInitValue: true
+                            ,value: res.params.time
+                        });
+
+                    });
                     return {
                         code: res.code,
                         msg:res.status,

@@ -12,6 +12,7 @@ class AdminUser extends BaseModel
 
     const USER_TOKEN_KEY = 'user:token:%s';
 
+    const STATUS_PRE_INIT = 1;      //用户信息审核状态
     public function findAll($page, $limit)
     {
         return $this->order('created_at', 'DESC')

@@ -266,14 +266,14 @@
              * 发送文本消息
              * @param content
              */
-            broadcastTextMessage : function (content) {
-                this.release('broadcast', 'roomBroadcast', {content: content, type: 'text'})
+            TextMessage : function (content) {
+                this.release('', 'room', {content: content, type: 'text'})
             },
             /**
              * 发送图片消息
              * @param base64_content
              */
-            broadcastImageMessage: function (base64_content) {
+            ImageMessage: function (base64_content) {
                 this.release('broadcast', 'roomBroadcast', {content: base64_content, type: 'image'})
             },
             picture              : function () {

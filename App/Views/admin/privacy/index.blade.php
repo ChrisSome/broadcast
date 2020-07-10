@@ -67,24 +67,19 @@
 
             datatable = table.render({
                 elem: '#test'
-                , url: '/user/list'
+                , url: '/setting/privacy'
                 , method: 'post'
                 , toolbar: '#toolbarDemo'
                 , title: '用户列表'
                 , cols: [[
                     {field: 'id', title: 'ID', width: 80, fixed: 'left'}
-                    , {field: 'nickname', title: '昵称', width: 100}
-                    , {field: 'mobile', title: '号码', width: 150}
-                    , {field: 'wx_name', title: '微信昵称', width: 100}
-                    , {field: 'wx_photo', title: '微信头像', width: 100}
-                    , {field: 'sign_at', title: '最后登陆时间', width: 220}
-                    , {field: 'created_at', title: '注册时间', width: 150}
-                    , {field: 'status', title: '是否启用', templet: '#switchStatus', width: 100}
+                    , {field: 'title', title: '标题', width: 200}
+                    , {field: 'content', title: '内容', width: 300}
+                    , {field: 'created_at', title: '发布时间', width: 200}
                     , {fixed: 'right', title: '操作', toolbar: '#barDemo', width: 150}
                 ]]
                 ,	parseData:function(res){
                     //这个函数非常实用，是2.4.0版本新增的，当后端返回的数据格式不符合layuitable需要的格式，用这个函数对返回的数据做处理，在2.4.0版本之前，只能通过修改table源码来解决这个问题
-                    $('#mobile').val(res.params.mobile)
                     return {
                         code: res.code,
                         msg:res.status,

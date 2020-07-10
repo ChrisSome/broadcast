@@ -13,7 +13,7 @@ use EasySwoole\Component\Singleton;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 use App\lib\pool\Login;
 
-class PhoneTask implements TaskInterface
+class TestTask implements TaskInterface
 {
     use Singleton;
     protected $taskData;
@@ -32,18 +32,26 @@ class PhoneTask implements TaskInterface
 
     function insert()
     {
-        Log::getInstance()->info('1用户开始发送短信2');
+
+
+        Log::getInstance()->info('用户' . $this->taskData['mobile'] . '发送短信5555');
 
         // TODO: Implement run() method.
         $isDebug = AdminSysSettings::getInstance()->getSysKey('is_debug');
-        $isDebug = false;
         if (!$isDebug) {
+            Log::getInstance()->info('用户开始发送短信321');
+
             //需要引入短信表发送短信
             $phoneCodeS = new PhoneCodeService();
             $content = sprintf(PhoneCodeService::$copying, $this->taskData['code']);
+            Log::getInstance()->info('用户内容 ' . $content);
+
             $xsend = $phoneCodeS->sendMess($this->taskData['mobile'], $content);
+            Log::getInstance()->info('用户短信返回 ' . json_encode($xsend));
+
             if ($xsend['status'] !== PhoneCodeService::STATUS_SUCCESS) {
-                Log::getInstance()->info('用户' . $this->taskData['mobile'] . '短信发送失败 ：' . $this->taskData['code']);
+//                Log::getInstance()->info('用户' . $this->taskData['mobile'] . '短信发送失败 ：' . $this->taskData['code']);
+                Log::getInstance()->info('reason : ' . json_encode($xsend));
             } else {
                 $data = [
                     'mobile' => $this->taskData['mobile'],
@@ -53,6 +61,9 @@ class PhoneTask implements TaskInterface
                 Log::getInstance()->info('用户' . $this->taskData['mobile'] . '短信发送成功 ：' . $this->taskData['code']);
 
             }
+
+        } else {
+            Log::getInstance()->info('短信功能未开启');
 
         }
 

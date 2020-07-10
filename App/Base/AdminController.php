@@ -20,7 +20,9 @@ class AdminController extends BaseController
 	public function render(string $template, array $data = [])
     {
         $menu = Config::getInstance()->getConf('menu');
-    	$data = array_merge(['role_group' => $this->role_group, 'menus' => $menu], $data);
+        $menu1 = Config::getInstance()->getConf('menu1');
+        $menus = array_merge($menu, $menu1);
+    	$data = array_merge(['role_group' => $this->role_group, 'menus' => $menus], $data);
     	//var_dump(Render::getInstance()->render($template, $data));
         $this->response()->write(Render::getInstance()->render($template, $data));
     }

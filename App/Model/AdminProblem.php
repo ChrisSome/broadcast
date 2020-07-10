@@ -4,22 +4,19 @@ namespace App\Model;
 
 use App\Base\BaseModel;
 
-class AdminMessage extends BaseModel
+class AdminProblem extends BaseModel
 {
-    protected $tableName = "admin_system_message_lists";
+    protected $tableName = "admin_problem";
 
-    const STATUS_NORMAL = 1;
-    public function findAll($page, $limit, $where = [])
+    public function findAll($page, $limit)
     {
-        return $this->orderBy('created_at', 'ASC')
+        return $this->order('created_at', 'DESC')
             ->limit(($page - 1) * $page, $limit)
             ->all();
     }
-
 
     public function saveIdData($id, $data)
     {
         return $this->where('id', $id)->update($data);
     }
-
 }

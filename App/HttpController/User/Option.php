@@ -33,7 +33,7 @@ class Option extends FrontUserController
         if ($id = OptionModel::getInstance()->insert($data)) {
             $this->writeJson(Status::CODE_OK, 'OK', ['id' => $id]);
         } else {
-            var_dump(OptionModel::getInstance()->getLastError());
+            var_dump(OptionModel::getInstance()->tError());
             $this->writeJson(Status::CODE_ERR, '保存失败');
             Log::getInstance()->error("option--addData:" . json_encode($data, JSON_UNESCAPED_UNICODE) . "投诉失败");
         }

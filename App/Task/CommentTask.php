@@ -8,6 +8,7 @@ use App\Model\AdminPostComment;
 use App\Model\AdminUserPost;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
+use App\Utility\Log\Log;
 
 class CommentTask implements TaskInterface
 {
@@ -60,16 +61,27 @@ class CommentTask implements TaskInterface
 
     }
 
+    /**
+     * @return mixed
+     */
     private function insertComment()
     {
+        $res['status'] = 'succ';
+        $res['msg'] = 'msg';
         try {
+            unset($this->taskData['type']);
             $rs = AdminPostComment::getInstance()->insert($this->taskData);
             if (!$rs) {
-                var_dump(AdminPostComment::getInstance()->getLastError());
+                $res['status'] = 'fail';
+                $res['msg'] = AdminPostComment::getInstance()->tError();
+
             }
         } catch (\Exception $e) {
-            var_dump($e->getMessage());
+            $res['status'] = 'fail';
+            $res['msg'] = AdminPostComment::getInstance()->tError();
         }
+        Log::getInstance()->info('用户评论 data:' . json_encode($this->taskData) . ',res : ' . json_encode($res));
+        return $res;
 
     }
 

@@ -23,9 +23,16 @@ return [
         ],
     ],
     'TEMP_DIR' => null,
-    'LOG_DIR' => './Log/',
+    'LOG_DIR' => RUNNING_ROOT . '/Log',
     'PHAR' => [
         'EXCLUDE' => ['.idea', 'Log', 'Temp', 'easyswoole', 'easyswoole.install']
     ],
     'DEBUG' => false,  // 是否开启 debug
+    'REDIS' => [
+        'host' => '127.0.0.1',
+        'port' => '6379',
+        'auth' => 'zhibo_test',
+        'timeout' => 3,
+        'max_reconnect_times ' => '3',//最大重连次数
+    ]
 ];

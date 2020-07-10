@@ -23,7 +23,7 @@ return [
         ],
     ],
     'TEMP_DIR' => null,
-    'LOG_DIR' => './Log/',
+    'LOG_DIR' => RUNNING_ROOT . '/Log',
     'PHAR' => [
         'EXCLUDE' => ['.idea', 'Log', 'Temp', 'easyswoole', 'easyswoole.install']
     ],

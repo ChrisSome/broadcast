@@ -14,4 +14,5 @@ return [
         'thread_safe'   => false,   // 线程安全模式
         'lock_timeout'  => 3000,    // 文件最长锁定时间(ms)
     ],
+    'DEBUG' => false,  // 是否开启 debug
 ];

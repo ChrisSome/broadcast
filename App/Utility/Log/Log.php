@@ -4,6 +4,7 @@ namespace App\Utility\Log;
 
 use EasySwoole\Log\LoggerInterface;
 use EasySwoole\EasySwoole\Config;
+use App\Base\BaseController as Base;
 
 class Log implements LoggerInterface
 {
