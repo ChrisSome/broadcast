@@ -17,7 +17,7 @@ class AdminSysSettings extends BaseModel
     {
         return $this
             ->order('created_at', 'desc ')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 

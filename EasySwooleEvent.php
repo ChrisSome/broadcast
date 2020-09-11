@@ -9,18 +9,18 @@
 namespace EasySwoole\EasySwoole;
 
 
+use App\Process\Consumer;
+use App\Storage\MatchLive;
 use App\Storage\OnlineUser;
+use App\Process\NamiPushTask;
 use App\WebSocket\event\OnWorkStart;
 use App\WebSocket\WebSocketEvents;
 use App\WebSocket\WebSocketParser;
-use EasySwoole\Component\Di;
-use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
 use EasySwoole\Http\Request;
 use EasySwoole\Http\Response;
 
-use EasySwoole\RedisPool\Redis;
 use EasySwoole\Socket\Dispatcher;
 use EasySwoole\Utility\File;
 
@@ -28,15 +28,11 @@ use App\Process\HotReload;
 
 use App\Utility\Template\Blade;
 use EasySwoole\Template\Render;
-use EasySwoole\EasySwoole\ServerManager;
 
 use easySwoole\Cache\Cache;
-use App\Utility\Pool\RedisPool;
-use think\Db;
 use EasySwoole\ORM\Db\Config as DbConfig;
 use EasySwoole\ORM\DbManager;
 use EasySwoole\ORM\Db\Connection;
-
 class EasySwooleEvent implements Event
 {
 
@@ -96,6 +92,11 @@ class EasySwooleEvent implements Event
         // 热更新
         $hot_reload = (new HotReload('HotReload', ['disableInotify' => false]))->getProcess();
         ServerManager::getInstance()->getSwooleServer()->addProcess($hot_reload);
+//        Timer::getInstance()->loop(20 * 1000, (new NamiPushTask('NamiPush')));
+
+        //纳米数据推送
+        $nami_push = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
+        ServerManager::getInstance()->getSwooleServer()->addProcess($nami_push);
         //PoolManager::getInstance()->register(MysqlPool::class);
         // mysql
         // 获得数据库配置
@@ -115,6 +116,7 @@ class EasySwooleEvent implements Event
         $web = new WebSocketEvents();
         //开始事件
         OnlineUser::getInstance();
+        MatchLive::getInstance();
         $onWorkerStart = new OnWorkStart();
         $register->set(EventRegister::onWorkerStart, function (\swoole_websocket_server $server,  $workerId) use ($onWorkerStart) {
             $onWorkerStart->onWorkerStart($server, $workerId);

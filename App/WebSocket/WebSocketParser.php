@@ -8,6 +8,7 @@
 
 namespace App\WebSocket;
 
+use App\Utility\Log\Log;
 use EasySwoole\Socket\AbstractInterface\ParserInterface;
 use EasySwoole\Socket\Bean\Caller;
 use EasySwoole\Socket\Bean\Response;
@@ -23,8 +24,9 @@ class WebSocketParser implements ParserInterface
      */
     public function decode($raw, $client): ?Caller
     {
+
         $caller = new Caller;
-        // 聊天消息 {"controller":"broadcast","action":"roomBroadcast","params":{"content":"111"}}
+        // 聊天消息 {"params":{"content":"111"}, "event":"broadcast-roomBroadcast"}
         if ($raw !== 'PING') {
             $payload = json_decode($raw, true);
             if (json_last_error()) {
@@ -33,10 +35,13 @@ class WebSocketParser implements ParserInterface
                 $caller->setControllerClass($controllerClass);
                 $caller->setAction('actionParseError');
             } else {
-                $cmd = isset($payload['cmd']) ? explode('-', $payload['cmd']) : '';
-                if (!empty($cmd[0])) {
-                    $class = $cmd[0];
-                    $action = isset($cmd[1]) ? $cmd[1] : 'actionNotFound';
+                $event = isset($payload['event']) ? explode('-', $payload['event']) : '';
+                Log::getInstance()->info('event : ' . json_encode($event));
+                if (!empty($event[0])) {
+                    Log::getInstance()->info('playload' . json_encode($payload));
+
+                    $class = $event[0];
+                    $action = isset($event[1]) ? $event[1] : 'actionNotFound';
                     $params = isset($payload['params']) ? (array)$payload['params'] : [];
                     $controllerClass = "\\App\\WebSocket\\Controller\\" . ucfirst($class);
                     if (!class_exists($controllerClass)) $controllerClass = "\\App\\WebSocket\\Controller\\Index";
@@ -52,6 +57,29 @@ class WebSocketParser implements ParserInterface
                 }
             }
 
+        } else {
+            $caller->setControllerClass("\\App\\WebSocket\\Controller\\Index");
+            $caller->setAction('heartbeat');
+        }
+        return $caller;
+    }
+
+    public function decode1111($raw, $client): ?Caller
+    {
+        // TODO: Implement decode() method.
+        $caller = new Caller;
+        // 聊天消息 {"controller":"broadcast","action":"roomBroadcast","params":{"content":"111"}}
+        if ($raw !== 'PING') {
+            $payload = json_decode($raw, true);
+            $class = isset($payload['controller']) ? $payload['controller'] : 'index';
+            $action = isset($payload['action']) ? $payload['action'] : 'actionNotFound';
+            $params = isset($payload['params']) ? (array)$payload['params'] : [];
+            $controllerClass = "\\App\\WebSocket\\Controller\\" . ucfirst($class);
+            if (!class_exists($controllerClass)) $controllerClass = "\\App\\WebSocket\\Controller\\Index";
+            $caller->setClient($caller);
+            $caller->setControllerClass($controllerClass);
+            $caller->setAction($action);
+            $caller->setArgs($params);
         } else {
             $caller->setControllerClass("\\App\\WebSocket\\Controller\\Index");
             $caller->setAction('heartbeat');

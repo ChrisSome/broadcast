@@ -27,6 +27,7 @@ class BroadcastMessage extends ActionPayload
     protected $messageId;
     protected $matchId;
     protected $mid;
+    protected $roomId;
 
     /**
      * @param mixed $fromUserFd
@@ -124,10 +125,26 @@ class BroadcastMessage extends ActionPayload
     }
 
     /**
-     * @param mixed $content
+     * @param mixed $sendTime
      */
     public function setSendTime($sendTime): void
     {
         $this->sendTime = $sendTime;
+    }
+
+    /**
+     * @param mixed $matchId
+     */
+    public function setUserMatchId($matchId) : void
+    {
+        $this->matchId = $matchId;
+    }
+
+    /**
+     * @param $atUserId
+     */
+    public function setAtUserId($atUserId) :void
+    {
+        $this->atUserId = $atUserId;
     }
 }

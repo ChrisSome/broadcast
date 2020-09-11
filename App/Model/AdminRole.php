@@ -16,7 +16,7 @@ class AdminRole extends BaseModel
     public function findAll($page, $limit)
     {
         return $this->orderBy('created_at', 'ASC')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 

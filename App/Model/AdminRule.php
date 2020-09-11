@@ -11,7 +11,7 @@ class AdminRule extends BaseModel
     public function findAll($page, $limit)
     {
         return $this->orderBy('created_at', 'ASC')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 
@@ -30,6 +30,7 @@ class AdminRule extends BaseModel
 
     public function getIdsInNode($ids = [])
     {
-        return $this->whereIn('id', $ids)->where('status', 1)->getColumn('node');
+
+        return $this->where('id', $ids, 'in')->where('status', 1)->field('node');
     }
 }

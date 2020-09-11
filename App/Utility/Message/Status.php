@@ -23,15 +23,24 @@ class Status
     const CODE_BINDING_ERR = 304;   //用户绑定错误
     const CODE_LOGIN_W_PASS = 305;   //用户名或密码错误
     const CODE_USER_FOLLOW = 306;   //关注失败
+    const CODE_W_PHONE = 307;   //手机号错误
 
-
+    //帖子
+    const CODE_ADD_POST = 308;      //用户发布帖子失败
+    const CODE_ADD_POST_SENSITIVE = 309;      //用户发布帖子包含敏感词
 
     //系统错误
     const CODE_W_PARAM = 401;   //参数错误
 
+    const CODE_WRONG_MATCH_ORIGIN = 402; //纳米数据解析错误
+    const CONDE_WRONG_RESPONSE = 403; //比赛列表请求失败
+    const CODE_MATCH_FOLLOW_ERR = 404; //比赛关注失败
+    const CODE_MATCH_LINE_UP_ERR = 405; //比赛首发阵容获取失败
     //数据错误
     const CODE_WRONG_USER = 501; //未查询到有效用户
     const CODE_WRONG_RES = 502; //未查询到有效数据
+    const CODE_WRONG_LIMIT = 503; //频繁操作
+
 
 
     public static $msg = [
@@ -51,6 +60,12 @@ class Status
 
         self::CODE_WRONG_USER  => '未查询到有效用户',
         self::CODE_WRONG_RES  => '未查询到有效数据',
+        self::CODE_WRONG_LIMIT  => '请勿频繁操作',
+        self::CODE_W_PHONE  => '手机号码错误',
+        self::CODE_ADD_POST_SENSITIVE  => '帖子内容包含敏感词：%s',
 
+        self::CODE_WRONG_MATCH_ORIGIN => '比赛源错误',
+        self::CODE_MATCH_FOLLOW_ERR => '关注比赛失败',
+        self::CODE_MATCH_LINE_UP_ERR => '阵容获取失败',
     ];
 }

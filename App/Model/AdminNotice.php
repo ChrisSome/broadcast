@@ -11,7 +11,7 @@ class AdminNotice extends BaseModel
     public function findAll($page, $limit)
     {
         return $this->order('created_at', 'DESC')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 

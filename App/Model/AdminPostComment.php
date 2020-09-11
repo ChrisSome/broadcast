@@ -24,14 +24,14 @@ class AdminPostComment extends BaseModel
     public function findAll($page, $limit)
     {
         return $this->order('created_at', 'DESC')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 
     public function getAll($page, $limit)
     {
-        return $this->orderBy('created_at', 'DESC')
-            ->limit(($page - 1) * $page, $limit)
+        return $this->order('created_at', 'DESC')
+            ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();
     }
 
@@ -43,13 +43,13 @@ class AdminPostComment extends BaseModel
     //回复用户信息
     public function uInfo()
     {
-        return $this->hasOne(AdminUser::class, null, 'user_id', 'id')->field(['mobile', 'photo', 'nickname']);
+        return $this->hasOne(AdminUser::class, null, 'user_id', 'id')->field(['id', 'mobile', 'photo', 'nickname']);
     }
 
     //被回复用户信息
     public function tuInfo()
     {
-        return $this->hasOne(AdminUser::class, null, 't_u_id', 'id')->field(['mobile', 'photo', 'nickname']);
+        return $this->hasOne(AdminUser::class, null, 't_u_id', 'id')->field(['id', 'mobile', 'photo', 'nickname']);
 
     }
 
@@ -58,6 +58,24 @@ class AdminPostComment extends BaseModel
         return $this->hasOne(AdminUserPost::class, null, 'post_id', 'id')->field(['title', 'content', 'created_at']);
 
     }
+
+    /**
+     * 是否点赞
+     * @param $uid
+     * @param $cid
+     * @return mixed|null
+     * @throws \Throwable
+     */
+    public function isFabolus($uid, $cid)
+    {
+        return $this->hasOne(AdminPostOperate::class, function (QueryBuilder $queryBuilder) use($uid, $cid) {
+            $queryBuilder->where('action_type', 1);
+            $queryBuilder->where('user_id', $uid);
+            $queryBuilder->where('comment_id', $cid);
+        }, 'id', 'comment_id');
+    }
+
+
 
     public function setting()
     {
@@ -78,5 +96,30 @@ class AdminPostComment extends BaseModel
         });
     }
 
+
+    /**
+     * @param $parentId
+     * @return mixed|null
+     * @throws \Throwable
+     */
+    public function getParentContent($parentId)
+    {
+        if (!$parentId) {
+            $res = $this->hasOne(AdminUserPost::class, null, 'post_id', 'id');
+
+        } else {
+            $res = $this->hasOne(self::class, null, 'parent_id', 'id');
+
+        }
+
+        return [$res->id, $res->content, isset($res->title) ? $res->title : ''];
+
+    }
+
+    public function getParentComment()
+    {
+        return $this->hasOne(self::class, null, 'top_comment_id', 'id');
+
+    }
 
 }

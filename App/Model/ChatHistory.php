@@ -21,4 +21,15 @@ class ChatHistory extends BaseModel
 
         return $message;
     }
+
+    public function getSenderNickname()
+    {
+        return $this->hasOne(AdminUser::class, null, 'sender_user_id', 'id');
+    }
+
+    public function getAtNickname()
+    {
+        return $this->hasOne(AdminUser::class, null, 'at_user_id', 'id');
+
+    }
 }

@@ -5,6 +5,7 @@ namespace App\lib\pool;
 
 
 use App\lib\Tool;
+use App\Utility\Log\Log;
 use App\Utility\Pool\RedisPool;
 use EasySwoole\Component\Singleton;
 
@@ -15,6 +16,7 @@ class Login extends RedisPool
     const LOGIN_IP_ERROR_KEY = 'login:error:ip:%s';
     const LOGIN_EMAIL_ERROR_KEY = 'login:error:email:%s';
     const ONLINE_USER_QUEUES = 'online:user';
+    const USERS_IN_ROOM = 'users_in_room:%s'; //该房间下的用户  roomid
 
     /**
      * 坚决不重复
@@ -51,4 +53,36 @@ class Login extends RedisPool
     {
         return $this->expires(sprintf('hash:user:%s:%s', $uid, $mid), 7200);
     }
+
+    /**
+     * 房间记录用户
+     * @param $roomId
+     * @param $uInfo
+     * @return mixed
+     */
+    public function userInRoom($roomId, $fd)
+    {
+
+        return $this->sadd(sprintf(self::USERS_IN_ROOM, $roomId), $fd);
+    }
+
+    /**
+     * 获取房间用户
+     * @param $roomId
+     * @return mixed
+     */
+    public function getUsersInRoom($roomId) {
+        return $this->smembers(sprintf(self::USERS_IN_ROOM, $roomId));
+    }
+
+    /**
+     * 用户离开房间
+     * @param $roomId
+     * @param $uInfo
+     */
+    public function userOutRoom($roomId, $fd) {
+        return $this->srem(sprintf(self::USERS_IN_ROOM, $roomId), $fd);
+
+    }
+
 }

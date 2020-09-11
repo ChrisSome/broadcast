@@ -4,6 +4,8 @@ namespace App\Model;
 
 use App\Base\BaseModel;
 use App\lib\Tool;
+use EasySwoole\Mysqli\QueryBuilder;
+use App\Utility\Log\Log;
 
 class AdminUserPost extends BaseModel
 {
@@ -13,6 +15,7 @@ class AdminUserPost extends BaseModel
     const STATUS_DEL        = 2;        //删除
     const STATUS_EXAMINE_SUCC        = 4;        //审核成功（展示）
     const STATUS_EXAMINE_FAIL        = 3;        //审核失败
+    const STATUS_SAVE = 5; //保存草稿箱
 
     const IS_TOP        = 1; //置顶
     const IS_UNTOP      = 0; //非置顶
@@ -24,14 +27,14 @@ class AdminUserPost extends BaseModel
     public function findAll($page, $limit)
     {
         return $this->order('created_at', 'DESC')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 
     public function getLimit($page, $limit)
     {
         return $this->order('created_at', 'DESC')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();
     }
     public function saveIdData($id, $data)
@@ -55,9 +58,76 @@ class AdminUserPost extends BaseModel
     }
 
 
-    public function userInfo(){
+    //发帖人信息
+    public function userInfo() {
+        $res = $this->hasOne(AdminUser::class, null, 'user_id', 'id');
+        if ($res) {
+            $data = $res->field(['id', 'photo', 'nickname']);
+            return $data;
+        } else {
+            return [];
+        }
+//        return $this->hasOne(AdminUser::class, null, 'user_id', 'id')->field(['id', 'photo', 'nickname']);
 
     }
+
+    //用户是否收藏
+    public function isCollect($uid, $pid) {
+
+        return $this->hasOne(AdminPostOperate::class, function(QueryBuilder $queryBuilder) use($uid, $pid) {
+            $queryBuilder->where('action_type', 2);
+            $queryBuilder->where('user_id', $uid);
+            $queryBuilder->where('post_id', $pid);
+        }, 'id', 'post_id');
+
+    }
+
+    //是否赞过
+    public function isFablous($uid, $pid) {
+        return $this->hasOne(AdminPostOperate::class, function (QueryBuilder $queryBuilder) use($uid, $pid) {
+            $queryBuilder->where('action_type', 1);
+            $queryBuilder->where('user_id', $uid);
+            $queryBuilder->where('post_id', $pid);
+        }, 'id', 'post_id');
+
+    }
+
+    /**
+     * 帖子所属板块信息
+     * @return mixed|null
+     * @throws \Throwable
+     */
+    public function postCat()
+    {
+        return $this->hasOne(AdminUserPostsCategory::class, null, 'cat_id', 'id');
+    }
+
+    /**
+     * 帖子回复数
+     * @return mixed|null
+     */
+    public function commentCountForPost()
+    {
+        return $this->hasMany(AdminPostComment::class, function(QueryBuilder $queryBuilder){
+            $queryBuilder->where('action_type', 1);
+        }, 'id', 'post_id');
+    }
+
+    //帖子最新回复
+    public function getLastResTime($pid) {
+        $data = $this->hasOne(AdminPostComment::class, function(QueryBuilder $queryBuilder) use($pid) {
+            $queryBuilder->where('post_id', $pid);
+            $queryBuilder->orderBy('created_at', 'DESC');
+            $queryBuilder->limit(1);
+        }, 'id', 'post_id');
+
+        if ($data) {
+            return $data->created_at;
+        } else {
+            return '';
+        }
+    }
+
 
 
     //根据主键id传
@@ -69,6 +139,8 @@ class AdminUserPost extends BaseModel
         return $this->get($where);
 //        return $this->where('id', $id)->all();
     }
+
+
 
 
 }

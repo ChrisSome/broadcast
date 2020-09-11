@@ -17,7 +17,7 @@ class AdminUserPhonecode extends BaseModel
     {
         return $this
             ->order('created_at', 'desc')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 
@@ -28,7 +28,7 @@ class AdminUserPhonecode extends BaseModel
     }
 
     //获取用户验证码
-    public function tCodeByMobile($mobile)
+    public function getLastCodeByMobile($mobile)
     {
         return $this->where('mobile', $mobile)->where('status', self::STATUS_UNUSED)->order('created_at', 'DESC')->limit(1)->get();
     }

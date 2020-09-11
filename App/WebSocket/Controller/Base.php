@@ -24,6 +24,8 @@ use Exception;
  */
 class Base extends Controller
 {
+
+    public $is_login = false;
     /**
      * 获取用户信息
      * @param $fd
@@ -33,11 +35,8 @@ class Base extends Controller
      */
     public function checkUserRight($fd, $args, &$message = '')
     {
-        if (!isset($args['mid'])) {
-            $message = '缺少参数';
-            return false;
-        }
-        $info = OnlineUser::getInstance()->get($args['mid']);
+
+        $info = OnlineUser::getInstance()->get($fd);
 
         if (!$info) {
             $message = '用户已下线';
@@ -51,7 +50,7 @@ class Base extends Controller
             }
 
             $message = $info;
-            $user = AdminUser::getInstance()->where('id', $info['user_id'])->getOne();
+            $user = AdminUser::getInstance()->where('id', $info['user_id'])->limit(1)->get();
             if ($user['status'] != 1) {
                 $message = '违反直播间规定，详情请联系客服';
                 return false;
@@ -60,15 +59,16 @@ class Base extends Controller
             return true;
         }
     }
+
     /**
      * 获取当前的用户
      * @return array|string
      * @throws Exception
      */
-    public function currentUser($mid)
+    public function currentUser($fd)
     {
         /** @var WebSocketClient $client */
-        return OnlineUser::getInstance()->get($mid);
+        return OnlineUser::getInstance()->get($fd);
     }
 
     /**

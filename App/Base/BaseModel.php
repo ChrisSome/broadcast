@@ -8,7 +8,6 @@ use EasySwoole\Component\Di;
 use EasySwoole\ORM\AbstractModel;
 
 
-
 abstract class BaseModel extends AbstractModel
 {
 	protected $db;

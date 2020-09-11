@@ -24,7 +24,7 @@ class PhoneCodeService{
     private $API_SERECT = 'bBn2ebt3';               //语音
     private $API_SERECT_MESS = 'vvd4gWnb';          //短信
 
-    public static $copying = '【夜猫体育】尊敬的用户，您的验证码是: %s，有效时间15分钟';     //短信模板
+    public static $copying = '【竹语】尊敬的用户，您好，你这次的验证码是%s，本验证码有效时间为15分钟。';     //短信模板
 
 
 

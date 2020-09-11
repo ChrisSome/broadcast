@@ -14,7 +14,7 @@ class AdminOption extends BaseModel
     {
         return $this->order('created_at', 'DESC')
             ->order('status', 'ASC')
-            ->limit(($page - 1) * $page, $limit)
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 

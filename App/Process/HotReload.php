@@ -8,6 +8,7 @@
 
 namespace App\Process;
 
+use App\Utility\Log\Log;
 use EasySwoole\Component\Process\AbstractProcess;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\Utility\File;

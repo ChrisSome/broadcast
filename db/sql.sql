@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS `admin_user`(
  `photo` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '头像',
  `wx_photo` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '微信头像',
  `wx_name` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '微信昵称',
- `third_wx_openid` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '微信id',
+ `third_wx_unionid` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '微信id',
  `sign_at` timestamp comment '最后登陆时间',
  `status` tinyint(2) unsigned NOT NULL DEFAULT '1' COMMENT '1 启用; 0 禁用',
  `is_online` tinyint(2) unsigned NOT NULL DEFAULT 0 COMMENT '1 在线; 0 不在线',

@@ -24,6 +24,7 @@ return [
     ],
     'TEMP_DIR' => null,
     'LOG_DIR' => RUNNING_ROOT . '/Log',
+    'IMG_DIR' => RUNNING_ROOT . '/App/Static/image',
     'PHAR' => [
         'EXCLUDE' => ['.idea', 'Log', 'Temp', 'easyswoole', 'easyswoole.install']
     ],
@@ -34,5 +35,12 @@ return [
         'auth' => 'zhibo_test',
         'timeout' => 3,
         'max_reconnect_times ' => '3',//最大重连次数
-    ]
+    ],
+    'GETUI' => [
+        'APPID' => 'LE2EByDFzB8t1zhfgTZdk8',
+        'APPKEY' => '1pzc0QJtjG6UyddwH404c9',
+        'HOST' => 'http://sdk.open.api.igexin.com/apiex.htm',
+        'MASTERSECRET' => '0QMqcC8YkF6xiQNA0sGdM2',
+    ],
+
 ];

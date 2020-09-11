@@ -20,7 +20,7 @@ class OnlineUser
     const INDEX_TYPE_ROOM_ID = 1;
     const INDEX_TYPE_ACTOR_ID = 2;
     const LIST_ONLINE = 'match:online:user:%s';
-
+    const LIST_USERS_IN_ROOM = 'users_in_room_%s_user_id_%s'; //房间内的用户
     public function __construct()
     {
         TableManager::getInstance()->add('onlineUsers', [
@@ -43,15 +43,16 @@ class OnlineUser
      * @param $info
      * @return mixed
      */
-    function set($fd, $mid,$info)
+    function set($fd, $info)
     {
-        return $this->table->set($mid, [
+        return $this->table->set($fd, [
             'fd' => $fd,
-            'mid' => $mid,
+            'mid' => $info['mid'],
             'nickname' => $info['nickname'],
             'token' => $info['token'],
             'user_id' => $info['id'],
-            'last_heartbeat' => time()
+            'last_heartbeat' => time(),
+            'match_id' => !empty($info['match_id']) ? $info['match_id'] : 0
         ]);
     }
 
@@ -62,6 +63,7 @@ class OnlineUser
      */
     function get($fd)
     {
+
         $info = $this->table->get($fd);
         return is_array($info) ? $info : null;
     }
@@ -71,16 +73,12 @@ class OnlineUser
      * @param $fd
      * @param $data
      */
-    function update($mid, $data)
+    function update($fd, $data)
     {
-        $info = $this->get($mid);
+        $info = $this->get($fd);
         if ($info) {
-            if (isset($data['match_id']) && !empty($data['match_id'])) {
-                $key = sprintf(self::LIST_ONLINE, $data['match_id']);
-                Login::getInstance()->rpush($key, $info['mid']);
-            }
             $info = $data + $info;
-            $this->table->set($mid, $info);
+            $this->table->set($fd, $info);
         }
     }
 
@@ -98,6 +96,8 @@ class OnlineUser
         return false;
 
     }
+
+
     /**
      * 删除一条用户信息
      * @param $fd
@@ -143,11 +143,13 @@ class OnlineUser
     }
 
     /**
-     * 直接获取当前的表
+     * 直接获取当前的表所有数据
      * @return Table|null
      */
     function table()
     {
         return $this->table;
     }
+
+
 }

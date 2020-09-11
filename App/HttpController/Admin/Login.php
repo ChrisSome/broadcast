@@ -10,6 +10,7 @@ use App\Utility\Message\Status;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\VerifyCode\Conf;
 use easySwoole\Cache\Cache;
+use App\Utility\Log\Log;
 
 class Login extends BaseController
 {
@@ -37,7 +38,6 @@ class Login extends BaseController
         unset($data['verify']);
 
         $bool = AuthModel::getInstance()->login($data['uname'], $data['pwd']);
-
         if ($bool) {
             $time  = time();
             $id    = $bool['id'];

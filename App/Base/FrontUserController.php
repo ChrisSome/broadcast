@@ -50,10 +50,7 @@ class FrontUserController extends BaseController
      * @param bool $checked
      * @return bool|string
      */
-    public function checkSign($params) {return true;
-        if (!$params) {
-            return true;
-        }
+    public function checkSign($params) {
         ksort($params); //ascii升序
         $sSafeStr = ''; //加密字段
         foreach ($params as $k => $v) {
@@ -76,9 +73,10 @@ class FrontUserController extends BaseController
 		$r = $this->request();
 		$id = $r->getCookieParams('front_id');
 		$time = $r->getCookieParams('front_time');
-
 		$token = md5( $id . Config::getInstance()->getConf('app.token') . $time);
-
+        if (!$id) {
+            return false;
+        }
 		if($r->getCookieParams('front_token') == $token) {
             $this->auth = AdminUser::getInstance()->find($id);
 			return true;
@@ -89,7 +87,7 @@ class FrontUserController extends BaseController
 		    if (!$json) {
                 return false;
             } else {
-		        Login::getInstance()->set($tokenKey, $json, 7200);
+		        Login::getInstance()->set($tokenKey, $json, 60*60*24*7);
 		        $this->auth = json_decode($json, true);
 		        return true;
             }
@@ -133,7 +131,8 @@ class FrontUserController extends BaseController
 
 
 	public $params;
-	public $needCheckToken = false;
+    public $needCheckToken = false;
+    public $needLogin = false;
 
 	public $no_need_check_rule = [
         '/User/Login',
@@ -148,13 +147,18 @@ class FrontUserController extends BaseController
 	    if ($this->needCheckToken) {
 	        if(!$this->checkToken()) {
 	            $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
-
 	            return false;
+
+            }
+        } else {
+            $id = $this->request()->getCookieParams('front_id');
+	        if ($id) {
+                $this->checkToken();
             }
         }
         $api = $this->request()->getUri()->getPath();
 	    if ($this->isCheckSign && !in_array($api, $this->no_need_check_rule) && !empty($this->params)) {
-	        return $this->checkSign( $this->params);
+	        return $this->checkSign($this->params);
         }
 
 

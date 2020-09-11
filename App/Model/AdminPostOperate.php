@@ -14,14 +14,23 @@ class AdminPostOperate extends BaseModel
     const STATUS_E_FAIL     = 3; //审核失败
     const STATUS_E_SUCC     = 4; //审核成功
 
+
     const ACTION_TYPE_FABOLUS = 1; //点赞
+    const ACTION_TYPE_COLLECT = 2; //点赞
     protected $tableName = "admin_post_operates";
 
 
     public function findAll($page, $limit)
     {
         return $this->order('created_at', 'DESC')
-            ->limit(($page - 1) * $page, $limit);
+            ->limit(($page - 1) * $limit, $limit);
+    }
+
+    public function getLimit($page, $limit)
+    {
+        return $this->order('created_at', 'DESC')
+            ->limit(($page - 1) * $limit, $limit)
+            ->withTotalCount();
     }
 
 
@@ -40,6 +49,8 @@ class AdminPostOperate extends BaseModel
         return $this->hasOne(AdminUserPost::class, null, 'post_id', 'id')->field(['title', 'content',  'created_at']);
 
     }
+
+
 
     //帖子或评论作者信息
     public function userInfo()

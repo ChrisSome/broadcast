@@ -6,14 +6,19 @@ namespace App\HttpController\User;
 
 use App\Base\FrontUserController;
 use App\lib\ClassArr;
+use App\lib\Utils;
 use App\Utility\Message\Status;
+use EasySwoole\EasySwoole\Config;
+use App\lib\OssService;
+use App\Utility\Log\Log;
 
 class Upload extends FrontUserController
 {
     public $needCheckToken = true;
-    public $isCheckSign = true;
+    public $isCheckSign = false;
     function index()
     {
+
         // TODO: Implement index() method.
         $request = $this->request();
         $file = $request->getUploadedFile('file');
@@ -55,4 +60,44 @@ class Upload extends FrontUserController
         ]];
         $this->dataJson($data);
     }
+
+
+    public function ossUpload()
+    {
+
+
+        $request = $this->request();
+        $file = $request->getUploadedFile('file');
+        $tempFile = $file->getTempName();
+
+        $sUploadType = $request->getRequestParam('type');
+        if (!$sUploadType || !in_array($sUploadType, ['avatar', 'system', 'option', 'other'])) {
+            return $this->writeJson(Status::CODE_ERR, '未知的上传类型');
+
+        }
+
+        $fileName = $file->getClientFileName();
+        Log::getInstance()->log('request is ' . json_encode($fileName));
+
+        $extension = pathinfo($fileName)['extension'];
+        $baseName = Utils::getFileKey($fileName) . '.' .$extension;
+
+
+        $ossClient = new OssService($sUploadType);
+        $res = $ossClient->uploadFile($baseName, $tempFile);
+        $returnData['imgUrl'] = $res['imgUrl'];
+
+        if ($res['status'] == Status::CODE_OK) {
+            return $this->writeJson(Status::CODE_OK, '', $returnData);
+
+        } else {
+            return $this->writeJson(Status::CODE_ERR, $res['msg']);
+
+        }
+
+
+
+    }
+
+
 }

@@ -22,7 +22,7 @@ use EasySwoole\EasySwoole\ServerManager;
 use App\Model\AdminUser as UserModel;
 use \Exception;
 use EasySwoole\EasySwoole\Task\TaskManager;
-
+use App\Utility\Log\Log;
 /**
  * WebSocket Events
  * Class WebSocketEvents
@@ -35,50 +35,49 @@ class WebSocketEvents
 
     }
 
+    /**
+     * @param swoole_websocket_server $server
+     * @param swoole_http_request $request
+     * @return bool
+     */
     static function onOpen(\swoole_websocket_server $server, \swoole_http_request $request)
     {
-        $token = isset($request->get['token']) ? $request->get['token'] : '';
-        $user = UserModel::getInstance();
+
         $fd = $request->fd;
-        if (!empty($token)) {
-            $info = $user->getOneByToken($token);
-            if (empty($info)) {
-                $server->push($fd, Tool::getInstance()->writeJson(404, 'token已过期，请重新登陆'));
-                ServerManager::getInstance()->getSwooleServer()->close($fd);
-                return true;
-            } else if ($info['status'] != 1) {
-                $server->push($fd, Tool::getInstance()->writeJson(403, '你被禁言， 详情请联系客服'));
-                ServerManager::getInstance()->getSwooleServer()->close($fd);
-                return true;
-            }
-            //如果已经有设备登陆,则强制退出, 根据后台配置是否允许多终端登陆
-            if (false) {
-                self::userClose($server, $info['id']);
-            }
-            //推送消息
-            Login::getInstance()->sadd("members:".$info['id'], $fd);
-            // 发送欢迎消息给用户
-            if ($old = Cache::get($fd)) {
-                $oldHashKey = Login::getInstance()->getUserKey($info['id'], $old);
-                Login::getInstance()->del($oldHashKey);
-                Login::getInstance()->lrem(Login::ONLINE_USER_QUEUES, 0, $old);
-            }
-            //分配对应mid写入redis队列
-            $mid = Login::getInstance()->getMid();
-            $aContent = array_merge(['fd' => $fd, 'mid' => $mid], $info);
-            OnlineUser::getInstance()->set($fd, $mid,  $info);
-            $sHashKey = Login::getInstance()->getUserKey($info['id'], $mid);
-            Login::getInstance()->hmset($sHashKey, $aContent);
-            Login::getInstance()->rPush(Login::ONLINE_USER_QUEUES, $mid);
-            Cache::set($fd, $mid);
-            $server->push($fd, Tool::getInstance()->writeJson(200, 'ok', [
-                'msgType' => 'info',
-                'msgContent' =>  $aContent
-            ]));
+        $data = ['fd' => $fd];
+        $user = OnlineUser::getInstance()->get($fd);
+        if ($user) {
+            $data['user'] = $user;
         } else {
-            $server->push($fd, Tool::getInstance()->writeJson(404, '缺少身份令牌'));
-            ServerManager::getInstance()->getSwooleServer()->close($fd);
+            $data['user'] = [];
         }
+
+
+
+        //如果已经有设备登陆,则强制退出, 根据后台配置是否允许多终端登陆
+        if (false) {
+//            self::userClose($server, $info['id']);
+        }
+        //推送消息
+//        Login::getInstance()->sadd("members:".$info['id'], $fd);
+        // 发送欢迎消息给用户
+        if ($old = Cache::get($fd)) {
+//                $oldHashKey = Login::getInstance()->getUserKey($info['id'], $old);
+//                Login::getInstance()->del($oldHashKey);
+//                Login::getInstance()->lrem(Login::ONLINE_USER_QUEUES, 0, $old);
+        }
+
+        //分配对应mid写入redis队列
+        $mid = Login::getInstance()->getMid();
+
+        //记录房间内用户
+        $resp = [
+            'fd' => $fd,
+            'mid' => $mid
+        ];
+        Cache::set($fd, $mid);
+        $server->push($fd, Tool::getInstance()->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $resp));
+
     }
 
     static function userClose($server, $iUserId)
@@ -104,6 +103,9 @@ class WebSocketEvents
      */
     static function onClose(\swoole_server $server, int $fd, int $reactorId)
     {
+
+        OnlineUser::getInstance()->delete($fd);
+
         $info = $server->connection_info($fd);
         if (isset($info['websocket_status']) && $info['websocket_status'] !== 0) {
             // 移除用户并广播告知
@@ -120,7 +122,8 @@ class WebSocketEvents
 
             $message = new UserOutRoom;
             $message->setUserFd($fd);
-            TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $fd]));
+//            TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $fd]));
+            ServerManager::getInstance()->getSwooleServer()->close($fd);
 
         }
     }

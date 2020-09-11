@@ -16,8 +16,8 @@ class AdminLoginLog extends BaseModel
 
     public function findAll($page, $limit)
     {
-        $data = $this->orderBy('created_at', 'DESC')
-            ->limit(($page - 1) * $page,  $limit)
+        $data = $this->order('created_at', 'DESC')
+            ->limit(($page - 1) * $limit,  $limit)
             ->all();
 
         return $data;

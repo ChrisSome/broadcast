@@ -22,10 +22,9 @@ class Index extends Base
     function info()
     {
         $params = $this->caller()->getArgs();
-        $info = $this->currentUser($params['mid']);
+        $info = $this->currentUser($params['fd']);
         if ($info) {
             $message = new UserInfo;
-            $message->setIntro('欢迎使用easySwoole');
             $message->setUserFd($info['fd']);
             $message->setAvatar($info['avatar']);
             $message->setUsername($info['username']);

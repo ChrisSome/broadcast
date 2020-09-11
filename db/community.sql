@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS `admin_user_post_comments`(
   `content` VARCHAR(90) NOT NULL COMMENT '评论内容',
   `parent_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '上条id',
   `status` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '0待审核1审核2删除',
-  `next_count` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '下级评论条数',
+  `respon_number` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '下级评论条数',
   `fabolus_number` SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '点赞数',
   `parent_user_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '上级用户id',
   `parent_user_nickname` VARCHAR(128) NOT NULL DEFAULT '' COMMENT '上级用户昵称',

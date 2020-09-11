@@ -10,8 +10,8 @@ class AdminUserMessageRecord extends BaseModel
 
     public function findAll($page, $limit, $where = [])
     {
-        return $this->orderBy('created_at', 'ASC')
-            ->limit(($page - 1) * $page, $limit)
+        return $this->order('created_at', 'ASC')
+            ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
 

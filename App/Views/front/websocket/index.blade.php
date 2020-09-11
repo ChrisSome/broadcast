@@ -120,6 +120,7 @@
         data      : {
             websocketServer  : "<?= $server ?>",
             websocketInstance: undefined,
+            // websocketInstance: new WebSocket(this.websocketServer + '?token=3d13ac8b27713846975db4ec24dc7195'),
             Reconnect        : false,
             ReconnectTimer   : null,
             HeartBeatTimer   : null,
@@ -178,10 +179,12 @@
             connect              : function () {
                 var othis = this;
                 var token = localStorage.getItem('token'); //登陆成功H5存储token值
-                console.log(token)
                 var websocketServer = this.websocketServer;
+                var token = 'a90398e116e5fc9dc48e7dccd27676c6';
                 if (token) {
                     websocketServer += '?token='+token
+                } else {
+                    //弹出未登录提示，重新登录
                 }
                 this.websocketInstance = new WebSocket(websocketServer);
                 this.websocketInstance.onopen = function (ev) {
@@ -201,7 +204,7 @@
                     othis.websocketInstance.onmessage = function (ev) {
                         try {
                             var data = JSON.parse(ev.data);
-                            console.log(data);
+                            // console.log(data);
                             if (data.sendTime) {
                                 if (othis.up_recv_time + 10 * 1000 > (new Date(data.sendTime)).getTime()) {
                                     othis.up_recv_time = (new Date(data.sendTime)).getTime();
@@ -218,13 +221,13 @@
                                         othis.currentUser.fd = data.data.fd;
                                         othis.currentUser.nickname = data.data.nickname;
                                         othis.currentUser.id = data.data.id;
-                                        console.log(othis.currentUser)
+                                        // console.log(othis.currentUser)
                                         break;
                                         break;
                                 }
                             }
                         } catch (e) {
-                            console.warn(e);
+                            // console.warn(e);
                         }
                     };
                     othis.websocketInstance.onclose = function (ev) {
@@ -266,8 +269,8 @@
              * 发送文本消息
              * @param content
              */
-            TextMessage : function (content) {
-                this.release('', 'room', {content: content, type: 'text'})
+            broadcastTextMessage : function (content) {
+                this.release('broadcast', 'roomBroadcast', {content: content, type: 'text'})
             },
             /**
              * 发送图片消息
@@ -287,7 +290,12 @@
             clickBtnSend         : function () {
                 var textInput = $('#text-input');
                 var content = textInput.val();
+                // var websocketServer = this.websocketServer;
                 if (content.trim() !== '') {
+                    // var token = 'a90398e116e5fc9dc48e7dccd27676c6';
+                    // if (token) {
+                    //     websocketServer += '?token='+token
+                    // }
                     if (this.websocketInstance && this.websocketInstance.readyState === 1) {
                         this.broadcastTextMessage(content);
                         textInput.val('');

@@ -210,8 +210,8 @@ class System extends AdminController
             $params    = $request->getRequestParam('page', 'limit');
             $page = isset($params['page']) ? $params['page'] : 1;
             $size = isset($params['limit']) ? $params['limit'] : 10;
-            $data = NoticeModel::getInstance()->findAll($page, $size);
-            $count = NoticeModel::getInstance()->count();
+            $data = NoticeModel::getInstance()->where('type', 1)->findAll($page, $size);
+            $count = NoticeModel::getInstance()->where('type', 1)->count();
 
             $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count];
             $this->dataJson($data);
