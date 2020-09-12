@@ -79,7 +79,9 @@ class NamiPushTask extends AbstractProcess
                         MatchLive::getInstance()->set($item['id'], json_encode($item['tlive']), json_encode($matchStats), json_encode($item['score']));
 
                     } else {
-
+                        if (!isset($item['tlive'])) {
+                            continue;
+                        }
                         $oldTlive = json_decode($oldContent['tlive'], true);
                         $diff = array_slice($item['tlive'], count($oldTlive));
 
