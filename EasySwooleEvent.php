@@ -60,6 +60,7 @@ class EasySwooleEvent implements Event
         $config->setUser($dbConf['username']);
         $config->setPassword($dbConf['password']);
         $config->setHost($dbConf['host']);
+        $config->setPort($dbConf['port']);
         $config->setCharset($dbConf['charset']);
         //连接池配置
         $config->setGetObjectTimeout(3.0); //设置获取连接池对象超时时间
