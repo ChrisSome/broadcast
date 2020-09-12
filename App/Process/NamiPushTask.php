@@ -33,7 +33,9 @@ class NamiPushTask extends AbstractProcess
                 $resDecode = json_decode($res, true);
 
                 foreach ($resDecode as $item) {
-
+                    if (!isset($item['tlive'])) {
+                        continue;
+                    }
                     if (Cache::get('is_back_up' . $item['id'])) {
                         //做完持久化 则跳过
                         continue;
@@ -76,12 +78,11 @@ class NamiPushTask extends AbstractProcess
                         }
                     }
                     if (!$oldContent = MatchLive::getInstance()->get($item['id'])) {
+
                         MatchLive::getInstance()->set($item['id'], json_encode($item['tlive']), json_encode($matchStats), json_encode($item['score']));
 
                     } else {
-                        if (!isset($item['tlive'])) {
-                            continue;
-                        }
+
                         $oldTlive = json_decode($oldContent['tlive'], true);
                         $diff = array_slice($item['tlive'], count($oldTlive));
 
