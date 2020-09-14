@@ -513,7 +513,6 @@ class FootBallMatch extends FrontUserController
 //        $matches = AdminMatch::getInstance()->where('match_id', 3385925)->all();
         $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
 
-        Log::getInstance()->info('notice match_' . $sql);
         if ($matches) {
             foreach ($matches as $match) {
                 $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);

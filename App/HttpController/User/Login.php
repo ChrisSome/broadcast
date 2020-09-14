@@ -131,7 +131,7 @@ class Login extends FrontUserController
             ]);
         }
 
-
+Log::getInstance()->info('error');
 
         if ($isSuccess) {
             $this->response()->setCookie('front_id', $isExists['id']);
