@@ -85,8 +85,8 @@ class Login extends FrontUserController
                        'goatNotice' => 0,
                        'goatPopup'  => 0,
                        'redCardNotice' => 0,
-                       'followUser'    => 1,
-                       'followMatch'   => 0,
+                       'followUser'    => 0,
+                       'followMatch'   => 1,
                        'nightModel'    => 0,
                    ];
                    AdminUserSetting::getInstance()->insert($settingData);
