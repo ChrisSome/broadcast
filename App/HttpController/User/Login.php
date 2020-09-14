@@ -76,7 +76,7 @@ class Login extends FrontUserController
                     'mobile' => $sMobile,
                     'photo' => Gravatar::makeGravatar($nickname),
                     'sign_at' => date('Y-m-d H:i:s'),
-                    'cid' => isset($params['cid']) ? $params['iid'] : '',
+                    'cid' => isset($params['cid']) ? $params['cid'] : '',
                 ];
                 $rs = AdminUser::getInstance()->insert($userData);
                 TaskManager::getInstance()->async(function () use($rs){
