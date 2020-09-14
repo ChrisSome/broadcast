@@ -40,6 +40,7 @@ class Login extends FrontUserController
     public function doLogin()
     {
 
+        Log::getInstance()->info('error');
 
         //参数验证
         $valitor = new Validate();
@@ -131,7 +132,6 @@ class Login extends FrontUserController
             ]);
         }
 
-Log::getInstance()->info('error');
 
         if ($isSuccess) {
             $this->response()->setCookie('front_id', $isExists['id']);
