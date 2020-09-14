@@ -45,7 +45,7 @@ class Login extends FrontUserController
         $valitor = new Validate();
         $valitor->addColumn('mobile', '手机号码')->required('手机号不为空')
             ->regex('/^1\d{10}/', '手机号格式不正确');
-//        $valitor->addColumn('code')->required('验证码不能为空');
+        $valitor->addColumn('code')->required('验证码不能为空');
 
         if (!$valitor->validate($this->params)) {
             return $this->writeJson(Status::CODE_BAD_REQUEST, $valitor->getError()->__toString());
@@ -55,14 +55,13 @@ class Login extends FrontUserController
         $sMobile = $this->params['mobile'];
         $code = $this->params['code'];
         $params = $this->params;
-        Log::getInstance()->info('login param :' . json_encode($params));
         $isExists = UserModel::getInstance()->where('mobile', $sMobile)->get();
 
         $phoneCodeIsExists = AdminUserPhonecode::getInstance()->where('mobile', $sMobile)->where('code', $code)->orderBy('created_at', 'desc')->get();
 
-        if (!$phoneCodeIsExists || $phoneCodeIsExists['status'] == 1) {
-            return $this->writeJson(Statuses::CODE_ERR, '验证码不存在或者验证码错误');
-        }
+//        if (!$phoneCodeIsExists || $phoneCodeIsExists['status'] == 1) {
+//            return $this->writeJson(Statuses::CODE_ERR, '验证码不存在或者验证码错误');
+//        }
 
         //var_dump($isExists, $sUserModel->Sql());
         $isSuccess = FALSE;
@@ -120,7 +119,7 @@ class Login extends FrontUserController
             }
             Cache::set($sUserKey, $token);
 
-            AdminUserPhonecode::getInstance()->update(['status' => 1], ['id' => $phoneCodeIsExists['id']]);
+//            AdminUserPhonecode::getInstance()->update(['status' => 1], ['id' => $phoneCodeIsExists['id']]);
             $tokenKey = sprintf(AdminUser::USER_TOKEN_KEY, $token);
             LoginRedis::getInstance()->setEx($tokenKey,  60*60*24*7, $sMobile);
         } catch (\Exception $e) {
