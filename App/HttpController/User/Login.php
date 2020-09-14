@@ -14,7 +14,6 @@ use App\Model\AdminUserInterestCompetition;
 use App\Model\AdminUserPhonecode;
 use App\Model\AdminUserSetting;
 use App\Storage\OnlineUser;
-use App\Task\LoginTask;
 use App\Task\TestTask;
 use App\Utility\Gravatar;
 use App\Utility\Log\Log;
@@ -40,7 +39,7 @@ class Login extends FrontUserController
     public function doLogin()
     {
 
-        Log::getInstance()->info('error');
+        Log::getInstance()->info('login param' . json_encode($this->params));
 
         //参数验证
         $valitor = new Validate();
@@ -105,7 +104,6 @@ class Login extends FrontUserController
             //修改cid
 
             AdminUser::getInstance()->update(['cid'=>$params['cid']], ['id'=>$isExists['id']]);
-            Log::getInstance()->info('cid:' . $this->params['cid']);
             $time = time();
             $token = md5($isExists['id'] . Config::getInstance()->getConf('app.token') . $time);
             $isExists['userSetting'] = $isExists->userSetting();
