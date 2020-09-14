@@ -13,6 +13,7 @@ use App\Process\Consumer;
 use App\Storage\MatchLive;
 use App\Storage\OnlineUser;
 use App\Process\NamiPushTask;
+use App\Utility\Log\Log;
 use App\WebSocket\event\OnWorkStart;
 use App\WebSocket\WebSocketEvents;
 use App\WebSocket\WebSocketParser;
@@ -46,8 +47,9 @@ class EasySwooleEvent implements Event
         self::loadConf();
 
         //设置redisPool
-        $aRedisConfig = \Yaconf::get('redis');
-        $redisPoolConfig = new  \EasySwoole\Redis\Config\RedisConfig($aRedisConfig);
+        $redisConf = Config::getInstance()->getConf('database')['REDIS'];
+        $redisPoolConfig = new  \EasySwoole\Redis\Config\RedisConfig();
+        $redisPoolConfig->setHost($redisConf['host']);
         $redisPoolConfig = \EasySwoole\RedisPool\Redis::getInstance()->register('redis',$redisPoolConfig);
         //配置连接池连接数
         $redisPoolConfig->setMinObjectNum(5);

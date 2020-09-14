@@ -156,7 +156,7 @@ class Login extends FrontUserController
         $this->response()->setCookie('front_time', '');
 
 //        $this->response()->redirect("/api/user/login");
-        return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Status::CODE_OK]);
+        return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
 
     }
 
