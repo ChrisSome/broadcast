@@ -5,9 +5,12 @@ namespace App\WebSocket\Controller;
 
 
 use App\lib\pool\Login;
+use App\lib\pool\MatchRedis;
 use App\lib\Tool;
+use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminMessage;
+use App\Model\AdminUser;
 use App\Model\ChatHistory;
 use App\Storage\MatchLive;
 use App\Utility\Log\Log;
@@ -44,11 +47,19 @@ class Match extends Base
 
         //记录房间内用户
         $matchId = $args['match_id'];
+        $uid = $args['user_id'];
         if ($matchId == true) {
             //对比赛状态查询, 状态正常
             if (!OnlineUser::getInstance()->get($fd)) {
                 $mid = Login::getInstance()->getMid();
-                OnlineUser::getInstance()->set($fd, ['match_id' => $matchId, 'mid' => $mid, 'fd'=>$fd]);
+                $data = [
+                    'match_id' => $matchId,
+                    'mid' => $mid,
+                    'fd'=> $fd,
+                    'user_id' => $uid,
+                    'nickname' => isset($user->nickname) ? $user->nickname : ''
+                ];
+                OnlineUser::getInstance()->set($fd, $data);
             } else {
                 OnlineUser::getInstance()->update($fd, ['match_id' => $matchId]);
             }
@@ -61,24 +72,32 @@ class Match extends Base
         Login::getInstance()->userInRoom($args['match_id'], $fd);
         //最近二十条聊天记录
         $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->order('created_at', 'DESC')->limit(20)->all();
-        //该场比赛的文字直播内容
-        $oldContent = MatchLive::getInstance()->get($matchId);
-        if ($oldContent) {
-            $tlive = json_decode($oldContent['tlive'], true);
-            $stats = json_decode($oldContent['stats'], true);
-            $score = json_decode($oldContent['score'], true);
-        } else {
+
+        //比赛状态
+        $match = AdminMatch::getInstance()->where('match_id', $matchId)->get();
+        if ($match && $match->status_id == 8) {
             $matchTlive = AdminMatchTlive::getInstance()->where('match_id', $matchId)->get();
             if ($matchTlive) {
-                $tlive = json_decode($matchTlive->tlive, true);
-                $stats = json_decode($matchTlive->stats, true);
-                $score = json_decode($matchTlive->score, true);
+                $tlive = $matchTlive->tlive;
+                $stats = $matchTlive->stats;
+                $score = $matchTlive->score;
             } else {
                 $tlive = [];
                 $stats = [];
                 $score = [];
             }
+        } else {
+            //该场比赛的文字直播内容
+            $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, $matchId);
+            $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, $matchId);
+            $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, $matchId);
 
+            $tlive = MatchRedis::getInstance()->get($tlive_key);
+            $stats = MatchRedis::getInstance()->get($stats_key);
+            $score = MatchRedis::getInstance()->get($score_key);
+        }
+        if ($matchId == 3397926) {
+            Log::getInstance()->info('tlive a' . json_encode($tlive));
         }
         if ($lastMessages) {
             foreach ($lastMessages as $lastMessage) {
@@ -100,9 +119,9 @@ class Match extends Base
                 'userInfo' => $user,
                 'matchInfo' => [],
                 'lastMessage' => $messages,
-                'tlive' => $tlive,
-                'stats' => $stats,
-                'score' => $score
+                'tlive' => $tlive ? json_decode($tlive, true) : [],
+                'stats' => $stats ? json_decode($stats, true): [],
+                'score' => $score ? json_decode($score, true) : []
             ],
 
         ];
@@ -178,7 +197,7 @@ class Match extends Base
             }
             //将用户删除本直播间
             $user = $this->currentUser($fd);
-            $res_outroom = Login::getInstance()->userOutRoom($user['match_id'], json_encode($user));
+            $res_outroom = Login::getInstance()->userOutRoom($user['match_id'], $fd);
             $resp = [
                 'event' => 'match-leave'
             ];

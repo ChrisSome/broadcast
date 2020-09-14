@@ -72,7 +72,7 @@ class Login extends RedisPool
      * @return mixed
      */
     public function getUsersInRoom($roomId) {
-        return $this->smembers(sprintf(self::USERS_IN_ROOM, $roomId));
+        return $this->sMembers(sprintf(self::USERS_IN_ROOM, $roomId));
     }
 
     /**
@@ -81,7 +81,7 @@ class Login extends RedisPool
      * @param $uInfo
      */
     public function userOutRoom($roomId, $fd) {
-        return $this->srem(sprintf(self::USERS_IN_ROOM, $roomId), $fd);
+        return $this->sRem(sprintf(self::USERS_IN_ROOM, $roomId), $fd);
 
     }
 

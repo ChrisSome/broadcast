@@ -99,7 +99,7 @@ class System extends FrontUserController
             'url' => 'https://www.baidu.com',
             'countDown' => 3,
             'is_force' => false,
-            'is_open' => false,
+            'is_open' => true,
         ];
         $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 

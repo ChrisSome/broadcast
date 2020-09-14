@@ -67,7 +67,6 @@ class BatchSignalPush{
         $igt = new \IGeTui(self::HOST, self::APPKEY, self::MASTERSECRET);
         $batch = new \IGtBatch(self::APPKEY, $igt);
         $batch->setApiUrl(self::HOST);
-               Log::getInstance()->info('start');
         //$template = IGtNotyPopLoadTemplateDemo();
         foreach ($notices as $item) {
             $templateNoti = $this->IGtNotificationTemplateDemo($item);
@@ -91,11 +90,14 @@ class BatchSignalPush{
                 'content' => $info['content'],
                 'is_notice' => 1
             ], ['id' => $info['rs']]);
+            Log::getInstance()->info('submit res succ' . json_encode($rep));
             return $rep;
 
 
         }catch(Exception $e){
             $rep = $batch->submit();
+            Log::getInstance()->info('submit res fail' . json_encode($rep));
+
             return $rep;
 
         }

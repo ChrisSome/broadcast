@@ -3,15 +3,22 @@
 namespace App\HttpController\Match;
 use App\Base\FrontUserController;
 use App\lib\FrontService;
+use App\lib\pool\Login;
+use App\lib\pool\MatchRedis;
 use App\lib\pool\User as UserRedis;
 use App\lib\Tool;
 use App\Model\AdminClashHistory;
 use App\Model\AdminMatch;
+use App\Model\AdminMatchTlive;
 use App\Model\AdminPlayer;
 use App\Model\AdminSystemAnnoucement;
 use App\Model\AdminUserInterestCompetition;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
+use App\WebSocket\WebSocketStatus;
+use easySwoole\Cache\Cache;
+use EasySwoole\Component\Timer;
+use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\Validate\Validate;
 
@@ -37,16 +44,16 @@ class FootballApi extends FrontUserController
             ['competition_id' => 1858, 'short_name_zh' => '澳昆U20'],
             ['competition_id' => 3083, 'short_name_zh' => '澳达超'],
             ['competition_id' => 1878, 'short_name_zh' => '澳威北超'],
-            ['competition_id' => 2996, 'short_name_zh' => '澳阳超'],
-            ['competition_id' => 1869, 'short_name_zh' => '澳西甲'],
-            ['competition_id' => 730, 'short_name_zh' => '埃及超'],
-            ['competition_id' => 3014, 'short_name_zh' => '爱沙U19'],
-            ['competition_id' => 228, 'short_name_zh' => '爱超'],
-            ['competition_id' => 221, 'short_name_zh' => '奥丙西'],
-            ['competition_id' => 1726, 'short_name_zh' => '奥丁'],
-            ['competition_id' => 229, 'short_name_zh' => '爱甲'],
-            ['competition_id' => 1759, 'short_name_zh' => '爱尔高联'],
-            ['competition_id' => 829, 'short_name_zh' => '澳布甲'],
+//            ['competition_id' => 2996, 'short_name_zh' => '澳阳超'],
+//            ['competition_id' => 1869, 'short_name_zh' => '澳西甲'],
+//            ['competition_id' => 730, 'short_name_zh' => '埃及超'],
+//            ['competition_id' => 3014, 'short_name_zh' => '爱沙U19'],
+//            ['competition_id' => 228, 'short_name_zh' => '爱超'],
+//            ['competition_id' => 221, 'short_name_zh' => '奥丙西'],
+//            ['competition_id' => 1726, 'short_name_zh' => '奥丁'],
+//            ['competition_id' => 229, 'short_name_zh' => '爱甲'],
+//            ['competition_id' => 1759, 'short_name_zh' => '爱尔高联'],
+//            ['competition_id' => 829, 'short_name_zh' => '澳布甲'],
         ],
         'B' => [
             ['competition_id' => 447, 'short_name_zh' => '巴波联'],
@@ -95,11 +102,11 @@ class FootballApi extends FrontUserController
             ['competition_id' => 458, 'short_name_zh' => '美乙'],
             ['competition_id' => 465, 'short_name_zh' => '墨西超'],
             ['competition_id' => 2846, 'short_name_zh' => '蒙古超'],
-            ['competition_id' => 471, 'short_name_zh' => '秘鲁甲'],
-            ['competition_id' => 721, 'short_name_zh' => '摩洛超'],
-            ['competition_id' => 466, 'short_name_zh' => '墨西乙'],
-            ['competition_id' => 1929, 'short_name_zh' => '美超'],
-            ['competition_id' => 457, 'short_name_zh' => '美职业'],
+//            ['competition_id' => 471, 'short_name_zh' => '秘鲁甲'],
+//            ['competition_id' => 721, 'short_name_zh' => '摩洛超'],
+//            ['competition_id' => 466, 'short_name_zh' => '墨西乙'],
+//            ['competition_id' => 1929, 'short_name_zh' => '美超'],
+//            ['competition_id' => 457, 'short_name_zh' => '美职业'],
         ],
         'N' => [
             ['competition_id' => 717, 'short_name_zh' => '南非甲'],
@@ -135,6 +142,10 @@ class FootballApi extends FrontUserController
         'Y' => [
             ['competition_id' => 1788, 'short_name_zh' => '印尼甲'],
             ['competition_id' => 625, 'short_name_zh' => '伊朗甲'],
+        ],
+        'Z' => [
+            ['competition_id' => 1928, 'short_name_zh' => '中台联'],
+            ['competition_id' => 543, 'short_name_zh' => '中甲'],
         ],
     ];
 
@@ -415,7 +426,7 @@ class FootballApi extends FrontUserController
 
                         $homePlayer['player_id'] = $homeItem['id'];
                         $homePlayer['name'] = $homeItem['name'];
-                        $homePlayer['logo'] = $home['logo'] ? $this->playerLogo . $homeItem['logo'] : ($homeplayerinfo ? $homeplayerinfo->logo : '');
+                        $homePlayer['logo'] = isset($home['logo']) ? $this->playerLogo . $homeItem['logo'] : ($homeplayerinfo ? $homeplayerinfo->logo : '');
                         $homePlayer['position'] = $homeItem['position'];
                         $homePlayer['shirt_number'] = $homeItem['shirt_number'];
 
@@ -600,4 +611,5 @@ class FootballApi extends FrontUserController
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
     }
+
 }

@@ -2,11 +2,13 @@
 namespace App\HttpController\Match;
 
 use App\Base\FrontUserController;
-use App\GeTui\Test;
 use App\lib\FrontService;
+use App\lib\pool\Login;
+use App\lib\pool\MatchRedis;
 use App\Model\AdminClashHistory;
 use App\Model\AdminCompetition;
 use App\Model\AdminMatch;
+use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
 use App\Model\AdminPlayer;
 use App\Model\AdminSteam;
@@ -14,17 +16,16 @@ use App\Model\AdminTeam;
 use App\Model\AdminTeamLineUp;
 use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
-use App\Model\ChatHistory;
 use App\Storage\MatchLive;
-use App\Storage\OnlineUser;
-use App\Test\GeTui;
 use App\Utility\Log\Log;
 use App\lib\Tool;
 use App\Utility\Message\Status;
 use App\lib\pool\User as UserRedis;
 use App\GeTui\BatchSignalPush;
+use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
-use EasySwoole\Component\Timer;
+use EasySwoole\EasySwoole\ServerManager;
+use EasySwoole\EasySwoole\Task\TaskManager;
 
 class FootBallMatch extends FrontUserController
 {
@@ -50,6 +51,7 @@ class FootBallMatch extends FrontUserController
     protected $uriLineUp = '/api/v4/football/team/squad/list?user=%s&secret=%s&id=%s';  //阵容
     protected $uriPlayer = '/api/v4/football/player/list?user=%s&secret=%s&id=%s';  //阵容
     protected $uriCompensation = '/api/v4/football/compensation/list?user=%s&secret=%s&date=%s&id=%s';  //获取比赛历史同赔统计数据列表
+    protected $live_url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
 
     protected $uriDeleteMatch = '/api/v4/football/deleted?user=%s&secret=%s'; //删除或取消的比赛
 
@@ -507,8 +509,11 @@ class FootBallMatch extends FrontUserController
 
         //今天未开始的比赛
 
-        $matches = AdminMatch::getInstance()->where('match_time', time(), '>')->where('match_time', time() + 60*17, '<=')->where('status_id', 1)->all();
-//        $matches = AdminMatch::getInstance()->where('match_id', 3440223)->all();
+        $matches = AdminMatch::getInstance()->where('match_time', time() + 60*15, '>')->where('match_time', time() + 60*16, '<=')->where('status_id', 1)->all();
+//        $matches = AdminMatch::getInstance()->where('match_id', 3385925)->all();
+        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
+
+        Log::getInstance()->info('notice match_' . $sql);
         if ($matches) {
             foreach ($matches as $match) {
                 $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);
@@ -516,6 +521,7 @@ class FootBallMatch extends FrontUserController
                     continue;
                 } else{
                     $users = AdminUser::getInstance()->where('id', $prepareNoticeUserIds, 'in')->field(['cid', 'id'])->all();
+
                     foreach ($users as $k=>$user) {
                         $userSetting = AdminUserSetting::getInstance()->where('user_id', $user['id'])->get();
                         if (!$userSetting || !$userSetting->followMatch) {
@@ -524,36 +530,42 @@ class FootBallMatch extends FrontUserController
                     }
                     $uids = array_column($users, 'id');
                     $cids = array_column($users, 'cid');
+
                     if (!$uids) {
                         return ;
                     }
+
+
                     $insertData = [
                         'uids' => json_encode($uids),
                         'match_id' => $match->match_id
                     ];
+                    $batchPush = new BatchSignalPush();
+                    $info = [
+                        'match_id' => $match->match_id,
+                        'home_name_zh' => $match->homeTeamName()->name_zh,
+                        'away_name_zh' => $match->awayTeamName()->name_zh,
+                        'competition_name' => $match->competitionName()->short_name_zh,
+                    ];
+                    $info['type'] = 1;  //开赛通知
+                    $info['title'] = '开赛通知';
+                    $info['content'] = sprintf('您关注的【%s联赛】%s-%s将于15分钟后开始比赛，不要忘了哦', $info['competition_name'], $info['home_name_zh'], $info['away_name_zh']);
+
                     if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->get()) {
+
+
                         $rs = AdminNoticeMatch::getInstance()->insert($insertData);
-                        $batchPush = new BatchSignalPush();
-                        $info = [
-                            'match_id' => $match->match_id,
-                            'home_name_zh' => $match->homeTeamName()->name_zh,
-                            'away_name_zh' => $match->awayTeamName()->name_zh,
-                            'competition_name' => $match->competitionName()->short_name_zh,
-                        ];
                         $info['rs'] = $rs;  //开赛通知
-                        $info['type'] = 1;  //开赛通知
-                        $info['title'] = '开赛通知';
-                        $info['content'] = sprintf('您关注的【%s联赛】%s-%s将于15分钟后开始比赛，不要忘了哦', $info['competition_name'], $info['home_name_zh'], $info['away_name_zh']);
-                        $res = $batchPush->pushMessageToSingleBatch($cids, $info);
-                        return $this->writeJson(Status::CODE_OK, '更新异常', $matches, $res);
+
+                        $batchPush->pushMessageToSingleBatch($cids, $info);
 
 
                     } else {
+
                         $batchPush = new BatchSignalPush();
+                        $info['rs'] = $res->id;
 
-
-                        $res = $batchPush->pushMessageToSingleBatch($cids, $match->match_id, $res->id, $match->homeTeamName()->name_zh, $match->awayTeamName()->name_zh, $match->competitionName()->short_name_zh);
-                        return $this->writeJson(Status::CODE_OK, '更新异常', $res);
+                        $batchPush->pushMessageToSingleBatch($cids, $info);
                     }
                 }
 
@@ -596,9 +608,11 @@ class FootBallMatch extends FrontUserController
     public function test()
     {
 
-        $res = MatchLive::getInstance()->get(3402186);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
+//        $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, 3388179);
+//        $res = MatchRedis::getInstance()->get($tlive_key);
+//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], json_decode($res, true));
 
+//        $url = 'https://open.sportnanoapi.com/api/sports/stream/urls_free?user=%s&secret=%s';
         $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
         $url = sprintf($url, $this->user, $this->secret);
 
@@ -664,6 +678,127 @@ return ;
 
         }
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
+    }
+
+
+
+    public function matchTlive()
+    {
+
+        $res = Tool::getInstance()->postApi(sprintf($this->live_url, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96'));
+        if ($res) {
+            $resDecode = json_decode($res, true);
+            if (!$resDecode) {
+                return;
+            }
+            foreach ($resDecode as $item) {
+                if (!isset($item['tlive']) || Cache::get('is_back_up_' . $item['id'])) {
+
+                    continue;
+                }
+
+                TaskManager::getInstance()->async(function ($taskId, $workerIndex) use ($item) {
+                    $match = AdminMatch::getInstance()->where('match_id', $item['id'])->get();
+                    if ($match && $match->status_id == 8) {
+                        if (!$matchTlive = AdminMatchTlive::getInstance()->where('match_id', $item['id'])->get()) {
+                            $data = [
+                                'score' => json_encode($item['score']),
+                                'stats' => isset($item['stats']) ? json_encode($item['stats']) : '',
+                                'incidents' => isset($item['incidents']) ? json_encode($item['incidents']) : '',
+                                'tlive' => isset($item['tlive']) ? json_encode($item['tlive']) : '',
+                                'match_id' => $item['id'],
+                            ];
+                            AdminMatchTlive::getInstance()->insert($data);
+                            Cache::set('is_back_up_' . $item['id'], 1, 60*240);
+                        }
+
+                    }
+                });
+                if (isset($item['stats'])) {
+                    $matchStats = [];
+                    foreach ($item['stats'] as $ki=>$vi) {
+                        //2 角球  4：红牌 3：黄牌 21：射正 22：射偏  23:进攻  24危险进攻 25：控球率
+                        if ($vi['type'] == 2 || $vi['type'] == 4 || $vi['type'] == 3 || $vi['type'] == 21 || $vi['type'] == 22 || $vi['type'] == 23  || $vi['type'] == 24  || $vi['type'] == 25) {
+                            $matchStats[] = $vi;
+                        }
+
+                    }
+
+                } else {
+                    $matchStats = [];
+                }
+                if (isset($item['tlive'])) {
+                    foreach ($item['tlive'] as $k=>$v) {
+                        unset($item['tlive'][$k]['time']);
+                        unset($item['tlive'][$k]['main']);
+
+                    }
+                }
+                $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, $item['id']);
+                $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, $item['id']);
+                $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, $item['id']);
+
+
+                if (!$oldStats = MatchRedis::getInstance()->get($stats_key) && $matchStats) {
+                    MatchRedis::getInstance()->setEx($stats_key, 60*240, json_encode($matchStats, JSON_UNESCAPED_SLASHES));
+                } else {
+                    MatchRedis::getInstance()->set($stats_key, json_encode($matchStats, JSON_UNESCAPED_SLASHES));
+                }
+
+                if (!$oldScore = MatchRedis::getInstance()->get($score_key) && $item['score']) {
+                    MatchRedis::getInstance()->setEx($score_key, 60*240, json_encode($item['score'], JSON_UNESCAPED_SLASHES));
+
+
+                } else {
+                    MatchRedis::getInstance()->set($score_key, json_encode($item['score'], JSON_UNESCAPED_SLASHES));
+
+                }
+
+                if ((!$oldTlive = MatchRedis::getInstance()->get($tlive_key)) && $item['tlive']) {
+                    MatchRedis::getInstance()->setEx($tlive_key, 60*240, json_encode($item['tlive'], JSON_UNESCAPED_SLASHES));
+
+                } else {
+
+                    $diff = array_slice($item['tlive'], count(json_decode($oldTlive, true)));
+                    if ($item['id'] == 3388179) {
+//                        Log::getInstance()->info('old' . json_encode($oldTlive[0]));
+                    }
+                    if ($diff) {
+                        MatchRedis::getInstance()->set($tlive_key, json_encode($item['tlive']));
+
+                    }
+                    $this->pushContent($item['id'], $diff, $matchStats, $item['score']);
+
+
+                }
+
+            }
+
+
+        }
+
+    }
+
+    function pushContent($match_id, $tlive, $stats, $score)
+    {
+        $tool = Tool::getInstance();
+        $server = ServerManager::getInstance()->getSwooleServer();
+        $users = Login::getInstance()->getUsersInRoom($match_id);
+        $returnData = [
+            'event' => 'match_tlive',
+            'contents' => ['tlive' => $tlive, 'stats' => $stats, 'score' => $score, 'match_id' => $match_id]
+        ];
+
+
+        if ($users) {
+            foreach ($users as $user) {
+                $connection = $server->connection_info($user);
+
+                if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+                    $server->push($user, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
+                }
+            }
+        }
     }
 
 }

@@ -96,13 +96,9 @@ class EasySwooleEvent implements Event
 //        Timer::getInstance()->loop(20 * 1000, (new NamiPushTask('NamiPush')));
 
         //纳米数据推送
-        $nami_push = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
-        ServerManager::getInstance()->getSwooleServer()->addProcess($nami_push);
-        //PoolManager::getInstance()->register(MysqlPool::class);
-        // mysql
-        // 获得数据库配置
-        /*$dbConf = Config::getInstance()->getConf('database');
-        Di::getInstance()->set('MYSQL', \MysqliDb::class, $dbConf['MYSQL']);*/
+//        $nami_push = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
+//        ServerManager::getInstance()->getSwooleServer()->addProcess($nami_push);
+
         // template
         $viewDir = EASYSWOOLE_ROOT . '/App/Views';
         $cacheDir = EASYSWOOLE_ROOT . '/Temp/Template';

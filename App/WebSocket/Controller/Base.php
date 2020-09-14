@@ -12,6 +12,7 @@ use App\lib\pool\Login;
 use App\lib\Tool;
 use App\Model\AdminUser;
 use App\Storage\OnlineUser;
+use App\Utility\Log\Log;
 use EasySwoole\Component\Pool\PoolManager;
 use EasySwoole\Socket\AbstractInterface\Controller;
 use EasySwoole\Socket\Client\WebSocket as WebSocketClient;
@@ -51,7 +52,9 @@ class Base extends Controller
 
             $message = $info;
             $user = AdminUser::getInstance()->where('id', $info['user_id'])->limit(1)->get();
-            if ($user['status'] != 1) {
+            Log::getInstance()->info('user_id' . $info['user_id']);
+
+            if (isset($user['status']) && $user['status'] != 1) {
                 $message = '违反直播间规定，详情请联系客服';
                 return false;
             }

@@ -5,11 +5,13 @@ namespace App\Process;
 
 
 use App\lib\pool\Login;
+use App\lib\pool\MatchRedis;
 use App\lib\Tool;
 use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
 use App\Storage\MatchLive;
 use App\Utility\Log\Log;
+use App\WebSocket\Controller\Match;
 use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
 use EasySwoole\Component\Process\AbstractProcess;
@@ -33,13 +35,11 @@ class NamiPushTask extends AbstractProcess
                 $resDecode = json_decode($res, true);
 
                 foreach ($resDecode as $item) {
-                    if (!isset($item['tlive'])) {
+                    if (!isset($item['tlive']) || Cache::get('is_back_up_' . $item['id'])) {
+
                         continue;
                     }
-                    if (Cache::get('is_back_up' . $item['id'])) {
-                        //做完持久化 则跳过
-                        continue;
-                    }
+
                     TaskManager::getInstance()->async(function ($taskId, $workerIndex) use ($item) {
                        $match = AdminMatch::getInstance()->where('match_id', $item['id'])->get();
                         if ($match && $match->status_id == 8) {
@@ -52,7 +52,7 @@ class NamiPushTask extends AbstractProcess
                                     'match_id' => $item['id'],
                                 ];
                                 AdminMatchTlive::getInstance()->insert($data);
-                                Cache::set('is_back_up' . $item['id'], 1, 60*240);
+                                Cache::set('is_back_up_' . $item['id'], 1, 60*240);
                             }
 
                         }
@@ -77,32 +77,52 @@ class NamiPushTask extends AbstractProcess
 
                         }
                     }
-                    if (!$oldContent = MatchLive::getInstance()->get($item['id'])) {
+                    $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, $item['id']);
+                    $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, $item['id']);
+                    $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, $item['id']);
 
-                        MatchLive::getInstance()->set($item['id'], json_encode($item['tlive']), json_encode($matchStats), json_encode($item['score']));
+
+                    $matchRedis = new MatchRedis();
+                    if (!$oldStats = MatchRedis::getInstance()->get($stats_key) && $matchStats) {
+//                        MatchRedis::getInstance()->setEx($stats_key, 60*240, json_encode($matchStats));
+                        $matchRedis->setEx($stats_key, 60*240, json_encode($matchStats));
+                    } else {
+//                        MatchRedis::getInstance()->set($stats_key, json_encode($matchStats));
+                        $matchRedis->set($stats_key, json_encode($matchStats));
+                    }
+
+                    if (!$oldScore = MatchRedis::getInstance()->get($score_key) && $item['score']) {
+//                        MatchRedis::getInstance()->setEx($score_key, 60*240, json_encode($item['score']));
+                        $matchRedis->setEx($score_key, 60*240, json_encode($matchStats));
+
 
                     } else {
-
-                        $oldTlive = json_decode($oldContent['tlive'], true);
-                        $diff = array_slice($item['tlive'], count($oldTlive));
-
-                        if ($diff) {
-
-                            MatchLive::getInstance()->update($item['id'], ['stats' => json_encode($matchStats), 'tlive' => json_encode($item['tlive']), 'score' => json_encode($item['score'])]);
-
-
-                            $this->pushContent($item['id'], $diff, $matchStats, $item['score']);
-                        }
-
-                        if (Cache::get('is_back_up' . $item['id'])) {
-                            MatchLive::getInstance()->delete($item['id']);
-                        }
+//                        MatchRedis::getInstance()->set($score_key, json_encode($item['score']));
+                        $matchRedis->set($score_key, json_encode($matchStats));
 
                     }
 
+                    if (!$oldTlive = MatchRedis::getInstance()->get($tlive_key) && $item['tlive']) {
+//                        MatchRedis::getInstance()->setEx($tlive_key, 60*240, json_encode($item['tlive']));
+                        $matchRedis->setEx($tlive_key, 60*240, json_encode($matchStats));
+
+                    } else {
+                        $diff = array_slice($item['tlive'], count(json_decode($oldTlive, true)));
+                        if ($diff) {
+//                            MatchRedis::getInstance()->set($tlive_key, json_encode($item['tlive']));
+                            $matchRedis->set($tlive_key, json_encode($matchStats));
+
+                        }
+                        $this->pushContent($item['id'], $diff, $matchStats, $item['score']);
+
+
+                    }
 
                 }
+
+
             }
+
 
         });
     }

@@ -40,7 +40,7 @@ class WebSocket extends FrontUserController
 
     public function test()
     {
-
+//        $res = MatchLive::getInstance()->table();
         $res = Tool::getInstance()->postApi(sprintf($this->uriM, $this->user, $this->secret, '20200907'));
         $resDecode = json_decode($res, true);
 

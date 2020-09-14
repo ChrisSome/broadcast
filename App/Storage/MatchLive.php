@@ -27,7 +27,7 @@ class MatchLive
             'score' => ['type' => Table::TYPE_STRING, 'size' => 4096], //比赛比分字段
             'last_heartbeat' => ['type' => Table::TYPE_INT, 'size' => 4], //最后心跳
 
-        ]);
+        ], 4096);
 
         $this->table = TableManager::getInstance()->get('matchLive');
     }

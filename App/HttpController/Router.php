@@ -299,6 +299,7 @@ class Router extends AbstractRouter
                 $r->addRoute(['GET'], '/footBall/noticeUserMatch', '/Match/FootballMatch/noticeUserMatch');   //推送用户比赛即将开始 1次/分钟
                 $r->addRoute(['GET'], '/footBall/deleteMatch', '/Match/FootballMatch/deleteMatch');   //取消或者删除的比赛
                 $r->addRoute(['GET'], '/footBall/updateYesMatch', '/Match/FootballMatch/updateYesMatch');   //更新昨天比赛
+                $r->addRoute(['GET'], '/footBall/matchTlive', '/Match/FootballMatch/matchTlive');   //推送
 
                 //比赛后端api
 //                $r->addRoute(['GET'], '/footBall/allMatches', '/Match/FootballApi/getAll');   //赛事列表
