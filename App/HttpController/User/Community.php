@@ -176,7 +176,7 @@ class Community extends FrontUserController
             $this->writeJson(Status::CODE_ERR, '未审核通过的帖子不允许查看');
             return;
         }
-        if ($info['status'] == 1 && $this->auth['id'] != $info['user_id']) {
+        if ($info['status'] == AdminUserPost::STATUS_EXAMINE_SUCC && $this->auth['id'] != $info['user_id']) {
             //增加逻辑，点击率增加
             $info->update([
                 'hit' => QueryBuilder::inc(1)
