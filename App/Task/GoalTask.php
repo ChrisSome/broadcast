@@ -55,7 +55,7 @@ class GoalTask implements TaskInterface{
                 $insertData = [
                     'uids' => json_encode($uids),
                     'match_id' => $match->match_id,
-                    'type' => 2
+                    'type' => 3
                 ];
                 $batchPush = new BatchSignalPush();
                 $info = [
@@ -64,7 +64,7 @@ class GoalTask implements TaskInterface{
                     'away_name_zh' => $match->awayTeamName()->name_zh,
                     'competition_name' => $match->competitionName()->short_name_zh,
                 ];
-                $info['type'] = 1;  //开赛通知
+                $info['type'] = 3;  //进球通知
                 $info['title'] = '进球提示';
                 if ($incident['position'] == 1) {
                     $info['content'] = sprintf("%s' %s %s(进球)%s-%s %s", $incident['time'], $info['competition_name'], $info['home_name_zh'], $incident['home_score'], $incident['away_score'], $info['away_name_zh']);

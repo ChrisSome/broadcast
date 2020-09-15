@@ -509,6 +509,8 @@ class FootBallMatch extends FrontUserController
      */
     public function noticeUserMatch()
     {
+
+//        $matches = AdminMatch::getInstance()->where('match_id', 3449756)->all();
         $matches = AdminMatch::getInstance()->where('match_time', time() + 60 * 15, '>')->where('match_time', time() + 60 * 16, '<=')->where('status_id', 1)->all();
 
         if ($matches) {
@@ -535,11 +537,11 @@ class FootBallMatch extends FrontUserController
                         return;
                     }
 
-
+                    $cids = array_unique($cids);
                     $insertData = [
                         'uids' => json_encode($uids),
                         'match_id' => $match->match_id,
-                        'type' => 0,
+                        'type' => 1,
                     ];
                     $batchPush = new BatchSignalPush();
                     $info = [
@@ -562,7 +564,9 @@ class FootBallMatch extends FrontUserController
 
 
                     } else {
-
+                        if ($res->is_notice == 1) {
+                            return;
+                        }
                         $info['rs'] = $res->id;
                         $batchPush = new BatchSignalPush();
 

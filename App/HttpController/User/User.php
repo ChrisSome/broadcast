@@ -626,7 +626,7 @@ class User extends FrontUserController
                 break;
 
         }
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data'=>$formatData, 'count' => $total]);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data'=>isset($formatData) ? $formatData : [], 'count' => $total]);
 
 
 

@@ -65,7 +65,7 @@ class GameOverTask implements TaskInterface{
                     'away_name_zh' => $match->awayTeamName()->name_zh,
                     'competition_name' => $match->competitionName()->short_name_zh,
                 ];
-                $info['type'] = 1;  //开赛通知
+                $info['type'] = 2;  //完赛通知
                 $info['title'] = '进球提示';
                 $homeScore = isset($lastIncident['home_score']) ? $lastIncident['home_score'] : 0;
                 $awayScore = isset($lastIncident['away_score']) ? $lastIncident['away_score'] : 0;
