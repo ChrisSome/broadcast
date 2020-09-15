@@ -357,7 +357,9 @@ class FootBallMatch extends FrontUserController
         $url = sprintf($this->url . $this->uriSteam, $this->user, $this->secret);
         $res = Tool::getInstance()->postApi($url);
         $steam = json_decode($res, true)['data'];
-
+        if (!$steam) {
+            return;
+        }
         foreach ($steam as $item) {
             $data = [
                 'sport_id' => $item['sport_id'],
@@ -605,11 +607,18 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
+        $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, 3403009);
+        $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, 3403009);
+        $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, 3403009);
 
+        $tlive = MatchRedis::getInstance()->get($tlive_key);
+        $stats = MatchRedis::getInstance()->get($stats_key);
+        $score = MatchRedis::getInstance()->get($score_key);
+        $res = Cache::get('is_back_up_' . 3403009);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], [$tlive, $stats, $score, $res]);
 
 //        $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, 3388179);
 //        $res = MatchRedis::getInstance()->get($tlive_key);
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], json_decode($res, true));
 
 //        $url = 'https://open.sportnanoapi.com/api/sports/stream/urls_free?user=%s&secret=%s';
         $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
@@ -620,62 +629,7 @@ class FootBallMatch extends FrontUserController
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
 
-        foreach ($decode as $item) {
-            if ($item['id'] == 3413861) {
-                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $item);
 
-                if ($item['stats']) {
-                    foreach ($item['stats'] as $ki => $vi) {
-                        //2 角球  4：红牌 3：黄牌 21：射正 22：射偏  23:进攻  24危险进攻 25：控球率
-                        if ($vi['type'] == 2 || $vi['type'] == 4 || $vi['type'] == 3 || $vi['type'] == 21 || $vi['type'] == 22 || $vi['type'] == 23 || $vi['type'] == 24 || $vi['type'] == 25) {
-                            $matchStats[] = $vi;
-                        } else {
-                            $matchStats = [];
-                        }
-                    }
-                } else {
-                    $matchStats = [];
-                }
-
-                if ($item['tlive']) {
-                    foreach ($item['tlive'] as $k => $v) {
-                        unset($item['tlive'][$k]['time']);
-                        unset($item['tlive'][$k]['main']);
-                        $matchTlive[] = $item['tlive'][$k];
-                    }
-
-                } else {
-                    $matchTlive = [];
-                }
-
-                if (!$oldContent = MatchLive::getInstance()->get($item['id'])) {
-//                    $this->pushContent($item['id'], $item['tlive'], $matchStats);
-                    MatchLive::getInstance()->set($item['id'], json_encode($matchTlive), json_encode($matchStats));
-                } else {
-
-                    $oldTlive = json_decode($oldContent['tlive'], true);
-                    $diff = array_slice($matchTlive, count($oldTlive));
-                    if ($diff) {
-                        MatchLive::getInstance()->update($item['id'], ['tlive' => json_encode($item['tlive']), 'stats' => json_encode($matchStats)]);
-
-//                        $this->pushContent($item['id'], $diff, $matchStats);
-                    }
-
-
-                }
-
-            }
-        }
-        return;
-        $res = MatchLive::getInstance()->get(3387944);
-//        $diff = array_slice(json_decode($res['tlive'], true), count($old));
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
-
-        foreach ($decode as $item) {
-            $res = MatchLive::getInstance()->set($item['id'], json_encode($item['tlive']));
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $item);
-
-        }
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
     }
 
@@ -685,6 +639,7 @@ class FootBallMatch extends FrontUserController
      */
     public function matchTlive()
     {
+        Log::getInstance()->info('start live1');
 
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96'));
         if ($res) {
@@ -693,10 +648,10 @@ class FootBallMatch extends FrontUserController
                 return;
             }
             foreach ($resDecode as $item) {
-                if (!isset($item['tlive']) || Cache::get('is_back_up_' . $item['id'])) {
-
+                if (Cache::get('is_back_up_' . $item['id'])) {
                     continue;
                 }
+                Log::getInstance()->info('start live');
                 $ins = [];
                 if (isset($item['incidents'])) {
                     foreach ($item['incidents'] as $incident) {

@@ -96,9 +96,7 @@ class Match extends Base
             $stats = MatchRedis::getInstance()->get($stats_key);
             $score = MatchRedis::getInstance()->get($score_key);
         }
-        if ($matchId == 3397926) {
-            Log::getInstance()->info('tlive a' . json_encode($tlive));
-        }
+
         if ($lastMessages) {
             foreach ($lastMessages as $lastMessage) {
                 $data['message_id'] = $lastMessage['id'];
@@ -127,35 +125,7 @@ class Match extends Base
         ];
         $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $respon));
         return;
-        //查看比赛消息, debug不处理
-        if (true) {
-            //设置在线用户表
-            //$online->setMatchId($args['id']);
-            $customerUsers = Login::getInstance()->lrange(sprintf(OnlineUser::LIST_ONLINE, $args['match_id']), 0, -1);
-            if (!in_array($args['mid'], $customerUsers)) {
-                OnlineUser::getInstance()->update($fd, ['match_id' => $args['match_id']]);
-            }
 
-            //并获取最新直播间字信息给用户
-            $chatMessages = [
-                1 => ['id' => 1, 'message' => '鲁尼射门']
-            ];
-
-            $basicData = [
-                'bifen' => "4:2"
-            ];
-            $this->response()->setMessage($tool->writeJson(200, 'ok', [
-                'event' => 'match-enter',
-                'msgType' => 'enter',
-                'msgContent' => [
-                    'messages' => $chatMessages,
-                    'ball' => $basicData
-                ]
-            ]));
-        } else {
-            $this->response()->setMessage($tool->writeJson(403, '参数不正确'));
-
-        }
     }
 
 

@@ -9,25 +9,13 @@
 namespace App\Task;
 
 use App\GeTui\BatchSignalPush;
-use App\lib\pool\Login;
 use App\lib\pool\MatchRedis;
 use App\lib\pool\User as UserRedis;
-use App\lib\Tool;
 use App\Model\AdminMatch;
-use App\Model\AdminMessage;
 use App\Model\AdminNoticeMatch;
 use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
-use App\Model\ChatHistory;
-use App\Storage\ChatMessage;
-use App\Storage\OnlineUser;
-use App\WebSocket\WebSocketStatus;
-use EasySwoole\EasySwoole\ServerManager;
-use App\WebSocket\WebSocketAction;
-use EasySwoole\EasySwoole\Config;
-use EasySwoole\EasySwoole\Logger;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
-use App\Utility\Log\Log;
 
 /**
  * 发送广播消息
