@@ -321,11 +321,12 @@ class Community extends FrontUserController
 
         }
         $model = AdminUserPost::getInstance()->where('status', AdminUserPost::STATUS_EXAMINE_SUCC)->where('cat_id', $this->params['cat_id']);
-        if (isset($this->params['type']) && isset($this->params['is_refine']) && $this->params['is_refine'] == 1) {
-            $model = $model->where('is_fine', AdminUserPost::IS_REFINE);
+        if (isset($this->params['type'])) {
+            $model = $model->where('is_refine', AdminUserPost::IS_REFINE);
         }
         $model = $model->getLimit($page, $size);
         $list = $model->all(null);
+
         $count = $model->lastQueryResult()->getTotalCount();
         $formatData = FrontService::handPosts($list, $this->auth['id'] ?: 0);
 
