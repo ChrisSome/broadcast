@@ -321,7 +321,7 @@ class Community extends FrontUserController
 
         }
         $model = AdminUserPost::getInstance()->where('status', AdminUserPost::STATUS_EXAMINE_SUCC)->where('cat_id', $this->params['cat_id']);
-        if (isset($this->params['type'])) {
+        if (!empty($this->params['type'])) {
             $model = $model->where('is_refine', AdminUserPost::IS_REFINE);
         }
         $model = $model->getLimit($page, $size);
