@@ -157,4 +157,10 @@ class AppFunc
     {
         return $col .  "like '%" . $item . "%'";
     }
+
+
+    public static function handPush()
+    {
+
+    }
 }

@@ -302,7 +302,8 @@ class Router extends AbstractRouter
                 $r->addRoute(['GET'], '/footBall/matchTlive', '/Match/FootballMatch/matchTlive');   //推送
 
                 //比赛后端api
-//                $r->addRoute(['GET'], '/footBall/allMatches', '/Match/FootballApi/getAll');   //赛事列表
+//                $r->addRoute(['GET'], '/footBall/allMatches', '/Match/FootballMatch/test');   //赛事列表
+
                 $r->addRoute(['GET'], '/footBall/competitionList', '/Match/FootballApi/getCompetition');   //赛事列表
                 $r->addRoute(['GET'], '/footBall/matchList', '/Match/FootballApi/frontMatchList');   //比赛列表
                 $r->addRoute(['GET'], '/footBall/matchListPlaying', '/Match/FootballApi/playingMatches');   //正在进行中比赛列表
@@ -314,6 +315,8 @@ class Router extends AbstractRouter
                 $r->addRoute(['GET'], '/footBall/noticeInMatch', '/Match/FootballApi/noticeMatch');   //历史交锋
                 $r->addRoute(['GET'], '/footBall/matchInfo', '/Match/FootballApi/getMatchInfo');   //比赛信息
                 $r->addRoute(['GET'], '/footBall/test', '/Match/FootballMatch/test');   //历史交锋
+
+
 
 
 
