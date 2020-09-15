@@ -612,7 +612,7 @@ class FootBallMatch extends FrontUserController
     public function test()
     {
 
-        $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, 3440231);
+        $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, 3449756);
 //        $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, 3449712);
 //        $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, 3449712);
 //        $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, 3449712);
@@ -658,20 +658,22 @@ class FootBallMatch extends FrontUserController
                     continue;
                 }
                 $ins = [];
+                $isover = false;
                 if (isset($item['incidents'])) {
+
                     foreach ($item['incidents'] as $incident) {
                         if ($incident['type'] == 1) {//进球
                             $ins[] = $incident;
                         }
                         if ($incident['type'] == 12) { //完场
-                            TaskManager::getInstance()->async(new GameOverTask(['match_id' => $item['id'], 'incident' => $incident]));
+                            $isover = true;
                             TaskManager::getInstance()->async(function ($workId) use ($item) {
                                 if (!isset($item['score']) || $item['score'][1] != 8) {
                                     return;
                                 }
                                 if (!AdminMatchTlive::getInstance()->where('match_id', $item['id'])->get()) {
                                     $data = [
-                                        'score' => json_encode($item['socre']),
+                                        'score' => json_encode($item['score']),
                                         'stats' => json_encode($item['stats']),
                                         'incidents' => json_encode($item['incidents']),
                                         'tlive' => json_encode($item['tlive']),
@@ -684,8 +686,13 @@ class FootBallMatch extends FrontUserController
                         }
 
                     }
+
                 }
                 $insertIns = end($ins);
+                if ($isover) {
+                    TaskManager::getInstance()->async(new GameOverTask(['match_id' => $item['id'], 'incident' => $insertIns]));
+
+                }
                 $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, $item['id']);
 
                 if ($insertIns) {

@@ -32,8 +32,7 @@ class GameOverTask implements TaskInterface{
     function run(int $taskId, int $workerIndex){
 
         $match_id = $this->taskData['match_id'];
-        $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, $match_id);
-        $lastIncident = MatchRedis::getInstance()->get($incident_key);
+        $lastIncident = $this->taskData['incident'];
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
         if ($match) {
             $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);
