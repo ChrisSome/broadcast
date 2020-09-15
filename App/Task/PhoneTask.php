@@ -32,7 +32,6 @@ class PhoneTask implements TaskInterface
 
     function insert()
     {
-        Log::getInstance()->info('1用户开始发送短信2');
 
         // TODO: Implement run() method.
         $isDebug = AdminSysSettings::getInstance()->getSysKey('is_debug');

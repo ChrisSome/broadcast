@@ -119,7 +119,7 @@ class MatchLive
         foreach ($this->table as $item) {
             $time = $item['time'];
             if (($time + $ttl) < $time) {
-                var_dump('auto delete:'.$item['mid']);
+
                 $this->close($item['mid']);
             }
         }

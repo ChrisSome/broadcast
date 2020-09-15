@@ -716,6 +716,10 @@ class User extends FrontUserController
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
+        if (!$this->auth['id']) {
+            return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
+
+        }
         $uComs = AdminUserInterestCompetition::getInstance()->where('user_id', $this->auth['id'])->get();
         if ($uComs) {
 

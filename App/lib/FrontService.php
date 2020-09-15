@@ -204,7 +204,6 @@ class  FrontService {
 
 
                 $sql = AdminPostOperate::getInstance()->lastQuery()->getLastQuery();
-                Log::getInstance()->info('sql1111' . $sql);
             } else {
 
                 throw new Exception('type类型错误');

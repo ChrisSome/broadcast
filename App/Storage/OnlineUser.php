@@ -106,7 +106,7 @@ class OnlineUser
     {
         $info = $this->get($fd);
         if ($info) {
-            var_dump('delete', $info);
+
             $key = sprintf(self::LIST_ONLINE, $info['match_id']);
             Login::getInstance()->lrem($key, 0, $info['mid']);
             $info = ['match_id' => 0] + $info;
@@ -124,8 +124,7 @@ class OnlineUser
     {
         foreach ($this->table as $item) {
             $time = $item['time'];
-            if (($time + $ttl) < $time) {
-                var_dump('auto delete:'.$item['mid']);
+            if (($time + $ttl) < $time) {var_dump('auto delete:'.$item['mid']);
                 $this->close($item['mid']);
             }
         }
