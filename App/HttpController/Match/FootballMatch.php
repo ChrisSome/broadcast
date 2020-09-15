@@ -543,7 +543,7 @@ class FootBallMatch extends FrontUserController
                         'match_id' => $match->match_id,
                         'type' => 1,
                     ];
-                    $batchPush = new BatchSignalPush();
+
                     $info = [
                         'match_id' => $match->match_id,
                         'home_name_zh' => $match->homeTeamName()->name_zh,
@@ -553,7 +553,7 @@ class FootBallMatch extends FrontUserController
                     $info['type'] = 1;  //开赛通知
                     $info['title'] = '开赛通知';
                     $info['content'] = sprintf('您关注的【%s联赛】%s-%s将于15分钟后开始比赛，不要忘了哦', $info['competition_name'], $info['home_name_zh'], $info['away_name_zh']);
-
+                    $batchPush = new BatchSignalPush();
                     if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->get()) {
 
 
@@ -611,11 +611,13 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
+
+        $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, 3440231);
 //        $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, 3449712);
 //        $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, 3449712);
 //        $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, 3449712);
 //
-//        $tlive = MatchRedis::getInstance()->get($tlive_key);
+        $tlive = MatchRedis::getInstance()->get($incident_key);
 //        $stats = MatchRedis::getInstance()->get($stats_key);
 //        $score = MatchRedis::getInstance()->get($score_key);
 //        $res = Cache::get('is_back_up_' . 3449712);
@@ -624,7 +626,8 @@ class FootBallMatch extends FrontUserController
 //        $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, 3388179);
 //        $res = MatchRedis::getInstance()->get($tlive_key);
 
-//        $url = 'https://open.sportnanoapi.com/api/sports/stream/urls_free?user=%s&secret=%s';
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $tlive);
+
         $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
         $url = sprintf($url, $this->user, $this->secret);
 
