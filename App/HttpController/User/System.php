@@ -87,7 +87,7 @@ class System extends FrontUserController
 
 
             }
-            $data['wgt_url'] = 'http://download.ymtyadmin.com/WGT/__UNI__0AC1311.wgt';
+            $data['wgt_url'] = 'http://download.yemaoty.cn/WGT/__UNI__0AC1311.wgt';
             $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
         } else {
