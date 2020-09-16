@@ -22,6 +22,7 @@ use EasySwoole\EasySwoole\AbstractInterface\Event;
 use EasySwoole\Http\Request;
 use EasySwoole\Http\Response;
 
+use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Socket\Dispatcher;
 use EasySwoole\Utility\File;
 
@@ -46,7 +47,7 @@ class EasySwooleEvent implements Event
         // 加载配置项
         self::loadConf();
 
-        //设置redisPool
+//        //设置redisPool
         $redisConf = Config::getInstance()->getConf('database')['REDIS'];
         $redisPoolConfig = new  \EasySwoole\Redis\Config\RedisConfig();
         $redisPoolConfig->setHost($redisConf['host']);

@@ -36,7 +36,6 @@ class GoalTask implements TaskInterface{
         if ($match) {
             $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);
             if (!$prepareNoticeUserIds = UserRedis::getInstance()->smembers($key)) {
-                Log::getInstance()->info('无人关注');
                 return;
             } else {
                 $users = AdminUser::getInstance()->where('id', $prepareNoticeUserIds, 'in')->field(['cid', 'id'])->all();

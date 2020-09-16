@@ -5,7 +5,7 @@ vendor
 Temp
 composer.lock
 
-
+/.dev.php
 App/Config/Database.php
 /mysql/data
 /.idea

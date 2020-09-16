@@ -28,6 +28,7 @@ use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
+use EasySwoole\Pool\Manager;
 
 class FootBallMatch extends FrontUserController
 {
@@ -612,7 +613,7 @@ class FootBallMatch extends FrontUserController
 
     }
 
-    public function test()
+    public function test1()
     {
         $lastIncident = [
             'home_score' => 1,
@@ -717,6 +718,20 @@ class FootBallMatch extends FrontUserController
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
     }
 
+
+    public function test(){
+
+        go(function (){
+            $redis = Manager::getInstance()->get('redis')->getObj();
+
+            $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, 3449756);
+            $res = $redis->get($incident_key);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
+
+        });
+
+
+    }
 
     /**
      * 实时比赛 1次/2s

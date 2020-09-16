@@ -120,7 +120,7 @@ class Login extends FrontUserController
 
 //            AdminUserPhonecode::getInstance()->update(['status' => 1], ['id' => $phoneCodeIsExists['id']]);
             $tokenKey = sprintf(AdminUser::USER_TOKEN_KEY, $token);
-            LoginRedis::getInstance()->setEx($tokenKey,  60*60*24*7, $sMobile);
+            LoginRedis::getInstance()->set($tokenKey,  $sMobile);
         } catch (\Exception $e) {
             //异步任务写入异常表
             var_dump($e->getMessage(), $e->getTraceAsString());

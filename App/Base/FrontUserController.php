@@ -87,7 +87,7 @@ class FrontUserController extends BaseController
 		    if (!$json) {
                 return false;
             } else {
-		        Login::getInstance()->set($tokenKey, $json, 60*60*24*7);
+		        Login::getInstance()->set($tokenKey, $json);
 		        $this->auth = json_decode($json, true);
 		        return true;
             }
