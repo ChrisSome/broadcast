@@ -120,7 +120,6 @@ class System extends FrontUserController
         }
 
         $ads = AdminAdvertisement::getInstance()->where('status', AdminAdvertisement::STATUS_NORMAL)->where('cat_id', $this->params['cat_id'])->all();
-        $sql = AdminAdvertisement::getInstance()->lastQuery()->getLastQuery();
         $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $ads);
 
     }

@@ -42,15 +42,18 @@ class GameOverTask implements TaskInterface{
         } else {
             //持久化数据
             $item = $this->taskData['item'];
-            $data = [
-                'score' => json_encode($item['score']),
-                'stats' => json_encode($item['stats']),
-                'incidents' => json_encode($item['incidents']),
-                'tlive' => json_encode($item['tlive']),
-                'match_id' => $item['id']
-            ];
-            AdminMatchTlive::getInstance()->insert($data);
-            Cache::set('is_back_up_' . $item['id'], 1, 60*240);
+            if (!AdminMatchTlive::getInstance()->where('match_id', $match_id)->get()) {
+                $data = [
+                    'score' => json_encode($item['score']),
+                    'stats' => json_encode($item['stats']),
+                    'incidents' => json_encode($item['incidents']),
+                    'tlive' => json_encode($item['tlive']),
+                    'match_id' => $item['id']
+                ];
+                AdminMatchTlive::getInstance()->insert($data);
+                Cache::set('is_back_up_' . $item['id'], 1, 60*240);
+            }
+
         }
 
         //发送通知
