@@ -1,4 +1,4 @@
-c<?php
+<?php
 /**
  * Created by PhpStorm.
  * User: yf

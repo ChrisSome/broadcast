@@ -33,7 +33,7 @@ class BatchSignalPush{
      */
     function pushMessageToSingleBatch(array $cids, $info)
     {
-
+        $cids = array_unique($cids);
 
                 //type=1:开赛通知
         foreach ($cids as $cid) {
@@ -45,25 +45,6 @@ class BatchSignalPush{
             $notices[] = $notice;
             unset($notice);
         }
-//        $cids = [
-//            [
-//                'cid' => '7645b2d25d0ca893d1c8a5be200148bb',
-//                'title' => '开赛通知',
-//                'content' => '您关注的【XX联赛】XXX-XXX将于15分钟后开始比赛，不要忘了哦',
-//                'type' => 1,
-//                'transmissionParams' => ['match_id'=>1,'type'=>1]
-//            ],
-//            [
-//                'cid' => 'd82c244dfdbbbfb9942fa6261d16cc52',
-//                'title' => '开赛通知',
-//                'content' => '您关注的【XX联赛】AAA-AAA将于15分钟后开始比赛，不要忘了哦',
-//                'type' => 1,
-//                'transmissionParams' => ['match_id'=>2,'type'=>1]
-//
-//
-//            ],
-//
-//        ];
         $igt = new \IGeTui(self::HOST, self::APPKEY, self::MASTERSECRET);
         $batch = new \IGtBatch(self::APPKEY, $igt);
         $batch->setApiUrl(self::HOST);
@@ -86,8 +67,6 @@ class BatchSignalPush{
         try {
             $rep = $batch->submit();
             AdminNoticeMatch::getInstance()->update([
-                'title' => $info['title'],
-                'content' => $info['content'],
                 'is_notice' => 1
             ], ['id' => $info['rs']]);
             Log::getInstance()->info('submit res succ' . json_encode($rep));

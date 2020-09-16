@@ -52,11 +52,7 @@ class GoalTask implements TaskInterface{
                 if (!$uids || !$cids) {
                     return ;
                 }
-                $insertData = [
-                    'uids' => json_encode($uids),
-                    'match_id' => $match->match_id,
-                    'type' => 3
-                ];
+
                 $batchPush = new BatchSignalPush();
                 $info = [
                     'match_id' => $match->match_id,
@@ -73,23 +69,17 @@ class GoalTask implements TaskInterface{
                     $info['content'] = sprintf("%s' %s %s%s-%s %s(进球)", $incident['time'], $info['competition_name'], $info['home_name_zh'], $incident['home_score'], $incident['away_score'], $info['away_name_zh']);
 
                 }
+                $insertData = [
+                    'uids' => json_encode($uids),
+                    'match_id' => $match->match_id,
+                    'type' => 3,
+                    'title' => $info['title'],
+                    'content' => $info['content']
+                ];
+                $rs = AdminNoticeMatch::getInstance()->insert($insertData);
+                $info['rs'] = $rs;  //进球通知
 
-                if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->get()) {
-
-
-                    $rs = AdminNoticeMatch::getInstance()->insert($insertData);
-                    $info['rs'] = $rs;  //进球通知
-
-                    $batchPush->pushMessageToSingleBatch($cids, $info);
-
-
-                } else {
-
-                    $batchPush = new BatchSignalPush();
-                    $info['rs'] = $res->id;
-
-                    $batchPush->pushMessageToSingleBatch($cids, $info);
-                }
+                $batchPush->pushMessageToSingleBatch($cids, $info);
 
             }
         }
