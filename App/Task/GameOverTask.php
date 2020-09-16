@@ -12,6 +12,7 @@ use App\GeTui\BatchSignalPush;
 use App\lib\pool\MatchRedis;
 use App\lib\pool\User as UserRedis;
 use App\Model\AdminMatch;
+use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
 use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
@@ -34,12 +35,29 @@ class GameOverTask implements TaskInterface{
 
 
     function run(int $taskId, int $workerIndex){
-        Log::getInstance()->info('fail1');
+
         $match_id = $this->taskData['match_id'];
-//        if (Cache::get('is_back_up_' . $match_id)) {
-//            return;
-//        }
-        $lastIncident = $this->taskData['incident'];
+        if (Cache::get('is_back_up_' . $match_id)) {
+            return;
+        } else {
+            //持久化数据
+            $item = $this->taskData['item'];
+            $data = [
+                'score' => json_encode($item['score']),
+                'stats' => json_encode($item['stats']),
+                'incidents' => json_encode($item['incidents']),
+                'tlive' => json_encode($item['tlive']),
+                'match_id' => $item['id']
+            ];
+            AdminMatchTlive::getInstance()->insert($data);
+            Cache::set('is_back_up_' . $item['id'], 1, 60*240);
+        }
+
+        //发送通知
+        $goal_key = sprintf(MatchRedis::MATCH_GOAL_COUNT_KEY, $match_id);
+
+        $goal_info = MatchRedis::getInstance()->get($goal_key);
+        $lastIncident = $goal_info ? json_decode($goal_info) : [];
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
         if ($match) {
             $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);

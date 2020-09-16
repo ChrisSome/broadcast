@@ -50,7 +50,7 @@ class OnlineUser
             'mid' => $info['mid'],
             'nickname' => $info['nickname'],
             'token' => $info['token'],
-            'user_id' => $info['id'],
+            'user_id' => $info['user_id'],
             'last_heartbeat' => time(),
             'match_id' => !empty($info['match_id']) ? $info['match_id'] : 0
         ]);

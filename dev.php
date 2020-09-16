@@ -30,7 +30,7 @@ return [
     ],
     'DEBUG' => false,  // 是否开启 debug
     'REDIS' => [
-        'host' => '127.0.0.1',
+        'host' => '172.31.227.128',
         'port' => '6379',
         'auth' => 'zhibo_test',
         'timeout' => 3,

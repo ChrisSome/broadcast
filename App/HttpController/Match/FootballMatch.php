@@ -626,71 +626,71 @@ class FootBallMatch extends FrontUserController
 //        }
 
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
-        if ($match) {
-            $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);
-            if (!$prepareNoticeUserIds = UserRedis::getInstance()->smembers($key)) {
-                return;
-            } else {
-
-                $users = AdminUser::getInstance()->where('id', $prepareNoticeUserIds, 'in')->field(['cid', 'id'])->all();
-                foreach ($users as $k=>$user) {
-                    $userSetting = AdminUserSetting::getInstance()->where('user_id', $user['id'])->get();
-                    if (!$userSetting || !$userSetting->followMatch) {
-                        unset($users[$k]);
-                    }
-                }
-                $uids = array_column($users, 'id');
-                $cids = array_column($users, 'cid');
-
-                if (!$uids) {
-
-                    return;
-                }
-
-                $batchPush = new BatchSignalPush();
-                $info = [
-                    'match_id' => $match->match_id,
-                    'home_name_zh' => $match->homeTeamName()->name_zh,
-                    'away_name_zh' => $match->awayTeamName()->name_zh,
-                    'competition_name' => $match->competitionName()->short_name_zh,
-                ];
-                $info['type'] = 2;  //完赛通知
-                $info['title'] = '完赛通知';
-
-                $homeScore = isset($lastIncident['home_score']) ? $lastIncident['home_score'] : 0;
-                $awayScore = isset($lastIncident['away_score']) ? $lastIncident['away_score'] : 0;
-                $info['content'] = sprintf("%s %s(%s)-%s(%s),比赛结束",  $info['competition_name'], $info['home_name_zh'],$homeScore, $info['away_name_zh'], $awayScore);
-                $insertData = [
-                    'uids' => json_encode($uids),
-                    'match_id' => $match->match_id,
-                    'type' => 2,
-                    'title' => $info['title'],
-                    'content' => $info['content']
-                ];
-
-                Log::getInstance()->info('start' );
-
-                if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->where('type', 2)->get()) {
-
-                    $rs = AdminNoticeMatch::getInstance()->insert($insertData);
-                    $info['rs'] = $rs;  //开赛通知
-
-                    $batchPush->pushMessageToSingleBatch($cids, $info);
-
-
-                } else {
-
-                    $batchPush = new BatchSignalPush();
-                    if ($res->is_notice == 1) {
-                        Log::getInstance()->info('cid1' . json_encode($res));
-
-                        return;
-                    }
-                    $info['rs'] = $res->id;
-                    $batchPush->pushMessageToSingleBatch($cids, $info);
-                }
-            }
-        }
+//        if ($match) {
+//            $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);
+//            if (!$prepareNoticeUserIds = UserRedis::getInstance()->smembers($key)) {
+//                return;
+//            } else {
+//
+//                $users = AdminUser::getInstance()->where('id', $prepareNoticeUserIds, 'in')->field(['cid', 'id'])->all();
+//                foreach ($users as $k=>$user) {
+//                    $userSetting = AdminUserSetting::getInstance()->where('user_id', $user['id'])->get();
+//                    if (!$userSetting || !$userSetting->followMatch) {
+//                        unset($users[$k]);
+//                    }
+//                }
+//                $uids = array_column($users, 'id');
+//                $cids = array_column($users, 'cid');
+//
+//                if (!$uids) {
+//
+//                    return;
+//                }
+//
+//                $batchPush = new BatchSignalPush();
+//                $info = [
+//                    'match_id' => $match->match_id,
+//                    'home_name_zh' => $match->homeTeamName()->name_zh,
+//                    'away_name_zh' => $match->awayTeamName()->name_zh,
+//                    'competition_name' => $match->competitionName()->short_name_zh,
+//                ];
+//                $info['type'] = 2;  //完赛通知
+//                $info['title'] = '完赛通知';
+//
+//                $homeScore = isset($lastIncident['home_score']) ? $lastIncident['home_score'] : 0;
+//                $awayScore = isset($lastIncident['away_score']) ? $lastIncident['away_score'] : 0;
+//                $info['content'] = sprintf("%s %s(%s)-%s(%s),比赛结束",  $info['competition_name'], $info['home_name_zh'],$homeScore, $info['away_name_zh'], $awayScore);
+//                $insertData = [
+//                    'uids' => json_encode($uids),
+//                    'match_id' => $match->match_id,
+//                    'type' => 2,
+//                    'title' => $info['title'],
+//                    'content' => $info['content']
+//                ];
+//
+//                Log::getInstance()->info('start' );
+//
+//                if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->where('type', 2)->get()) {
+//
+//                    $rs = AdminNoticeMatch::getInstance()->insert($insertData);
+//                    $info['rs'] = $rs;  //开赛通知
+//
+//                    $batchPush->pushMessageToSingleBatch($cids, $info);
+//
+//
+//                } else {
+//
+//                    $batchPush = new BatchSignalPush();
+//                    if ($res->is_notice == 1) {
+//                        Log::getInstance()->info('cid1' . json_encode($res));
+//
+//                        return;
+//                    }
+//                    $info['rs'] = $res->id;
+//                    $batchPush->pushMessageToSingleBatch($cids, $info);
+//                }
+//            }
+//        }
 
         return;
 //        $res = TaskManager::getInstance()->sync(new GameOverTask(['match_id' => 3449756, 'incident' => $insertIns]));
@@ -721,14 +721,26 @@ class FootBallMatch extends FrontUserController
 
     public function test(){
 
-        go(function (){
-            $redis = Manager::getInstance()->get('redis')->getObj();
 
-            $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, 3449756);
-            $res = $redis->get($incident_key);
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
+        $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
+        $url = sprintf($url, $this->user, $this->secret);
 
-        });
+        $res = Tool::getInstance()->postApi($url);
+        $decode = json_decode($res, true);
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
+        $time = date('Ymd', time());
+        $url = sprintf($this->uriM, $this->user, $this->secret, $time);
+
+        $res = Tool::getInstance()->postApi($url);
+        $teams = json_decode($res, true);
+//                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $teams);
+
+        $decodeDatas = $teams['results'];
+        if (!$decodeDatas) {
+            Log::getInstance()->info(date('Y-d-d H:i:s') . ' 更新无数据');
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
 
 
     }
@@ -754,65 +766,70 @@ class FootBallMatch extends FrontUserController
                 if (isset($item['incidents'])) {
 
                     foreach ($item['incidents'] as $incident) {
+
                         if ($incident['type'] == 1) {//进球
                             $ins[] = $incident;
                         }
-                        if ($incident['type'] == 12) { //完场
-                            $isover = true;
-                            TaskManager::getInstance()->async(function ($workId) use ($item) {
-                                if (!isset($item['score']) || $item['score'][1] != 8) {
-                                    return;
-                                }
-                                if (!AdminMatchTlive::getInstance()->where('match_id', $item['id'])->get()) {
-                                    $data = [
-                                        'score' => json_encode($item['score']),
-                                        'stats' => json_encode($item['stats']),
-                                        'incidents' => json_encode($item['incidents']),
-                                        'tlive' => json_encode($item['tlive']),
-                                        'match_id' => $item['id']
-                                    ];
-                                    AdminMatchTlive::getInstance()->insert($data);
-                                    Cache::set('is_back_up_' . $item['id'], 1, 60*240);
-                                }
-                            });
-
-                        }
 
                     }
 
                 }
-                $insertIns = end($ins);
+                if (isset($item['score'])) {
+                    if ($item['score'][1] == 8) {
+                        $isover = true;
+
+                    }
+                }
                 if ($isover) {
-                    TaskManager::getInstance()->async(new GameOverTask(['match_id' => $item['id'], 'incident' => $insertIns]));
+                    TaskManager::getInstance()->async(new GameOverTask(['match_id' => $item['id'], 'item' => $item]));
+                    continue;
+                }
+                $goal_key = sprintf(MatchRedis::MATCH_GOAL_COUNT_KEY, $item['id']);
+
+                if (isset($item['score']) && $ins) {
+                    // [2783605,8,[1(主队常规), 0（主队半场）, 0, 0, -1（主队角球）, 0（主队加时）, 0（主队点球）],[1, 0, 0, 0, -1, 0, 0],0,""]
+                    if (!$item['score'][2][5] && !$item['score'][3][5]) {
+                        //当主客加时比分为0时，最终比分=常规赛比分+点球大战比分
+                        $homeScore = $item['score'][2][0] + $item['score'][2][6];
+                        $awayScore = $item['score'][3][0] + $item['score'][3][6];
+                    } else {
+                        //当主客加时比分不为0，最终比分=加时比分+点球大战比分
+                        $homeScore = $item['score'][2][5] + $item['score'][2][6];
+                        $awayScore = $item['score'][3][5] + $item['score'][3][6];
+                    }
+                    $value = ['homeScore' => $homeScore, 'awayScore' => $awayScore, 'position' => end($ins)['position'], 'time' => end($ins)['time']];
+                    if (!MatchRedis::getInstance()->get($goal_key)) {
+                        MatchRedis::getInstance()->setEx($goal_key, 60 * 240, json_encode($value));
+                    } else {
+                        MatchRedis::getInstance()->set($goal_key, json_encode($value));
+
+                    }
 
                 }
-                $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, $item['id']);
+                $goal_info_key = sprintf(MatchRedis::MATCH_GOAL_INFO_KEY, $item['id']);
+                //新进球总数
+                $newGoalInfo = count($ins);
+                //旧进球总数
+                $oldGoalInfo = MatchRedis::getInstance()->get($goal_info_key);
+                if (!$oldGoalInfo && $newGoalInfo) {
+                    MatchRedis::getInstance()->setEx($goal_info_key, 60 * 240, $newGoalInfo);
 
-                if ($insertIns) {
-                    //有进球数据
-                    if (!$oldIncident = MatchRedis::getInstance()->get($incident_key)) {
-                        //推一次
-                        MatchRedis::getInstance()->setEx($incident_key, 60 * 240, json_encode($insertIns, JSON_UNESCAPED_SLASHES));
-                        TaskManager::getInstance()->async(new GoalTask(['match_id' => $item['id'], 'incident' => $insertIns]));
+                } else {
+                    if ($oldGoalInfo != $newGoalInfo) {
+                        //修改进球总数
+                        MatchRedis::getInstance()->set($goal_info_key, $newGoalInfo);
 
-                    } else {
-                        $oldIncident = json_decode($oldIncident, true);
-
-
-                        if (($oldIncident['position'] != $insertIns['position'])
-                            && ($oldIncident['home_score'] != $insertIns['home_score'])
-                            && ($oldIncident['away_score'] != $insertIns['away_score'])
-                        ) {
-
-                            //推一次
-                            TaskManager::getInstance()->async(new GoalTask(['match_id' => $item['id'], 'incident' => $insertIns]));
-
-                        }
-                        MatchRedis::getInstance()->set($incident_key, json_encode($insertIns, JSON_UNESCAPED_SLASHES));
-
+                        //进球推送
+                        $goalScore = MatchRedis::getInstance()->get($goal_key);
+                        TaskManager::getInstance()->async(new GoalTask(['match_id' => $item['id'], 'incident' => json_decode($goalScore, true)]));
 
                     }
                 }
+
+
+
+
+
                 if (isset($item['stats'])) {
                     $matchStats = [];
                     foreach ($item['stats'] as $ki => $vi) {
@@ -843,6 +860,7 @@ class FootBallMatch extends FrontUserController
                 } else {
                     MatchRedis::getInstance()->set($stats_key, json_encode($matchStats, JSON_UNESCAPED_SLASHES));
                 }
+
                 if ((!$oldScore = MatchRedis::getInstance()->get($score_key)) && $item['score']) {
                     MatchRedis::getInstance()->setEx($score_key, 60 * 240, json_encode($item['score'], JSON_UNESCAPED_SLASHES));
 
@@ -856,8 +874,11 @@ class FootBallMatch extends FrontUserController
                     MatchRedis::getInstance()->setEx($tlive_key, 60 * 240, json_encode($item['tlive'], JSON_UNESCAPED_SLASHES));
 
                 } else {
-
+                    if (!$item['tlive']) {
+                        continue;
+                    }
                     $diff = array_slice($item['tlive'], count(json_decode($oldTlive, true)));
+
 
                     if ($diff) {
                         MatchRedis::getInstance()->set($tlive_key, json_encode($item['tlive']));
