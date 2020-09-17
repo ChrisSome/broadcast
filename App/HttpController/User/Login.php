@@ -59,9 +59,9 @@ class Login extends FrontUserController
 
         $phoneCodeIsExists = AdminUserPhonecode::getInstance()->where('mobile', $sMobile)->where('code', $code)->orderBy('created_at', 'desc')->get();
 
-//        if (!$phoneCodeIsExists || $phoneCodeIsExists['status'] == 1) {
-//            return $this->writeJson(Statuses::CODE_ERR, '验证码不存在或者验证码错误');
-//        }
+        if (!$phoneCodeIsExists || $phoneCodeIsExists['status'] == 1 || $phoneCodeIsExists['code'] != $code) {
+            return $this->writeJson(Statuses::CODE_ERR, '验证码不存在或者验证码错误');
+        }
 
         //var_dump($isExists, $sUserModel->Sql());
         $isSuccess = FALSE;
@@ -118,7 +118,7 @@ class Login extends FrontUserController
             }
             Cache::set($sUserKey, $token);
 
-//            AdminUserPhonecode::getInstance()->update(['status' => 1], ['id' => $phoneCodeIsExists['id']]);
+            AdminUserPhonecode::getInstance()->update(['status' => 1], ['id' => $phoneCodeIsExists['id']]);
             $tokenKey = sprintf(AdminUser::USER_TOKEN_KEY, $token);
             LoginRedis::getInstance()->set($tokenKey,  $sMobile);
         } catch (\Exception $e) {
