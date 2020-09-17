@@ -874,7 +874,7 @@ class FootBallMatch extends FrontUserController
                     MatchRedis::getInstance()->setEx($tlive_key, 60 * 240, json_encode($item['tlive'], JSON_UNESCAPED_SLASHES));
 
                 } else {
-                    if (!$item['tlive']) {
+                    if (!isset($item['tlive'])) {
                         continue;
                     }
                     $diff = array_slice($item['tlive'], count(json_decode($oldTlive, true)));
