@@ -72,6 +72,7 @@
         });
         var datatable;
         $(document).on('click','.searchBtn',function () {
+
             datatable.reload({
                 where:{
                     nickname:$('#nickname').val().trim(),

@@ -2,6 +2,7 @@
 namespace App\HttpController\Match;
 
 use App\Base\FrontUserController;
+use App\Common\AppFunc;
 use App\lib\FrontService;
 use App\lib\pool\Login;
 use App\lib\pool\MatchRedis;
@@ -12,6 +13,7 @@ use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
 use App\Model\AdminPlayer;
 use App\Model\AdminSteam;
+use App\Model\AdminSysSettings;
 use App\Model\AdminTeam;
 use App\Model\AdminTeamLineUp;
 use App\Model\AdminUser;
@@ -602,12 +604,14 @@ class FootBallMatch extends FrontUserController
 
     }
 
-    public function test1()
+    public function test()
     {
-        $lastIncident = [
-            'home_score' => 1,
-            'away_score' => 2,
-        ];
+        $a = FootballApi::hotCompetition;
+        $com = AdminSysSettings::getInstance()->where('sys_key', 'recommond_com')->get();
+        $com->sys_value = json_encode($a);
+        $com->update();
+        return;
+
 
         $match_id = 3449756;
 //        if (Cache::get('is_back_up_' . $match_id)) {
@@ -615,85 +619,9 @@ class FootBallMatch extends FrontUserController
 //        }
 
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
-//        if ($match) {
-//            $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);
-//            if (!$prepareNoticeUserIds = UserRedis::getInstance()->smembers($key)) {
-//                return;
-//            } else {
-//
-//                $users = AdminUser::getInstance()->where('id', $prepareNoticeUserIds, 'in')->field(['cid', 'id'])->all();
-//                foreach ($users as $k=>$user) {
-//                    $userSetting = AdminUserSetting::getInstance()->where('user_id', $user['id'])->get();
-//                    if (!$userSetting || !$userSetting->followMatch) {
-//                        unset($users[$k]);
-//                    }
-//                }
-//                $uids = array_column($users, 'id');
-//                $cids = array_column($users, 'cid');
-//
-//                if (!$uids) {
-//
-//                    return;
-//                }
-//
-//                $batchPush = new BatchSignalPush();
-//                $info = [
-//                    'match_id' => $match->match_id,
-//                    'home_name_zh' => $match->homeTeamName()->name_zh,
-//                    'away_name_zh' => $match->awayTeamName()->name_zh,
-//                    'competition_name' => $match->competitionName()->short_name_zh,
-//                ];
-//                $info['type'] = 2;  //完赛通知
-//                $info['title'] = '完赛通知';
-//
-//                $homeScore = isset($lastIncident['home_score']) ? $lastIncident['home_score'] : 0;
-//                $awayScore = isset($lastIncident['away_score']) ? $lastIncident['away_score'] : 0;
-//                $info['content'] = sprintf("%s %s(%s)-%s(%s),比赛结束",  $info['competition_name'], $info['home_name_zh'],$homeScore, $info['away_name_zh'], $awayScore);
-//                $insertData = [
-//                    'uids' => json_encode($uids),
-//                    'match_id' => $match->match_id,
-//                    'type' => 2,
-//                    'title' => $info['title'],
-//                    'content' => $info['content']
-//                ];
-//
-//                Log::getInstance()->info('start' );
-//
-//                if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->where('type', 2)->get()) {
-//
-//                    $rs = AdminNoticeMatch::getInstance()->insert($insertData);
-//                    $info['rs'] = $rs;  //开赛通知
-//
-//                    $batchPush->pushMessageToSingleBatch($cids, $info);
-//
-//
-//                } else {
-//
-//                    $batchPush = new BatchSignalPush();
-//                    if ($res->is_notice == 1) {
-//                        Log::getInstance()->info('cid1' . json_encode($res));
-//
-//                        return;
-//                    }
-//                    $info['rs'] = $res->id;
-//                    $batchPush->pushMessageToSingleBatch($cids, $info);
-//                }
-//            }
-//        }
+
 
         return;
-//        $res = TaskManager::getInstance()->sync(new GameOverTask(['match_id' => 3449756, 'incident' => $insertIns]));
-//        $incident_key = sprintf(MatchRedis::MATCH_INCIDENT_KEY, 3449756);
-//        $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, 3449712);
-//        $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, 3449712);
-//        $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, 3449712);
-//
-//        $tlive = MatchRedis::getInstance()->get($incident_key);
-//        $res = Cache::get('is_back_up_' . 3449712);
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $score);
-
-
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
 
         $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
         $url = sprintf($url, $this->user, $this->secret);
@@ -704,11 +632,24 @@ class FootBallMatch extends FrontUserController
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
 
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
     }
 
 
-    public function test(){
+    public function test1(){
+        $cid = 45;
+        $recommondComs = AdminSysSettings::getInstance()->where('sys_key', 'recommond_com')->get();
+        $competitions = json_decode($recommondComs['sys_value'], true);
+
+        foreach ($competitions as $k=>$val) {
+            foreach ($val as $ki=>$item) {
+                if ($item['competition_id'] == $cid) {
+                    unset($competitions[$k][$ki]);
+                } else {
+                    continue;
+                }
+            }
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $competitions);
 
 
         $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';

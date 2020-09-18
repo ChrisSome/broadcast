@@ -85,12 +85,10 @@ return [
                 ]
             ],
             'core.match' => [
-                'name' => '赛程管理',
+                'name' => '赛事管理',
                 'fa' => 'fa-balance-scale',
                 'menu' => [
-                    ['url' => '/core/match/category', 'rule' => 'auth.user', 'name' => '分类管理'],
-                    ['url' => '/core/match/team', 'rule' => 'user.user.add', 'name' => '球队管理'],
-                    ['url' => '/core/match/history', 'rule' => 'user.user.add', 'name' => '赛事管理'],
+                    ['url' => '/core/competition/manage', 'rule' => 'auth.user', 'name' => '赛事配置'],
                 ]
             ]
         ]

@@ -105,6 +105,13 @@ class Router extends AbstractRouter
                 $r->get('/play/add', '/Admin/Core/Play/add');
                 $r->post('/play/add', '/Admin/Core/Play/addData');
 
+                $r->get('/competition/manage', '/Admin/Core/Competition/index');
+                $r->get('/competition/list', '/Admin/Core/Competition/list');
+                $r->get('/competition/info', '/Admin/Core/Competition/info');
+                $r->post('/competition/add', '/Admin/Core/Competition/add');
+                $r->post('/competition/del', '/Admin/Core/Competition/del');
+                $r->post('/competition/save', '/Admin/Core/Competition/save');
+
                 $r->get('/play/edit/{id:\d+}', '/Admin/Core/Play/edit');
                 $r->post('/play/edit/{id:\d+}', '/Admin/Core/Play/editData');
                 $r->post('/play/set/{id:\d+}', '/Admin/Core/Play/set');
