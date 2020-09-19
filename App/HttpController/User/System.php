@@ -84,7 +84,9 @@ class System extends FrontUserController
                 $shield_live = AdminSysSettings::getInstance()->order('created_at', 'DESC')->where('sys_key', self::SYS_KEY_SHIELD_LIVE)->limit(1)->get();
                 $phoneType = $this->params['phone_type'];
                 $data['shield_live'] = json_decode($shield_live['sys_value'], true)[$phoneType] ?: 0;
-
+                if ($this->params['phone_type'] == 'test') {
+                    $data['shield_live'] = 1;
+                }
 
             }
             $data['wgt_url'] = 'http://download.yemaoty.cn/WGT/__UNI__0AC1311.wgt';

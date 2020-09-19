@@ -47,12 +47,20 @@ class Comment extends AdminController
         if (isset($params['nickname']) && !empty($params['nickname'])) {
             $query->where('nickname', $params['nickname']);
         }
-
+        $query->where('status', AdminPostComment::STATUS_NORMAL);
         if (isset($params['time']) && !empty($params['time'])) {
             $times = explode(' - ', $params['time']);
             $query->where('created_at', $times, 'between');
         }
         $data = $query->findAll($page, $offset, $where);
+        foreach ($data as $k => $item) {
+            $data[$k]['nickname'] = $item->uInfo()['nickname'];
+            if (!$item['parent_id']) {
+                $data[$k]['quote_content'] = '';
+            } else {
+                $data[$k]['quote_content'] = $item->getParentContent()['content'];
+            }
+        }
         $count = $query->count();
         $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count, 'params' => $params];
 
@@ -67,22 +75,9 @@ class Comment extends AdminController
 
         $request = $this->request();
         $id = $request->getRequestParam('id');
-        $status =  $request->getRequestParam('status');
-        $info = AdminPostComment::getInstance()->find($id);
-        $old = $info['status'];
-        $bool = AdminPostComment::getInstance()->setValue('status', $status, ['id' => $id]);
-        if ($bool) {
-            if ($status != $old && !empty($info['parent_id'])) {
-                TaskManager::getInstance()->async(new CommentTask([
-                    'type' => 'update',
-                    'path' => $info['path'],
-                    'status' => $status
-                ]));
-            }
-            $this->writeJson(Status::CODE_OK, '');
-        } else {
-            $this->writeJson(Status::CODE_ERR, '删除失败');
-            Log::getInstance()->error("post--del:" . $id . "没有删除失败");
-        }
+        AdminPostComment::getInstance()->update(['status' => AdminPostComment::STATUS_DEL], ['id' => $id]);
+        AdminPostComment::getInstance()->update(['status' => AdminPostComment::STATUS_DEL], ['parent_id' => $id]);
+
+        $this->dataJson(['code'=>0]);
     }
 }

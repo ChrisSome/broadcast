@@ -606,12 +606,10 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        $a = FootballApi::hotCompetition;
-        $com = AdminSysSettings::getInstance()->where('sys_key', 'recommond_com')->get();
-        $com->sys_value = json_encode($a);
-        $com->update();
-        return;
+        $pwd = 'ddddddA.';
+        $res = preg_match('/(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,16}/', $pwd);
 
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
 
         $match_id = 3449756;
 //        if (Cache::get('is_back_up_' . $match_id)) {

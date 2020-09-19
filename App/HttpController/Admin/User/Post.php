@@ -10,6 +10,7 @@ use App\lib\PasswordTool;
 use App\Model\AdminUser;
 use App\Model\AdminUser as UserModel;
 use App\Model\AdminUserPost;
+use App\Model\AdminUserPostsCategory;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 
@@ -61,10 +62,15 @@ class Post extends AdminController
             $query->where('status', AdminUserPost::STATUS_EXAMINE_SUCC);
         }
         $data = $query->findAll($page, $offset, $where);
+        if ($data) {
+            foreach ($data as $k=>$item) {
+                $data[$k]['nickname'] = $item->userInfo()->nickname;
+            }
+        }
         $count = $query->count();
 //        $sql = $query->lastQuery()->tQuery();
 
-        $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count, 'params' => $params, 'sql'=>$sql];
+        $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count, 'params' => $params];
         $this->dataJson($data);
     }
 
@@ -224,12 +230,25 @@ class Post extends AdminController
 
         $request = $this->request();
         $id = $request->getRequestParam('id');
-        $bool = AdminUserPost::getInstance()->setValue('is_top', AdminUserPost::IS_TOP, ['id'=>$id]);
+        $bool = AdminUserPost::getInstance()->update('is_top', AdminUserPost::IS_TOP, ['id'=>$id]);
         if ($bool) {
-            $this->writeJson(Status::CODE_OK, '');
+            $this->dataJson(Status::CODE_ERR, ['code' => 0]);
         } else {
-            $this->writeJson(Status::CODE_ERR, '置顶成功');
-            Log::getInstance()->error("post--setTop:" . $id . "置顶失败");
+            $this->dataJson(Status::CODE_ERR, ['code' => -1]);
+
+        }
+    }
+
+    public function setFine()
+    {
+        $request = $this->request();
+        $id = $request->getRequestParam('id');
+        $bool = AdminUserPost::getInstance()->update(['is_refine'=> AdminUserPost::IS_TOP], ['id'=>$id]);
+        if ($bool) {
+            $this->dataJson(Status::CODE_ERR, ['code' => 0]);
+        } else {
+            $this->dataJson(Status::CODE_ERR, ['code' => -1]);
+
         }
     }
 }

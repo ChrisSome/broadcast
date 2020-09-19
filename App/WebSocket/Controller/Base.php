@@ -54,7 +54,7 @@ class Base extends Controller
             $user = AdminUser::getInstance()->where('id', $info['user_id'])->limit(1)->get();
             Log::getInstance()->info('user_id' . $info['user_id']);
 
-            if (isset($user['status']) && $user['status'] != 1) {
+            if (isset($user['status']) && $user['status'] != AdminUser::STATUS_NORMAL) {
                 $message = '违反直播间规定，详情请联系客服';
                 return false;
             }

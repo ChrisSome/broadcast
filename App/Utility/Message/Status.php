@@ -24,10 +24,21 @@ class Status
     const CODE_LOGIN_W_PASS = 305;   //用户名或密码错误
     const CODE_USER_FOLLOW = 306;   //关注失败
     const CODE_W_PHONE = 307;   //手机号错误
+    const CODE_W_FORMAT_PASS = 310;   //密码格式错误
+    const CODE_W_STATUS = 311;   //用户禁用
+    const CODE_W_FORMAT_NICKNAME = 312;   //用户名不合规
+    const CODE_W_PHONE_CODE = 313;   //用户名不合规
+    const CODE_PHONE_EXIST = 314;   //手机号存在
+    const CODE_FAIL_LOGON = 315;   //注册失败
+    const CODE_USER_NOT_EXIST = 316;   //注册失败
 
     //帖子
     const CODE_ADD_POST = 308;      //用户发布帖子失败
     const CODE_ADD_POST_SENSITIVE = 309;      //用户发布帖子包含敏感词
+
+
+
+
 
     //系统错误
     const CODE_W_PARAM = 401;   //参数错误
@@ -62,6 +73,17 @@ class Status
         self::CODE_WRONG_RES  => '未查询到有效数据',
         self::CODE_WRONG_LIMIT  => '请勿频繁操作',
         self::CODE_W_PHONE  => '手机号码错误',
+        self::CODE_W_FORMAT_PASS => '密码6-16位字符（英文/数字/符号）三种组合，请修改',
+        self::CODE_W_STATUS => '该账号已被禁用,详情请联系客服',
+        self::CODE_W_FORMAT_NICKNAME => '用户名由2-16位数字或字母、汉字、下划线组成,请修改',
+        self::CODE_W_PHONE_CODE => '验证码不存在或错误',
+        self::CODE_PHONE_EXIST => '手机号已存在',
+        self::CODE_FAIL_LOGON => '注册异常，请稍后重试',
+        self::CODE_USER_NOT_EXIST => '用户不存在',
+
+
+
+
         self::CODE_ADD_POST_SENSITIVE  => '帖子内容包含敏感词：%s',
 
         self::CODE_WRONG_MATCH_ORIGIN => '比赛源错误',

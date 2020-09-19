@@ -6,6 +6,7 @@ namespace App\HttpController\User;
 
 use App\Base\FrontUserController;
 use App\lib\FrontService;
+use App\lib\PasswordTool;
 use App\lib\pool\User as UserRedis;
 use App\lib\Tool;
 use App\Model\AdminCompetition;
@@ -738,6 +739,58 @@ class User extends FrontUserController
 
         } else {
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+
+        }
+
+    }
+
+    /**
+     * 用户用户注册完的首次密码设定
+     */
+    public function setPassword()
+    {
+        $user = AdminUser::getInstance()->find($this->auth['id']);
+        if (!$user || $user->status == 0) {
+            return $this->writeJson(Status::CODE_W_STATUS, Status::$msg[Status::CODE_W_STATUS]);
+
+        }
+        $password = $this->params['password'];
+        $res = preg_match('/(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,16}/', $password);
+        if (!$res) {
+            return $this->writeJson(Status::CODE_W_FORMAT_PASS, Status::$msg[Status::CODE_W_FORMAT_PASS]);
+        }
+
+        $password_hash = PasswordTool::getInstance()->generatePassword($password);
+        $user->password_hash = $password_hash;
+        if (!$user->update()) {
+            return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+
+        } else {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+
+        }
+    }
+
+
+    public function changePassword()
+    {
+        if (!isset($this->params['new_pass'])) {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+        }
+        $password = $this->params['new_pass'];
+        $res = preg_match('/(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,16}/', $password);
+        if (!$res) {
+            return $this->writeJson(Status::CODE_W_FORMAT_PASS, Status::$msg[Status::CODE_W_FORMAT_PASS]);
+        }
+        $user = AdminUser::getInstance()->find($this->auth['id']);
+        $password_hash = PasswordTool::getInstance()->generatePassword($password);
+        $user->password_hash = $password_hash;
+        if ($user->update()) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+
+        } else {
+            return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 
         }
 

@@ -102,17 +102,10 @@ class AdminPostComment extends BaseModel
      * @return mixed|null
      * @throws \Throwable
      */
-    public function getParentContent($parentId)
+    public function getParentContent()
     {
-        if (!$parentId) {
-            $res = $this->hasOne(AdminUserPost::class, null, 'post_id', 'id');
+       return $this->hasOne(self::class, null, 'parent_id', 'id');
 
-        } else {
-            $res = $this->hasOne(self::class, null, 'parent_id', 'id');
-
-        }
-
-        return [$res->id, $res->content, isset($res->title) ? $res->title : ''];
 
     }
 

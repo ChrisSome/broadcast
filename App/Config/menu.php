@@ -2,35 +2,35 @@
 
 //后台menu设置成动态
 return [
-    'auth' => [
-        'name' => '管理员及权限',
-        'list' => [
-            'auth.auth' => [
-                'name' => '管理员列表',
-                'fa' => 'fa-user',
-                'menu' => [
-                    ['url' => '/auth', 'rule' => 'auth.auth.view', 'name' => '管理员列表'],
-                    ['url' => '/auth/add', 'rule' => 'auth.auth.add', 'name' => '添加管理员'],
-                ]
-            ],
-            'auth.role' => [
-                'name' => '角色管理',
-                'fa' => 'fa-users',
-                'menu' => [
-                    ['url' => '/role', 'rule' => 'auth.role.view', 'name' => '角色列表'],
-                    ['url' => '/role/add', 'rule' => 'auth.role.add', 'name' => '添加角色'],
-                ]
-            ],
-            'auth.rule' => [
-                'name' => '权限管理',
-                'fa' => 'fa-key fa-fw',
-                'menu' => [
-                    ['url' => '/rule', 'rule' => 'auth.rule.view', 'name' => '权限列表'],
-                    ['url' => '/rule/add', 'rule' => 'auth.rule.add', 'name' => '添加权限'],
-                ]
-            ]
-        ]
-    ],
+//    'auth' => [
+//        'name' => '管理员及权限',
+//        'list' => [
+//            'auth.auth' => [
+//                'name' => '管理员列表',
+//                'fa' => 'fa-user',
+//                'menu' => [
+//                    ['url' => '/auth', 'rule' => 'auth.auth.view', 'name' => '管理员列表'],
+//                    ['url' => '/auth/add', 'rule' => 'auth.auth.add', 'name' => '添加管理员'],
+//                ]
+//            ],
+//            'auth.role' => [
+//                'name' => '角色管理',
+//                'fa' => 'fa-users',
+//                'menu' => [
+//                    ['url' => '/role', 'rule' => 'auth.role.view', 'name' => '角色列表'],
+//                    ['url' => '/role/add', 'rule' => 'auth.role.add', 'name' => '添加角色'],
+//                ]
+//            ],
+//            'auth.rule' => [
+//                'name' => '权限管理',
+//                'fa' => 'fa-key fa-fw',
+//                'menu' => [
+//                    ['url' => '/rule', 'rule' => 'auth.rule.view', 'name' => '权限列表'],
+//                    ['url' => '/rule/add', 'rule' => 'auth.rule.add', 'name' => '添加权限'],
+//                ]
+//            ]
+//        ]
+//    ],
     'user' => [
         'name' => '用户管理',
         'list' => [
@@ -60,10 +60,10 @@ return [
         ]
     ],
     'post' => [
-        'name' => '帖子管理',
+        'name' => '社区管理',
         'list' => [
             'post.manage' => [
-                'name' => '帖子管理',
+                'name' => '社区资讯管理',
                 'fa' => 'fa-post',
                 'menu' => [
                     ['url' => '/user/post', 'rule' => 'user.post', 'name' => '帖子列表'],

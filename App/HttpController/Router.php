@@ -156,9 +156,12 @@ class Router extends AbstractRouter
                 $r->post('/post/del/{id:\d+}', '/Admin/User/Post/del');
                 $r->post('/post/confirm/{id:\d+}', '/Admin/User/Post/confirm');
                 $r->post('/post/setTop/{id:\d+}', '/Admin/User/Post/setTop');
+                $r->post('/post/setFine/{id:\d+}', '/Admin/User/Post/setFine');
                 $r->get('/post/comment/{id:\d+}', '/Admin/User/Comment/index');
                 $r->post('/post/comment/list/{id:\d+}', '/Admin/User/Comment/getAll');
                 $r->post('/post/comment/del/{id:\d+}', '/Admin/User/Comment/del');
+
+                $r->get('/post/category', '/Admin/User/PostCategory/getAll');
             });
 
             //聊天管理
@@ -252,6 +255,7 @@ class Router extends AbstractRouter
                 $r->addRoute(['POST'], '/user/edit-user', '/User/User/editUser'); //用户编辑资料
                 $r->addRoute(['POST'], '/user/comment/getList', '/User/Post/commentList'); //用户发表的评论
                 $r->addRoute(['POST'], '/user/userOperate/posts', '/User/User/userOperatePosts'); //用户操作帖子列表
+                $r->addRoute(['POST'], '/user/setting/password', '/User/User/setPassword'); //用户注册完设定密码
 
 
                 $r->addRoute(['POST'], '/user/post/del', '/User/Post/del'); //用户删除帖子
