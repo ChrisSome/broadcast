@@ -800,7 +800,7 @@ class FootBallMatch extends FrontUserController
 
                 }
 
-                if ((!$oldTlive = MatchRedis::getInstance()->get($tlive_key)) && $item['tlive']) {
+                if ((!$oldTlive = MatchRedis::getInstance()->get($tlive_key)) && isset($item['tlive'])) {
                     MatchRedis::getInstance()->setEx($tlive_key, 60 * 240, json_encode($item['tlive'], JSON_UNESCAPED_SLASHES));
 
                 } else {
