@@ -183,25 +183,7 @@ class FootBallMatch extends FrontUserController
             ];
 
             if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
-                $signal->neutral = $data['neutral'];
-                $signal->note = $data['note'];
-                $signal->match_time = $data['match_time'];
-                $signal->competition_id = $data['competition_id'];
-                $signal->home_team_id = $data['home_team_id'];
-                $signal->away_team_id = $data['away_team_id'];
-                $signal->home_scores = json_encode($data['home_scores']);
-                $signal->away_scores = json_encode($data['away_scores']);
-                $signal->home_position = $data['home_position'];
-                $signal->away_position = $data['away_position'];
-                $signal->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
-                $signal->venue_id = isset($data['venue_id']) ? $data['venue_id'] : 0;
-                $signal->referee_id = isset($data['referee_id']) ? $data['referee_id'] : 0;
-                $signal->round = isset($data['round']) ? json_encode($data['round']) : '';
-                $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
-                $signal->status_id = $data['status_id'];
-                $signal->updated_at = $data['updated_at'];
-                $signal->season_id = $data['season_id'];
-                $signal->update();
+                AdminMatch::getInstance()->update($insertData, ['match_id' => $data['id']]);
 
             } else {
                 AdminMatch::getInstance()->insert($insertData);
@@ -211,6 +193,7 @@ class FootBallMatch extends FrontUserController
         Log::getInstance()->info(date('Y-d-d H:i:s') . ' 当天比赛更新完成');
 
     }
+
 
 
     /**
