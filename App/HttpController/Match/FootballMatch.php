@@ -45,7 +45,7 @@ class FootBallMatch extends FrontUserController
     protected $url = 'https://open.sportnanoapi.com';
 
     protected $uriMatchList = '/api/v4/football/competition/list?user=%s&secret=%s';
-    protected $uriTeamList = '/api/v4/football/team/list?user=%s&secret=%s&id=%s';
+    protected $uriTeamList = '/api/v4/football/team/list?user=%s&secret=%s&time=%s';
 
     protected $uriM = 'https://open.sportnanoapi.com/api/v4/football/match/diary?user=%s&secret=%s&date=%s';
     protected $uriCompetition = '/api/v4/football/competition/list?user=%s&secret=%s&id=%s';
@@ -89,9 +89,8 @@ class FootBallMatch extends FrontUserController
     function teamList()
     {
 
-        $max = AdminTeam::getInstance()->order('team_id', 'DESC')->limit(1)->all()[0];
-        $maxId = $max['team_id'];
-        $url = sprintf($this->url . $this->uriTeamList, $this->user, $this->secret, $maxId + 1);
+
+        $url = sprintf($this->url . $this->uriTeamList, $this->user, $this->secret, time());
         $res = Tool::getInstance()->postApi($url);
         $teams = json_decode($res, true);
 
@@ -124,13 +123,14 @@ class FootBallMatch extends FrontUserController
                 'national_players' => $team['national_players'],
                 'updated_at' => $team['updated_at'],
             ];
-
-            if (!AdminTeam::getInstance()->insert($data)) {
-                $sql = AdminTeam::getInstance()->lastQuery()->getLastQuery();
+            if (AdminTeam::getInstance()->where('team_id', $team['id'])->get()) {
+                AdminTeam::getInstance()->update($data, ['team_id' => $team['id']]);
+            } else {
+                AdminTeam::getInstance()->insert($data);
             }
+
         }
-        self::teamList();
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $max);
+
 
 
     }
