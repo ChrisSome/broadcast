@@ -54,7 +54,7 @@ class FootBallMatch extends FrontUserController
 
     protected $uriSteam = '/api/sports/stream/urls_free?user=%s&secret=%s'; //直播地址
     protected $uriLineUp = '/api/v4/football/team/squad/list?user=%s&secret=%s&id=%s';  //阵容
-    protected $uriPlayer = '/api/v4/football/player/list?user=%s&secret=%s&id=%s';  //阵容
+    protected $uriPlayer = '/api/v4/football/player/list?user=%s&secret=%s&time=%s';  //阵容
     protected $uriCompensation = '/api/v4/football/compensation/list?user=%s&secret=%s&date=%s&id=%s';  //获取比赛历史同赔统计数据列表
     protected $live_url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
 
@@ -409,18 +409,17 @@ class FootBallMatch extends FrontUserController
     }
 
 
-    public function getPlayers($maxId = 0)
+    public function getPlayers()
     {
-        $maxid = $maxId ? $maxId : 0;
-        $max = AdminPlayer::getInstance()->order('id', 'DESC')->limit(1)->get();
-        $url = sprintf($this->url . $this->uriPlayer, $this->user, $this->secret, $max->player_id);
+
+        $time = time();
+        $url = sprintf($this->url . $this->uriPlayer, $this->user, $this->secret, $time);
         $res = Tool::getInstance()->postApi($url);
         $resp = json_decode($res, true);
-//        return $this->writeJson(Status::CODE_OK, '更新完成', $resp);
+
 
         if (!$resp['query']['total']) {
-            return $this->writeJson(Status::CODE_OK, '更新完成');
-
+            Log::getInstance()->info('球员更新完成');
         }
         foreach ($resp['results'] as $item) {
             $inert = [
@@ -449,7 +448,8 @@ class FootBallMatch extends FrontUserController
             }
         }
 
-        self::getLineUp();
+        Log::getInstance()->info('球员更新完成');
+
     }
 
     /**
