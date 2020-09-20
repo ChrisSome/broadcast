@@ -3,22 +3,15 @@
 namespace App\HttpController\Match;
 use App\Base\FrontUserController;
 use App\lib\FrontService;
-use App\lib\pool\Login;
-use App\lib\pool\MatchRedis;
 use App\lib\pool\User as UserRedis;
 use App\lib\Tool;
 use App\Model\AdminClashHistory;
 use App\Model\AdminMatch;
-use App\Model\AdminMatchTlive;
 use App\Model\AdminPlayer;
 use App\Model\AdminSystemAnnoucement;
 use App\Model\AdminUserInterestCompetition;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
-use App\WebSocket\WebSocketStatus;
-use easySwoole\Cache\Cache;
-use EasySwoole\Component\Timer;
-use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\Validate\Validate;
 

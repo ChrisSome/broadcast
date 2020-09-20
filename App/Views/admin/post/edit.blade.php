@@ -1,12 +1,9 @@
 @extends('admin.auth.postBase')
 
 @section('body-title')
-    <div class="layui-card-header">审核帖子1</div>
+    <div class="layui-card-header">审核帖子</div>
     <div class="white p20">
         <table class="layui-hide" id="test" lay-filter="test"></table>
-
-
-
 
         <!-- 操作 -->
         <script type="text/html" id="barDemo">

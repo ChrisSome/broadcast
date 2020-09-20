@@ -12,6 +12,7 @@ class AdminSysSettings extends BaseModel
     protected $tableName = "admin_sys_setting";
 
     const SYSTEM_SETTING_KEY = 'admin:system:%s';
+    const SETTING_DATA_COMPETITION = 'data_competition';
 
     public function findAll($page, $limit)
     {

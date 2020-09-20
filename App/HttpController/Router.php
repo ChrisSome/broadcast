@@ -151,6 +151,8 @@ class Router extends AbstractRouter
                 $r->addRoute(['POST'], '/post/examine', '/Admin/User/Post/getAll');
 
                 $r->get('/post/edit/{id:\d+}', '/Admin/User/Post/edit');
+                $r->get('/post/add', '/Admin/User/Post/add');
+                $r->post('/post/add/{type:\d+}', '/Admin/User/Post/add');
                 $r->post('/post/edit/{id:\d+}', '/Admin/User/Post/editData');
                 $r->post('/post/set/{id:\d+}', '/Admin/User/Post/set');
                 $r->post('/post/del/{id:\d+}', '/Admin/User/Post/del');

@@ -67,7 +67,7 @@ return [
                 'fa' => 'fa-post',
                 'menu' => [
                     ['url' => '/user/post', 'rule' => 'user.post', 'name' => '帖子列表'],
-                    ['url' => '/user/post/accusation', 'rule' => 'user.post.accusation', 'name' => '帖子举报管理'],
+//                    ['url' => '/user/post/add', 'rule' => 'user.post.accusation', 'name' => '帖子'],
                     ['url' => '/user/post/examine', 'rule' => 'user.post.examine', 'name' => '帖子审核管理'],
                 ]
             ]

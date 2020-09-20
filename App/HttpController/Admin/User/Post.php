@@ -251,4 +251,20 @@ class Post extends AdminController
 
         }
     }
+
+    public function add()
+    {
+        $request = $this->request();
+        $type = $request->getRequestParam('type');
+        Log::getInstance()->info('parasm' . json_encode($request->getRequestParam()));
+
+        if ($type == 1) {
+            return $this->render('admin.post.add');
+
+        } else if ($type == 2) {
+    Log::getInstance()->info('parasm' . json_encode($request->getRequestParam()));
+        }
+
+
+    }
 }

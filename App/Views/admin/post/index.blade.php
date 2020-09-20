@@ -40,6 +40,9 @@
                         <div class="layui-col-md2">
                             <button class="layui-btn layui-btn-sm searchBtn" type="button">搜索</button>
                         </div>
+                        <div class="layui-col-md2">
+                            <button class="layui-btn layui-btn-sm postAddBtn" type="button">发帖</button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -96,6 +99,17 @@
                     curr:1
                 }
             })
+        });
+        $(document).on('click','.postAddBtn',function () {
+
+            layer.open({
+                title: '帖子发布'
+                , type: 2
+                , method:'post'
+                , content: '/user/post/add?type=1'
+                , area: ['800px', '620px']
+            });
+
         });
         layui.use('table', function () {
             var table = layui.table, form = layui.form;
