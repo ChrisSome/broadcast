@@ -179,6 +179,7 @@ class FootBallMatch extends FrontUserController
                 'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
                 'status_id' => $data['status_id'],
                 'updated_at' => $data['updated_at'],
+                'season_id' => $data['season_id'],
             ];
 
             if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
@@ -199,6 +200,7 @@ class FootBallMatch extends FrontUserController
                 $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
                 $signal->status_id = $data['status_id'];
                 $signal->updated_at = $data['updated_at'];
+                $signal->season_id = $data['season_id'];
                 $signal->update();
 
             } else {
