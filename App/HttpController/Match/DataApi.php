@@ -14,7 +14,6 @@ class DataApi extends FrontUserController{
 
     public function getHotCompetition()
     {
-        $key = AdminSysSettings::SETTING_DATA_COMPETITION;
         $competitionId = $this->params['competition_id'];
         $dataHotCompetition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
         if ($dataHotCompetition) {
