@@ -606,10 +606,11 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        $pwd = 'ddddddA.';
-        $res = preg_match('/(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,16}/', $pwd);
+        $matches = AdminMatch::getInstance()->where('season_id', 9023)->all();
+//        $join_team_ids = AdminTeam::getInstance()->where('competition_id', 82)->field(['team_id'])->all();
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
+//$ids = array_column($join_team_ids, 'team_id');
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $matches);
 
         $match_id = 3449756;
 //        if (Cache::get('is_back_up_' . $match_id)) {

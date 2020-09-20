@@ -7,6 +7,7 @@ use App\Base\FrontUserController;
 use App\lib\FrontService;
 use App\Model\AdminCompetition;
 use App\Model\AdminMatch;
+use App\Model\AdminPlayer;
 use App\Model\AdminSysSettings;
 use App\Model\AdminTeam;
 
@@ -53,13 +54,22 @@ class DataApi extends FrontUserController{
 
                     //参赛球队
                     $join_team_count = AdminTeam::getInstance()->where('competition_id', $cid)->count();
+                    $current_season = $competition->cur_season_id;
+                    $matches = AdminMatch::getInstance()->where('season_id', $current_season)->all();
+                    //球员总数
+                    $player_count = AdminTeam::getInstance()->where('competition_id', $cid)->sum('total_players');
+                    //非本土球员数
+                    $player_count_foreign = AdminTeam::getInstance()->where('competition_id', $cid)->sum('foreign_players');
+                    //球队总市值
                     //基本信息
                     $basic = [
                         'last_match' => $formatLastMatch,
                         'statistics' => [
                             'title_holder' => isset($title_holder_team_info) ? $title_holder_team_info : [],
                             'most_titles' => isset($most_titles_team_info) ? $most_titles_team_info : [],
-                            'join_team_count' => $join_team_count
+                            'join_team_count' => $join_team_count,
+                            'player_count' => $player_count,
+                            'player_count_no_native' => $player_count_foreign
                         ]
                     ];
                 }
