@@ -48,7 +48,7 @@ class FootBallMatch extends FrontUserController
     protected $uriTeamList = '/api/v4/football/team/list?user=%s&secret=%s&time=%s';
 
     protected $uriM = 'https://open.sportnanoapi.com/api/v4/football/match/diary?user=%s&secret=%s&date=%s';
-    protected $uriCompetition = '/api/v4/football/competition/list?user=%s&secret=%s&id=%s';
+    protected $uriCompetition = '/api/v4/football/competition/list?user=%s&secret=%s&time=%s';
 
     protected $uriStage = '/api/v4/football/stage/list?user=%s&secret=%s&date=%s';
 
@@ -264,9 +264,8 @@ class FootBallMatch extends FrontUserController
     function competitionList()
     {
 
-        $max = AdminCompetition::getInstance()->order('competition_id', 'DESC')->limit(1)->all()[0];
-        $maxId = $max['competition_id'];
-        $url = sprintf($this->url . $this->uriCompetition, $this->user, $this->secret, $maxId + 1);
+
+        $url = sprintf($this->url . $this->uriCompetition, $this->user, $this->secret, strtotime(date("Y-m-d"),time()));
         $res = Tool::getInstance()->postApi($url);
         $teams = json_decode($res, true);
         if ($teams['query']['total'] == 0) {
@@ -302,6 +301,7 @@ class FootBallMatch extends FrontUserController
                 AdminCompetition::getInstance()->insert($insertData);
             }
         }
+
 
         Log::getInstance()->info(date('Y-m-d H:i:s') . ' 更新赛季');
 //        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $teams);
