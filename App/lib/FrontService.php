@@ -15,7 +15,8 @@ use EasySwoole\ORM\DbManager;
 use mysql_xdevapi\Exception;
 
 class  FrontService {
-
+    const TEAM_LOGO = 'https://cdn.sportnanoapi.com/football/team/';
+    const PLAYER_LOGO = 'https://cdn.sportnanoapi.com/football/player/';
 
     /** 登录人id
      * @param $posts
@@ -369,6 +370,53 @@ class  FrontService {
         return $competitioneids;
     }
 
+
+    /**
+     * 处理球员数据 得到各种榜单
+     * @param $players
+     * @param $column
+     * @return array
+     */
+    public static function handBestPlayerTable($players, $column)
+    {
+        if (!$players || !isset($players['players_stats'])) {
+            $table = [];
+        }
+        foreach ($players['players_stats'] as $k => $player) {
+            $data['position'] = $k+1;
+            $data['player_id'] = $player['player']['id'];
+            $data['name_zh'] = end(explode('·', $player['player']['name_zh']));
+            $data['team_logo'] = self::TEAM_LOGO . $player['team']['logo'];
+            $data['player_logo'] = self::PLAYER_LOGO . $player['player']['logo'];
+            $data['total'] = $player[$column];
+            $table[] = $data;
+            unset($data);
+        }
+        return isset($table) ? $table : [];
+    }
+
+    /**
+     * 处理球员数据 得到各种榜单
+     * @param $data
+     * @param $column
+     * @return array
+     */
+    public static function handBestTeamTable($data, $column)
+    {
+        if (!$data || !isset($data['teams_stats'])) {
+            $table = [];
+        }
+        foreach ($data['teams_stats'] as $k => $player) {
+            $data['position'] = $k+1;
+            $data['team_id'] = $player['team']['id'];
+            $data['name_zh'] = $player['player']['name_zh'];
+            $data['team_logo'] = self::TEAM_LOGO . $player['team']['logo'];
+            $data['total'] = $player[$column];
+            $table[] = $data;
+            unset($data);
+        }
+        return isset($table) ? $table : [];
+    }
 
 
 }

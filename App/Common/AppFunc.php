@@ -240,4 +240,35 @@ class AppFunc
             return 'Z';
         return 'hot';
     }
+
+
+    /**
+     * 将整数转化为 x亿x千万
+     * @param $number
+     * @return mixed
+     */
+    public static function formatValue($number)
+    {
+
+        $wan_int = substr($number, -8);
+
+        $length = strlen($number);  //数字长度
+        if($length > 8){ //亿单位
+            $yi = substr_replace(strstr($number,substr($number,-7),' '),'.',-1,0);
+            $yi_str = floor($yi) . '亿';
+            $wan = substr_replace(strstr($wan_int,substr($wan_int,-3),' '),'.',-1,0);
+            $wan_str = floor($wan) . '万';
+            return $yi_str . $wan_str . '欧';
+
+        }elseif($length >4){ //万单位
+            $wan = substr_replace(strstr($wan_int,substr($wan_int,-3),' '),'.',-1,0);
+            $wan_str = floor($wan) . '万欧';
+            return $wan_str;
+        }else{
+            return '';
+
+        }
+
+
+    }
 }

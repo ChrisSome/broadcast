@@ -314,6 +314,13 @@ class Router extends AbstractRouter
                 $r->addRoute(['GET'], '/footBall/updateYesMatch', '/Match/FootballMatch/updateYesMatch');   //更新昨天比赛
                 $r->addRoute(['GET'], '/footBall/matchTlive', '/Match/FootballMatch/matchTlive');   //推送
 
+
+                $r->addRoute(['GET'], '/footBall/formatValue', '/Match/DataApi/formatValue');   //推送
+                $r->addRoute(['GET'], '/footBall/CategoryCountry', '/Match/DataApi/CategoryCountry');   //国家分类
+                $r->addRoute(['GET'], '/footBall/competitionByCid', '/Match/DataApi/competitionByCid');   //获取赛事
+                $r->addRoute(['GET'], '/footBall/FIFAMaleRank', '/Match/DataApi/FIFAMaleRank');   //FIFA男子排名
+                $r->addRoute(['GET'], '/footBall/competitionInfo', '/Match/DataApi/competitionInfo');   //FIFA男子排名
+
                 //比赛后端api
 //                $r->addRoute(['GET'], '/footBall/allMatches', '/Match/FootballMatch/test');   //赛事列表
 
