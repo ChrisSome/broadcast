@@ -96,7 +96,6 @@ class EasySwooleEvent implements Event
         // 热更新
         $hot_reload = (new HotReload('HotReload', ['disableInotify' => false]))->getProcess();
         ServerManager::getInstance()->getSwooleServer()->addProcess($hot_reload);
-//        Timer::getInstance()->loop(20 * 1000, (new NamiPushTask('NamiPush')));
 
         //纳米数据推送
 //        $nami_push = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();

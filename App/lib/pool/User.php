@@ -27,6 +27,7 @@ class User extends RedisPool
 
     const USER_INTEREST_MATCH = 'user_insterest_match:match_id:%s';  //关注此场比赛的用户
     const USER_INTEREST_MATCHES = 'user_interest_matches';
+    const USER_BLACK_LIST = 'user_black_list:%s';
 
     /**
      * 关注用户

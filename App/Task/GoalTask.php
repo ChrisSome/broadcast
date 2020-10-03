@@ -41,7 +41,9 @@ class GoalTask implements TaskInterface{
                 $users = AdminUser::getInstance()->where('id', $prepareNoticeUserIds, 'in')->field(['cid', 'id'])->all();
                 foreach ($users as $k=>$user) {
                     $userSetting = AdminUserSetting::getInstance()->where('user_id', $user['id'])->get();
-                    if (!$userSetting || !$userSetting->followMatch) {
+                    $pushSetting = json_decode($userSetting, true);
+
+                    if (!$userSetting || !$pushSetting['goal']) {
                         unset($users[$k]);
                     }
                 }

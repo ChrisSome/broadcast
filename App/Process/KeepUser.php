@@ -11,6 +11,7 @@ namespace App\Process;
 
 use App\lib\pool\Login;
 use App\Storage\OnlineUser;
+use EasySwoole\Component\Timer;
 use EasySwoole\EasySwoole\ServerManager;
 use Swoole\Process;
 /**
@@ -23,15 +24,18 @@ class KeepUser
 
     public function run()
     {
-        $online = OnlineUser::getInstance();
-        $server = ServerManager::getInstance()->getSwooleServer();
-        foreach ($online->table() as $mid => $info) {
-            $connection = $server->connection_info($info['fd']);
-            if (!(is_array($connection) && $connection['websocket_status'] == 3)) {
-                //删除
-                $online->delete($mid);
+        Timer::getInstance()->loop(60 * 1000, function () {
+            $online = OnlineUser::getInstance();
+            $server = ServerManager::getInstance()->getSwooleServer();
+            foreach ($online->table() as $mid => $info) {
+                $connection = $server->connection_info($info['fd']);
+                if (!is_array($connection) || $connection['websocket_status'] != 3) {
+                    //删除
+                    $online->heartbeatCheck($info['fd']);
+                }
             }
-        }
+        });
+
     }
 
 }

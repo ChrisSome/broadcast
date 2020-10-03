@@ -7,6 +7,8 @@ use App\Base\BaseModel;
 class AdminCategory extends BaseModel
 {
     const CATEGORY_ANNOCEMENT = 2;
+
+    const STATUS_NORMAL = 1;
     protected $tableName = "admin_system_message_category";
 
     public function findAll($page, $limit)

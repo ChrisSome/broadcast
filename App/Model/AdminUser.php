@@ -14,7 +14,8 @@ class AdminUser extends BaseModel
     const USER_TOKEN_KEY = 'user:token:%s';   //token
 
     const STATUS_NORMAL = 1;   //正常
-    const STATUS_FORBIDDEN = 2; //禁言
+    const STATUS_REPORTED = 2; //被举报
+    const STATUS_FORBIDDEN = 3; //禁言
 
     const STATUS_PRE_INIT = 1;      //用户信息审核状态
     public function findAll($page, $limit)

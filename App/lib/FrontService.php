@@ -1,11 +1,14 @@
 <?php
 namespace App\lib;
 
+use App\Common\AppFunc;
 use App\HttpController\Match\FootballApi;
 use App\lib\pool\User as UserRedis;
 use App\Model\AdminInterestMatches;
+use App\Model\AdminPlayer;
 use App\Model\AdminPostComment;
 use App\Model\AdminPostOperate;
+use App\Model\AdminTeam;
 use App\Model\AdminUserInterestCompetition;
 use App\Model\AdminUserPost;
 use App\Utility\Log\Log;
@@ -304,16 +307,18 @@ class  FrontService {
                         $homeWin = 0;
                     }
                 }
-
-                $item['home_team_name'] = $match->homeTeamName()['name_zh'];
-                $item['home_team_logo'] = $match->homeTeamName()['logo'];
-                $item['away_team_name'] = $match->awayTeamName()['name_zh'];
-                $item['away_team_logo'] = $match->awayTeamName()['logo'];
+                $home_team = $match->homeTeamName();
+                $away_team = $match->awayTeamName();
+                $competition = $match->competitionName();
+                $item['home_team_name'] = $home_team['name_zh'];
+                $item['home_team_logo'] = $home_team['logo'];
+                $item['away_team_name'] = $away_team['name_zh'];
+                $item['away_team_logo'] = $away_team['logo'];
                 $item['group_num'] = json_decode($match->round, true)['group_num']; //第几组
                 $item['round_num'] = json_decode($match->round, true)['round_num']; //第几轮
                 $item['competition_type'] = $match->competitionName['type'];
-                $item['competition_name'] = $match->competitionName()['short_name_zh'];
-                $item['competition_color'] = $match->competitionName()['primary_color'];
+                $item['competition_name'] = $competition['short_name_zh'];
+                $item['competition_color'] = $competition['primary_color'];
                 $item['match_time'] = date('H:i', $match['match_time']);
                 $item['format_match_time'] = date('Y-m-d H:i', $match['match_time']);
                 $item['user_num'] = mt_rand(20, 50);
@@ -406,17 +411,87 @@ class  FrontService {
         if (!$data || !isset($data['teams_stats'])) {
             $table = [];
         }
-        foreach ($data['teams_stats'] as $k => $player) {
-            $data['position'] = $k+1;
-            $data['team_id'] = $player['team']['id'];
-            $data['name_zh'] = $player['player']['name_zh'];
-            $data['team_logo'] = self::TEAM_LOGO . $player['team']['logo'];
-            $data['total'] = $player[$column];
-            $table[] = $data;
-            unset($data);
+        foreach ($data as $k => $player) {
+//            $data['position'] = $k+1;
+            $return['team_id'] = $player['team']['id'];
+            $return['name_zh'] = $player['team']['name_zh'];
+            $return['team_logo'] = self::TEAM_LOGO . $player['team']['logo'];
+            $return['total'] = $player[$column];
+            $table[] = $return;
+            unset($return);
         }
+
         return isset($table) ? $table : [];
     }
 
+    public function handInformation($information, $uid)
+    {
+        if (!$information) {
+            return [];
+        } else {
+            $datas = [];
+            foreach ($information as $item) {
+                $data['id'] = $item->id;
+                $data['user_id'] = $item->user_id;
+                $data['title'] = $item->title;
+                $data['content'] = $item->content;
+                $data['img'] = $item->img;
+                $data['created_at'] = $item->created_at;
+                $data['hit'] = $item->hit;
+                $data['fabolus_number'] = $item->fabolus_number;
+                $data['respon_number'] = $item->respon_number;
+                $data['collect_number'] = $item->collect_number;
+                //发帖人信息
+                $data['userInfo'] = $item->userInfo();
+                //是否关注发帖人
+                $data['is_follow'] = $uid ? UserRedis::getInstance()->isFollow($uid, $item['user_id']) : false;
+                //是否收藏该资讯
+                $data['is_collect'] = $uid ? ($item->isCollect($uid, $item->id) ? true : false) : false;
+                //是否赞过
+                $data['is_fabolus'] = $uid ? ($item->isFablous($uid, $item->id) ? true : false) : false;
+                $data['is_me'] = $uid ? ($item->user_id == $uid ? true : false) : false;
+
+                $datas[] = $data;
+                unset($data);
+
+            }
+        }
+        return $datas;
+    }
+
+
+    /**
+     * 转会球员
+     */
+    public function handChangePlayer($res)
+    {
+        if (!$res) {
+            return [];
+        }
+        $return = [];
+        foreach ($res as $item) {
+            if (!$player = AdminPlayer::getInstance()->where('player_id', $item['player_id'])->get()) {
+                return [];
+            }
+            if(!$from_team = AdminTeam::getInstance()->where('team_id', $item['from_team_id'])->get()) {
+
+            }
+
+            $data['player_id'] = $item['player_id'];
+            $data['transfer_time'] = date('Y-m-d', $item['transfer_time']);
+            $data['transfer_type'] = $item['transfer_type'];
+            $data['transfer_fee'] = AppFunc::changeToWan($item['transfer_fee']);
+            $data['transfer_fee'] = AppFunc::changeToWan($item['transfer_fee']);
+            $data['name_zh'] = end(explode('·', $player['name_zh']));
+            $data['logo'] = $player['logo'];
+            $data['from_team_name_zh'] = $item->fromTeamInfo()['name_zh'];
+            $data['from_team_id'] = $item->fromTeamInfo()['team_id'];
+            $data['to_team_name_zh'] = $item->ToTeamInfo()['name_zh'];
+            $data['to_team_id'] = $item->ToTeamInfo()['team_id'];
+            $return[] = $data;
+            unset($data);
+        }
+        return $return;
+    }
 
 }

@@ -13,6 +13,7 @@ class AdminSysSettings extends BaseModel
 
     const SYSTEM_SETTING_KEY = 'admin:system:%s';
     const SETTING_DATA_COMPETITION = 'data_competition';
+    const SETTING_TITLE_BANNER = 'information_title_banner';
 
     public function findAll($page, $limit)
     {

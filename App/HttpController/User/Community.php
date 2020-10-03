@@ -7,20 +7,24 @@ namespace App\HttpController\User;
 use App\Base\FrontUserController;
 use App\lib\FrontService;
 use App\lib\pool\User as UserRedis;
+use App\Model\AdminCategory;
+use App\Model\AdminCompetition;
+use App\Model\AdminInformation;
+use App\Model\AdminMatch;
 use App\Model\AdminMessage;
 use App\Model\AdminPostComment;
 use App\Model\AdminPostOperate;
+use App\Model\AdminSensitive;
 use App\Model\AdminSystemAnnoucement;
+use App\Model\AdminTeam;
 use App\Model\AdminUser;
 use App\Model\AdminUserPost;
 use App\Model\AdminUserPostsCategory;
-use App\Task\LoginTask;
-use App\Utility\Log\Log;
 use EasySwoole\EasySwoole\Swoole\Task\TaskManager;
 use App\Utility\Message\Status;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Validate\Validate;
-use function FastRoute\TestFixtures\all_options_cached;
+
 
 class Community extends FrontUserController
 {
@@ -58,8 +62,6 @@ class Community extends FrontUserController
 
 
     }
-
-
 
 
 
@@ -290,7 +292,6 @@ class Community extends FrontUserController
 
 
             $data['isMe'] = $isMe;
-            Log::getInstance()->info('auth id' . $this->auth['id']);
             if (!$isMe) {
                 $data['is_follow'] = UserRedis::getInstance()->isFollow($this->auth['id'], $this->params['uid']);
             } else {
@@ -382,54 +383,176 @@ class Community extends FrontUserController
 
     }
 
+
+
     /**
-     * 关注及粉丝列表
+     * 社区默认主页
      * @return bool
      */
-    public function myFollowings()
+    public function getContent()
     {
 
-        if (!$this->params['type']) {
+
+        $validator = new Validate();
+        $validator->addColumn('category_id')->required();
+        $validator->addColumn('order_type')->required();
+        if (!$validator->validate($this->params)) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
-        $userRedis = new UserRedis();
-        $uid = isset($this->params['uid']) ? $this->params['uid'] : $this->auth['id'];
-        if ($this->params['type'] == 1) {
-            $key = sprintf(UserRedis::USER_FOLLOWS, $uid);
 
+        $title = AdminUserPostsCategory::getInstance()->where('status', AdminUserPostsCategory::STATUS_NORMAL)->all();
+        $cat_id = $this->params['category_id'] ? $this->params['category_id'] : 1;
+        if ($category = AdminUserPostsCategory::getInstance()->where('id', $cat_id)->get()) {
+            $banner = json_decode($category->content_imgs, true);
         } else {
-            $key = sprintf(UserRedis::USER_FANS, $uid);
+            $banner = [];
+        }
+
+
+        //置顶帖子
+        $top_posts = AdminUserPost::getInstance()->where('cat_id', $cat_id)->where('status', AdminUserPost::NEW_STATUS_NORMAL)
+            ->where('is_top', AdminUserPost::IS_TOP)
+            ->field(['id', 'title'])
+            ->order('created_at', 'DESC')
+            ->all();
+
+        //普通帖子
+        $order_type = $this->params['order_type'] ?: 1;
+        $page = $this->params['page'] ?: 1;
+        $size = $this->params['size'] ?: 15;
+        $model = AdminUserPost::getInstance()->where('status', AdminUserPost::STATUS_NORMAL)->where('cat_id', $cat_id)
+            ->field(['id', 'title', 'imgs', 'content', 'fabolus_number', 'collect_number', 'respon_number', 'created_at']);
+
+        switch ($order_type){
+            case 1: //热度  回复数
+                $normal_posts = $model->order('respon_number', 'DESC')->limit(($page - 1) * $size, $size)
+                    ->withTotalCount();
+                break;
+            case 2://最新发帖
+                $normal_posts = $model->order('created_at', 'DESC')->limit(($page - 1) * $size, $size)
+                    ->withTotalCount();
+                break;
+            case 3://最早发帖
+                $normal_posts = $model->order('created_at', 'ASC')->limit(($page - 1) * $size, $size)
+                    ->withTotalCount();
+                break;
+            case 4://最新回复
+                $normal_posts = $model->order('last_respon_time', 'DESC')->limit(($page - 1) * $size, $size)
+                    ->withTotalCount();
+                break;
+            default:
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
 
         }
-        $myFollowings = $userRedis->getUserFollowings($key);
-        if (!$myFollowings) {
-            $users = [];
-        } else {
-            $users = AdminUser::getInstance()->where('id', $myFollowings, 'in')->field(['id', 'nickname', 'photo'])->all();
+        $list = $normal_posts->all(null);
+        $count = $model->lastQueryResult()->getTotalCount();
+        $data = [
+            'title' => $title,
+            'banner' => $banner,
+            'top_posts' => $top_posts,
+            'normal_posts' => $list,
+            'count' => $count,
+        ];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
-        }
-//        $sql = AdminUser::getInstance()->lastQuery()->getLastQuery();
 
-        if ($users) {
-            foreach ($users as $user) {
-                $item['is_follow'] = UserRedis::getInstance()->isFollow($this->auth['id'], $user['id']);
-                $item['is_me'] = ($user['id'] == $this->auth['id']) ? true : false;
-                $item['id'] = $user['id'];
-                $item['nickname'] = $user['nickname'];
-                $item['photo'] = $user['photo'];
-                $data[] = $item;
-            }
-        } else {
-            $data = [];
-        }
-        $count = $userRedis->scard($key);
-        $returnData['data'] = $data;
-        $returnData['count'] = $count;
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
 
     }
 
+    /**
+     * 前端模糊搜索  后期要改ES
+     * @return bool
+     */
+    public function getContentByKeyWord()
+    {
+       if (!isset($this->params['key_word']) || !$key_word = $this->params['key_word']) {
+           return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+       }
+
+        if ($sensitiveWords = AdminSensitive::getInstance()->where('status', AdminSensitive::STATUS_NORMAL)->field(['word'])->all()) {
+            foreach ($sensitiveWords as $sword) {
+                if (strstr($key_word, $sword['word'])) {
+                    return $this->writeJson(Status::CODE_ADD_POST_SENSITIVE, sprintf(Status::$msg[Status::CODE_ADD_POST_SENSITIVE], $sword['word']));
+                }
+            }
+        }
+
+        $posts = AdminUserPost::getInstance()->where('status', [AdminUserPost::NEW_STATUS_NORMAL, AdminUserPost::NEW_STATUS_REPORTED], 'in')
+            ->where('title', '%' . $key_word . '%', 'like')->all();
+        $format_posts = FrontService::handPosts($posts, $this->auth['id']);
+
+        $information = AdminInformation::getInstance()->where('status', AdminInformation::STATUS_NORMAL)->where('title', '%' . $key_word . '%', 'like')->all();
+
+        //比赛
+        $matches = AdminMatch::getInstance()->func(function ($builder) use($key_word){
+            $builder->raw('select m.match_id, m.competition_id, m.home_team_id, m.away_team_id, m.match_time from `admin_match_list` m left join `admin_team_list` t on (m.home_team_id=t.team_id or m.away_team_id=t.team_id) where m.status_id in (1,2,3,4,5,7) and t.name_zh like ?',['%' . $key_word . '%']);
+            return true;
+        });
+
+        if ($matches) {
+            foreach ($matches as $match) {
+
+                $data['match_id'] = $match['match_id'];
+                $data['competition_short_name_zh'] = AdminCompetition::getInstance()->where('competition_id', $match['competition_id'])->get()['short_name_zh'];
+                $data['home_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $match['home_team_id'])->get()['name_zh'];
+                $data['away_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $match['away_team_id'])->get()['name_zh'];
+                $data['match_time'] = date('Y-m-d H:i:s', $data['match_time']);
+                $format_matches[] = $data;
+                unset($data);
+            }
+        }
+
+
+        //用户
+        $users = AdminUser::getInstance()->where('nickname',  '%' . $key_word . '%', 'like')->where('status', AdminUser::STATUS_NORMAL)->field(['id', 'nickname'])->all();
+        foreach ($users as $k=>$user) {
+            $users[$k]['fans_count'] = UserRedis::getInstance()->myFansCount($user->id);
+        }
+        $data = [
+            'format_posts' => $format_posts,
+            'format_matches' => $format_matches,
+            'information' => $information,
+            'users' => $users
+        ];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+
+
+
+    }
+
+    /**
+     * 我关注的人的帖子列表
+     * @return bool
+     */
+    public function myFollowUserPosts()
+    {
+        $page = $this->params['page'] ?: 1;
+        $size = $this->params['size'] ?: 10;
+
+        $followUids = UserRedis::getInstance()->getUserFollowings(sprintf(UserRedis::USER_FOLLOWS, $this->auth['id']));
+        /**
+         * var $followUsers AdminUser
+         */
+
+        if (!$followUids) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => [], 'count' => 0]);
+
+        }
+
+
+        $model = AdminUserPost::getInstance()->where('status', AdminUserPost::STATUS_EXAMINE_SUCC)->where('user_id', $followUids, 'in')->field(['id', 'cat_id', 'user_id',  'title', 'img', 'imgs', 'created_at', 'hit', 'fabolus_number', 'content', 'respon_number', 'collect_number'])->getLimit($page, $size);
+
+        $list = $model->all(null);
+        $total = $model->lastQueryResult()->getTotalCount();
+//        $sql = $model->lastQuery()->getLastQuery();
+        $datas = FrontService::handPosts($list, $this->auth['id'] ?: 0);
+        $data = ['data' => $datas, 'count' => $total];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+
+    }
 
 
 }

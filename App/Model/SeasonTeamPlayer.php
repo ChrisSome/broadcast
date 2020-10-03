@@ -8,7 +8,7 @@ use App\lib\Tool;
 
 class SeasonTeamPlayer extends BaseModel
 {
-    protected $tableName = "season_team_palyer_info";
+    protected $tableName = "admin_season_team_player";
 
 
 }

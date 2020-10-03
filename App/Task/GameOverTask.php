@@ -70,8 +70,11 @@ class GameOverTask implements TaskInterface{
 
                 $users = AdminUser::getInstance()->where('id', $prepareNoticeUserIds, 'in')->field(['cid', 'id'])->all();
                 foreach ($users as $k=>$user) {
+
                     $userSetting = AdminUserSetting::getInstance()->where('user_id', $user['id'])->get();
-                    if (!$userSetting || !$userSetting->followMatch) {
+                    $pushSetting = json_decode($userSetting->push, true);
+
+                    if (!$userSetting || !$pushSetting['over']) {
                         unset($users[$k]);
                     }
                 }

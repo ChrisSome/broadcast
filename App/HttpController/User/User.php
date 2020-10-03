@@ -20,18 +20,11 @@ use App\Model\AdminUserInterestCompetition;
 use App\Model\AdminUserPhonecode;
 use App\Model\AdminUserPost;
 use App\Model\AdminUserSetting;
-use App\Task\PhoneTask;
-use App\Task\PostTask;
-use App\Utility\Gravatar;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
-use function Composer\Autoload\includeFile;
 use EasySwoole\EasySwoole\Task\TaskManager;
-use EasySwoole\ORM\DbManager;
 use EasySwoole\Validate\Validate;
 use App\Task\UserTask;
-use App\lib\pool\PhoneCodeService as PhoneCodeService;
-use App\Task\TestTask;
 use easySwoole\Cache\Cache;
 
 /**
@@ -93,74 +86,7 @@ class User extends FrontUserController
 
     }
 
-    /**用户资料编辑
-     * @return bool
-     * @throws \EasySwoole\ORM\Exception\Exception
-     * @throws \Throwable
-     */
-    public function editUser()
-    {
 
-        $params = $this->params;
-        $uid = $this->auth['id'];
-        $validate = new Validate();
-        $updataData = [];
-        if ($params['nickname']) {
-            $isExists = AdminUser::create()->where('nickname', $this->params['nickname'])
-                ->where('id', $this->auth['id'], '<>')
-                ->count();
-
-            if ($isExists) {
-                return $this->writeJson(Status::CODE_USER_DATA_EXIST, Status::$msg[Status::CODE_USER_DATA_EXIST]);
-            }
-            $validate->addColumn('nickname', '申请昵称')->required()->lengthMax(32)->lengthMin(4);
-            $updataData = ['nickname' => $params['nickname']];
-        }
-        if ($params['photo']) {
-            $validate->addColumn('photo', '申请头像')->required()->lengthMax(128);
-            $updataData = ['photo' => $params['photo']];
-
-        }
-        if ($params['mobile']) {
-            $validate->addColumn('mobile', '手机号码')->required('手机号不为空')
-                ->regex('/^1[3456789]\d{9}$/', '手机号格式不正确');
-            if(!$validate->validate($this->params)) {
-                return $this->writeJson(Status::CODE_W_PARAM, $validate->getError()->__toString());
-
-            }
-            //获取验证码
-            $codeInfo = AdminUserPhonecode::getInstance()->getLastCodeByMobile($this->auth['mobile']);
-            if (!$codeInfo || $params['code'] !== $codeInfo['code']) {
-                $updataData['mobile'] = $params['mobile'];
-
-//                return $this->writeJson(Status::CODE_LOGIN_W_PASS, Status::$msg[Status::CODE_LOGIN_W_PASS]);
-
-            } else {
-                $updataData['mobile'] = $params['mobile'];
-            }
-
-        }
-
-        $bool = AdminUser::getInstance()->saveIdData($uid, $updataData);
-        $res = AdminUser::getInstance()->find($uid);
-        $uInfo = [
-            'id' => $uid,
-            'nickname' => $res->nickname,
-            'photo' => $res->photo,
-            'mobile' => $res->mobile,
-        ];
-        $this->auth = $res;
-        if (!$bool) {
-            return $this->writeJson(Status::CODE_USER_DATA_CHG, Status::$msg[Status::CODE_USER_DATA_CHG]);
-
-        } else {
-            return $this->writeJson(Status::CODE_OK, '', $uInfo);
-
-        }
-
-
-
-    }
 
 
     //用户帖子操作列表   用户点赞等操作的帖子或评论
@@ -370,70 +296,7 @@ class User extends FrontUserController
     }
 
 
-    /**
-     * 用户被点赞列表 包括帖子与评论
-     */
 
-    public function myFabolusInfo()
-    {
-
-        $params = $this->params;
-        $page = $params['page'] ?: 1;
-        $size = $params['size'] ?: 10;
-        $valitor = new Validate();
-
-        $valitor->addColumn('action_type')->required()->inArray(["1","2","3","4","5","6"], '参数错误');
-        $valitor->addColumn('type')->required()->inArray(["1","2"], '参数错误');
-        if (!$valitor->validate($params)) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-        }
-
-        $model = AdminPostOperate::create();
-        $query = $model->where('action_type', $params['action_type'])->where('author_id', $this->auth['id']);
-        if ($params['type'] == 1) {  //帖子
-            $query = $query->where('comment_id', 0);
-        } else {            //评论
-            $query = $query->where('post_id', 0);
-        }
-
-        $query = $query->findAll($page, $size)->withTotalCount();
-        //列表数据
-        $data = $query->all(null);
-        //总条数
-        $result = $query->lastQueryResult();
-
-        $count = $result->getTotalCount();
-//        $sql = $model->lastQuery()->getLastQuery();
-
-        foreach ($data as $item) {
-            $nickname = $item->uInfo()->nickname;
-            $photo = $item->uInfo()->photo;
-            if ($item['post_id']) {
-                $r_info['nickname']    = $nickname;
-                $r_info['photo']       = $photo;
-                $r_info['title']       = $item->postInfo()->title;
-                $r_info['content']     = mb_substr($item->postInfo()->content, 0, 30, 'utf-8');
-                $r_info['c_create_at'] = $item->postInfo()->created_at;
-                $r_info['created_at']  = $item->created_at;
-                $r_info['type']        = 1;
-                $c_data[] = $r_info;
-                unset($c_data);
-            } else {
-                $c_info['nickname']     = $nickname;
-                $c_info['photo']        = $photo;
-                $c_info['title']        = '';
-                $c_info['content']      = mb_substr($item->commentInfo()->content, 0, 30, 'utf-8');
-                $c_info['c_created_at'] = $item->commentInfo()->created_at;
-                $c_info['created_at']   = $item->created_at;
-                $c_info['type']         = 2;
-                $c_data[] = $c_info;
-                unset($c_info);
-            }
-        }
-        $returnData = ['count'=>$count, 'data'=>$c_data ?? []];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
-    }
 
     //回复我的列表  帖子和评论
     public function myReplys()
@@ -490,36 +353,7 @@ class User extends FrontUserController
 
 
 
-    /**
-     * 我关注的人的帖子列表
-     * @return bool
-     */
-    public function myFollowUserPosts()
-    {
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 10;
 
-        $followUids = UserRedis::getInstance()->getUserFollowings(sprintf(UserRedis::USER_FOLLOWS, $this->auth['id']));
-        /**
-         * var $followUsers AdminUser
-         */
-
-        if (!$followUids) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data' => [], 'count' => 0]);
-
-        }
-
-
-        $model = AdminUserPost::getInstance()->where('status', AdminUserPost::STATUS_EXAMINE_SUCC)->where('user_id', $followUids, 'in')->field(['id', 'cat_id', 'user_id',  'title', 'img', 'imgs', 'created_at', 'hit', 'fabolus_number', 'content', 'respon_number', 'collect_number'])->getLimit($page, $size);
-
-        $list = $model->all(null);
-        $total = $model->lastQueryResult()->getTotalCount();
-//        $sql = $model->lastQuery()->getLastQuery();
-        $datas = FrontService::handPosts($list, $this->auth['id'] ?: 0);
-        $data = ['data' => $datas, 'count' => $total];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
-
-    }
 
 
     /**
@@ -563,75 +397,7 @@ class User extends FrontUserController
     }
 
 
-    /**
-     * 用户消息中心
-     * @return bool
-     */
-    public function messageCenter()
-    {
-        $uid = $this->auth['id'];
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 10;
-        $type = $this->params['type'] ?: 1;
-        //清空该类型的未读消息数量
-        $userRedis = new UserRedis();
-        $userRedis->deleteTypeUnreadCount($type, $uid);
-        if (!in_array($type, [1, 2, 3, 4])) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
-        }
-
-        switch ($type) {
-            case 1:
-                //我的通知
-
-            case 2:
-                $model = AdminMessage::getInstance()->where('status', AdminMessage::STATUS_DEL, '<>')->where('user_id', $uid)->where('type', $type)->order('status', 'DESC')->order('created_at', 'ASC')->getLimit($page, $size);
-                $formatData = $model->all(null);
-                $total = $model->lastQueryResult()->getTotalCount();
-                break;
-            case 3:
-                //赞我的
-                $model = AdminPostOperate::getInstance()->where('action_type', AdminPostOperate::ACTION_TYPE_FABOLUS)
-                    ->where('author_id', $uid)
-                    ->getLimit($page, $size);
-                $list = $model->all(null);
-                $total = $model->lastQueryResult()->getTotalCount();
-                foreach ($list as $fitem) {
-                    $data['uid'] = $fitem->user_id;
-                    $data['nickname'] = $fitem->uInfo()->nickname;
-                    $data['photo'] = $fitem->uInfo()->photo;
-                    $data['title'] = $fitem->post_id ? $fitem->postInfo()->title : '';
-                    $data['parent_id'] = !$fitem->post_id ? $fitem->commentInfo()->parent_id : 0;
-                    $data['content'] = $fitem->post_id ? $fitem->postInfo()->content : $fitem->commentInfo()->content;
-                    $data['post_id'] = $fitem->post_id;
-                    $data['comment_id'] = $fitem->comment_id;
-                    $data['parent_id'] = $fitem->commentInfo()['parent_id'];
-                    $data['top_comment_id'] = $fitem->commentInfo()['top_comment_id'];
-                    $data['created_at'] = $fitem->created_at;
-                    $formatData[] = $data;
-                    unset($data);
-                }
-                break;
-
-
-            case 4:
-                //回复我的
-                $model = AdminPostComment::getInstance()->where('t_u_id', $this->auth['id'])
-                    ->where('status', AdminPostComment::STATUS_DEL, '<>')
-                    ->getAll($page, $size);
-                $list = $model->all(null);
-                $total = $model->lastQueryResult()->getTotalCount();
-
-                $formatData = FrontService::handComments($list, $uid);
-                break;
-
-        }
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['data'=>isset($formatData) ? $formatData : [], 'count' => $total]);
-
-
-
-    }
 
 
 
@@ -772,29 +538,23 @@ class User extends FrontUserController
     }
 
 
-    public function changePassword()
+
+
+    /**
+     * 拉黑
+     */
+    public function userBlackList()
     {
-        if (!isset($this->params['new_pass'])) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-        }
-        $password = $this->params['new_pass'];
-        $res = preg_match('/(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,16}/', $password);
-        if (!$res) {
-            return $this->writeJson(Status::CODE_W_FORMAT_PASS, Status::$msg[Status::CODE_W_FORMAT_PASS]);
-        }
-        $user = AdminUser::getInstance()->find($this->auth['id']);
-        $password_hash = PasswordTool::getInstance()->generatePassword($password);
-        $user->password_hash = $password_hash;
-        if ($user->update()) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
-        } else {
+        $user = $this->params['user_id'];
+        if (!AdminUser::getInstance()->find($user)) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 
         }
+        UserRedis::getInstance()->sadd(sprintf(UserRedis::USER_BLACK_LIST, $this->auth['id']), $user);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 
     }
+
 
 
 }

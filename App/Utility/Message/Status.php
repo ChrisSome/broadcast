@@ -31,6 +31,7 @@ class Status
     const CODE_PHONE_EXIST = 314;   //手机号存在
     const CODE_FAIL_LOGON = 315;   //注册失败
     const CODE_USER_NOT_EXIST = 316;   //注册失败
+    const CODE_USER_OPERATE_FAIL = 317;      //点赞等操作失败
 
     //帖子
     const CODE_ADD_POST = 308;      //用户发布帖子失败
@@ -80,11 +81,12 @@ class Status
         self::CODE_PHONE_EXIST => '手机号已存在',
         self::CODE_FAIL_LOGON => '注册异常，请稍后重试',
         self::CODE_USER_NOT_EXIST => '用户不存在',
+        self::CODE_USER_OPERATE_FAIL => '操作失败，请稍后重试',
 
 
 
 
-        self::CODE_ADD_POST_SENSITIVE  => '帖子内容包含敏感词：%s',
+        self::CODE_ADD_POST_SENSITIVE  => '内容包含敏感词：%s',
 
         self::CODE_WRONG_MATCH_ORIGIN => '比赛源错误',
         self::CODE_MATCH_FOLLOW_ERR => '关注比赛失败',

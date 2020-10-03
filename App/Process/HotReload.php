@@ -14,7 +14,9 @@ use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\Utility\File;
 use Swoole\Process;
 use Swoole\Table;
-use Swoole\Timer;
+//use Swoole\Timer;
+use EasySwoole\Component\Timer;
+
 
 /**
  * 暴力热重载
@@ -47,11 +49,11 @@ class HotReload extends AbstractProcess
             echo "server hot reload start : use inotify\n";
         } else {
             // 扩展不可用时 进行暴力扫描
-            $this->table = new Table(512);
+            $this->table = new Table(1024);
             $this->table->column('mtime', Table::TYPE_INT, 4);
             $this->table->create();
             $this->runComparison();
-            Timer::tick(1000, function () {
+            Timer::getInstance()->loop(1000, function () {
                 $this->runComparison();
             });
             echo "server hot reload start : use timer tick comparison\n";

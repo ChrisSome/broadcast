@@ -83,12 +83,6 @@ class Login extends FrontUserController
                 TaskManager::getInstance()->async(function () use($rs){
                    $settingData = [
                        'user_id'    => $rs,
-                       'goatNotice' => 0,
-                       'goatPopup'  => 0,
-                       'redCardNotice' => 0,
-                       'followUser'    => 0,
-                       'followMatch'   => 1,
-                       'nightModel'    => 0,
                    ];
                    AdminUserSetting::getInstance()->insert($settingData);
 
@@ -327,12 +321,6 @@ class Login extends FrontUserController
                //写用户设置
                 $settingData = [
                     'user_id'    => $rs,
-                    'goatNotice' => 0,
-                    'goatPopup'  => 0,
-                    'redCardNotice' => 0,
-                    'followUser'    => 0,
-                    'followMatch'   => 1,
-                    'nightModel'    => 0,
                 ];
                 AdminUserSetting::getInstance()->insert($settingData);
                 //写用户关注赛事

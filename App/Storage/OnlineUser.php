@@ -87,7 +87,6 @@ class OnlineUser
     {
         $info = $this->get($mid);
         if ($info) {
-            var_dump($info);
             $key = sprintf(self::LIST_ONLINE, $info['match_id']);
             Login::getInstance()->lrem($key, 0, $mid);
             return $this->table->del($mid);
@@ -106,11 +105,9 @@ class OnlineUser
     {
         $info = $this->get($fd);
         if ($info) {
-
             $key = sprintf(self::LIST_ONLINE, $info['match_id']);
             Login::getInstance()->lrem($key, 0, $info['mid']);
-            $info = ['match_id' => 0] + $info;
-            return $this->table->set($info['mid'], $info);
+            return $this->table->del($fd);
         }
 
         return false;
@@ -120,12 +117,12 @@ class OnlineUser
      * 心跳检查
      * @param int $ttl
      */
-    function heartbeatCheck($ttl = 86400)
+    function heartbeatCheck($ttl = 60)
     {
         foreach ($this->table as $item) {
-            $time = $item['time'];
-            if (($time + $ttl) < $time) {var_dump('auto delete:'.$item['mid']);
-                $this->close($item['mid']);
+            $time = $item['last_heartbeat'];
+            if (($time + $ttl) < time()) {
+                $this->table->del($item['fd']);
             }
         }
     }

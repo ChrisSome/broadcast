@@ -17,7 +17,7 @@ class AdminPostComment extends BaseModel
     protected $relationT = "admin_user";
 
     const STATUS_NORMAL = 0;        //正常
-    const STATUS_EXAMING = 1;       //审核中
+    const STATUS_REPORTED = 1;       //被举报
     const STATUS_DEL = 2;           //删除
 
 

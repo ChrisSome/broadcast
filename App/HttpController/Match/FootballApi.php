@@ -27,6 +27,8 @@ class FootballApi extends FrontUserController
     const STATUS_SCHEDULE = [0, 1, 9, 11, 12, 13];
     const STATUS_RESULT= [8, 10];
 
+    const STATUS_NO_START = 1;
+
     const hotCompetition = [
         'hot' => [['competition_id' => 45, 'short_name_zh' => '欧洲杯'], ['competition_id'=>47, 'short_name_zh' =>'欧联杯'], ['competition_id'=>542, 'short_name_zh' =>'中超']],
         'A' => [
@@ -388,63 +390,70 @@ class FootballApi extends FrontUserController
         $res = Tool::getInstance()->postApi(sprintf($this->lineUpDetail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $match_id));
         $decode = json_decode($res, true);
 //        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
-        $homePlayers = [];
-        $awayPlayers = [];
+        $homeFirstPlayers = [];
+        $homeAlternatePlayers = [];
+        $awayFirstPlayers = [];
+        $awayAlternatePlayers = [];
         if ($decode['code'] == 0) {
             $home = $decode['results']['home'];
             $away = $decode['results']['away'];
             if ($home) {
                 foreach ($home as $homeItem)
                 {
-                    if ($homeItem['first']) {
-                        if (!isset($home['logo'])) {
-                            $homeplayerinfo = AdminPlayer::getInstance()->where('player_id', $homeItem['id'])->get();
+                    if (!isset($home['logo'])) {
+                        $homeplayerinfo = AdminPlayer::getInstance()->where('player_id', $homeItem['id'])->get();
 
-                        }
-
-                        $homePlayer['player_id'] = $homeItem['id'];
-                        $homePlayer['name'] = $homeItem['name'];
-                        $homePlayer['logo'] = isset($home['logo']) ? $this->playerLogo . $homeItem['logo'] : ($homeplayerinfo ? $homeplayerinfo->logo : '');
-                        $homePlayer['position'] = $homeItem['position'];
-                        $homePlayer['shirt_number'] = $homeItem['shirt_number'];
-
-                        $homePlayers[] = $homePlayer;
-                        unset($homePlayer);
-                    } else {
-                        continue;
                     }
+
+                    $homePlayer['player_id'] = $homeItem['id'];
+                    $homePlayer['name'] = $homeItem['name'];
+                    $homePlayer['logo'] = isset($home['logo']) ? $this->playerLogo . $homeItem['logo'] : ($homeplayerinfo ? $homeplayerinfo->logo : '');
+                    $homePlayer['position'] = $homeItem['position'];
+                    $homePlayer['shirt_number'] = $homeItem['shirt_number'];
+                    if ($homeItem['first']) {
+                        $homeFirstPlayers[] = $homePlayer;
+                    } else {
+                        $homeAlternatePlayers[] = $homePlayer;
+
+                    }
+                    unset($homePlayer);
+
 
                 }
             }
 
             if ($away) {
                 foreach ($away as $awayItem) {
-                    if ($awayItem['first']) {
-                        if (!$awayItem['logo']) {
-                            $awayplayerinfo = AdminPlayer::getInstance()->where('player_id', $awayItem['id'])->get();
+                    if (!$awayItem['logo']) {
+                        $awayplayerinfo = AdminPlayer::getInstance()->where('player_id', $awayItem['id'])->get();
 
-                        }
-
-                        $awayPlayer['player_id'] = $awayItem['id'];
-                        $awayPlayer['name'] = $awayItem['name'];
-                        $awayPlayer['logo'] = $awayItem['logo'] ? $this->playerLogo . $awayItem['logo'] : ($awayplayerinfo ? $awayplayerinfo->logo : '');
-                        $awayPlayer['position'] = $awayItem['position'];
-                        $awayPlayer['shirt_number'] = $awayItem['shirt_number'];
-                        $awayPlayers[] = $awayPlayer;
-                        unset($awayPlayer);
-                    } else {
-                        continue;
                     }
+
+                    $awayPlayer['player_id'] = $awayItem['id'];
+                    $awayPlayer['name'] = $awayItem['name'];
+                    $awayPlayer['logo'] = $awayItem['logo'] ? $this->playerLogo . $awayItem['logo'] : ($awayplayerinfo ? $awayplayerinfo->logo : '');
+                    $awayPlayer['position'] = $awayItem['position'];
+                    $awayPlayer['shirt_number'] = $awayItem['shirt_number'];
+                    if ($awayItem['first']) {
+
+                        $awayFirstPlayers[] = $awayPlayer;
+                    } else {
+                        $awayAlternatePlayers[] = $awayPlayer;
+                    }
+                    unset($awayPlayer);
+
 
                 }
             }
 
             $matchInfo = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->where('is_delete', 0)->get();
-            $homeTeamInfo['firstPlayers'] = $homePlayers;
+            $homeTeamInfo['firstPlayers'] = $homeFirstPlayers;
+            $homeTeamInfo['alternatePlayers'] = $homeAlternatePlayers;
             $homeTeamInfo['teamName'] = $matchInfo->homeTeamName()['name_zh'];
             $homeTeamInfo['teamLogo'] = $matchInfo->homeTeamName()['logo'];
 
-            $awayTeamInfo['firstPlayers'] = $awayPlayers;
+            $awayTeamInfo['firstPlayers'] = $awayFirstPlayers;
+            $awayTeamInfo['alternatePlayers'] = $awayAlternatePlayers;
             $awayTeamInfo['teamName'] = $matchInfo->awayTeamName()['name_zh'];
             $awayTeamInfo['teamLogo'] = $matchInfo->awayTeamName()['logo'];
             $data = [

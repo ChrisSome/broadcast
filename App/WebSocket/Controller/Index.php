@@ -57,7 +57,10 @@ class Index extends Base
 
     function heartbeat()
     {
+        $client = $this->caller()->getClient();
+        $fd = $client->getFd();
         //更新
+        OnlineUser::getInstance()->updateHeartbeat($fd);
         $this->response()->setMessage('PONG');
     }
 }

@@ -14,7 +14,9 @@ use App\Model\AdminSystemAnnoucement;
 use App\Model\AdminUserPost;
 use App\Base\FrontUserController;
 use App\Model\AdminUserPostsCategory;
+use App\Task\SerialPointTask;
 use App\Utility\Message\Status;
+use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\Validate\Validate;
 use EasySwoole\Mysqli\QueryBuilder;
 use App\Utility\Log\Log;
@@ -158,6 +160,9 @@ class Post extends FrontUserController
             } else {
                 $res = AdminUserPost::getInstance()->insert($data);
             }
+            $data['task_id'] = 2;
+            $data['user_id'] = $this->auth['id'];
+            TaskManager::getInstance()->async(new SerialPointTask($data));
             if ($res) {
                 return $this->writeJson(Status::CODE_OK, '发布成功，请等待管理员审核');
             } else {
@@ -267,6 +272,9 @@ class Post extends FrontUserController
         //给被回复人增加一条未读消息 type=4
 
         (new UserRedis())->userMessageAddUnread(4, $taskData['t_u_id']);
+        $data['task_id'] = 3;
+        $data['user_id'] = $this->auth['id'];
+        TaskManager::getInstance()->async(new SerialPointTask($data));
 
         Cache::set('userCom' . $this->auth['id'], 1, 2);
         //格式化

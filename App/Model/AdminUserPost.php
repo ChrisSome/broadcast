@@ -24,6 +24,12 @@ class AdminUserPost extends BaseModel
     const IS_REPRINT    = 1; //转载
     public static $statusAccusation = [self::STATUS_HANDING, self::STATUS_DEL];        //举报状态
     public static $statusExamine = [self::STATUS_NORMAL, self::STATUS_EXAMINE_SUCC, self::STATUS_EXAMINE_FAIL];//审核状态
+
+    const NEW_STATUS_NORMAL = 1;//正常
+    const NEW_STATUS_REPORTED = 2; //被举报
+    const NEW_STATUS_DELETED = 3;//删除
+    const NEW_STATUS_SAVE = 4; //保存
+
     public function findAll($page, $limit)
     {
         return $this->order('created_at', 'DESC')
@@ -31,9 +37,9 @@ class AdminUserPost extends BaseModel
             ->all();
     }
 
-    public function getLimit($page, $limit)
+    public function getLimit($page, $limit, $order = 'created_at', $desc = 'DESC')
     {
-        return $this->order('created_at', 'DESC')
+        return $this->order($order, $desc)
             ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();
     }

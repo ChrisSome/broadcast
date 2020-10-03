@@ -257,7 +257,13 @@ class AppFunc
             $yi = substr_replace(strstr($number,substr($number,-7),' '),'.',-1,0);
             $yi_str = floor($yi) . '亿';
             $wan = substr_replace(strstr($wan_int,substr($wan_int,-3),' '),'.',-1,0);
-            $wan_str = floor($wan) . '万';
+            if (floor($wan) == 0) {
+                $wan_str = '1万';
+
+            } else {
+                $wan_str = floor($wan) . '万';
+
+            }
             return $yi_str . $wan_str . '欧';
 
         }elseif($length >4){ //万单位
@@ -270,5 +276,46 @@ class AppFunc
         }
 
 
+    }
+
+    /**
+     * 将整数转为万
+     * @param $number
+     * @return string
+     */
+    public static function changeToWan($number)
+    {
+        if (!$number) {
+            return 0;
+        }
+        $length = strlen($number);  //数字长度
+        if ($length < 5) {
+            return $number;
+        } else {
+            $wan_str = number_format($number/10000,0);
+            return $wan_str . '万欧';
+        }
+
+    }
+
+    public static function getUserLvByPoint($point)
+    {
+        if (0 <= $point && $point < 500) {
+            return 1;
+        } else if (500 <= $point && $point < 1000) {
+            return 2;
+        } else if (1000 <= $point && $point < 1500) {
+            return 3;
+        } else if (1500 <= $point && $point < 2000) {
+            return 4;
+        } else if (2000 <= $point && $point < 2500) {
+            return 5;
+        } else if (2500 <= $point && $point < 3000) {
+            return 6;
+        } else if (3000 <= $point && $point < 3500) {
+            return 7;
+        } else if (3500 <= $point && $point < 4000) {
+            return 8;
+        }
     }
 }

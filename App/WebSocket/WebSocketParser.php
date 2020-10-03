@@ -36,10 +36,7 @@ class WebSocketParser implements ParserInterface
                 $caller->setAction('actionParseError');
             } else {
                 $event = isset($payload['event']) ? explode('-', $payload['event']) : '';
-                Log::getInstance()->info('event : ' . json_encode($event));
                 if (!empty($event[0])) {
-                    Log::getInstance()->info('playload' . json_encode($payload));
-
                     $class = $event[0];
                     $action = isset($event[1]) ? $event[1] : 'actionNotFound';
                     $params = isset($payload['params']) ? (array)$payload['params'] : [];

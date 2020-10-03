@@ -7,7 +7,15 @@ class AdminPlayer  extends BaseModel
 {
     protected $tableName = "admin_player_list";
 
+    public function getTeam()
+    {
+        return $this->hasOne(AdminTeam::class, null, 'team_id', 'team_id');
+    }
 
+    public function getCountry()
+    {
+        return $this->hasOne(AdminCountryList::class, null, 'country_id', 'country_id');
 
+    }
 
 }
