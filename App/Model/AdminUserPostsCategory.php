@@ -12,13 +12,6 @@ class AdminUserPostsCategory extends BaseModel
 
     const IS_TOP = 1; //置顶
 
-    public function findAll($page, $limit)
-    {
-        return $this->orderBy('created_at', 'DESC')
-            ->limit(($page - 1) * $limit, $limit)
-            ->withTotalCount();
-    }
-
 
     public function saveIdData($id, $data)
     {
@@ -41,7 +34,14 @@ class AdminUserPostsCategory extends BaseModel
     }
 
 
-    public function userInfo(){
+    protected function getColorAttr($value, $data)
+    {
+        return json_decode($data['color'], true);
 
+    }
+
+    protected function getDisposeAttr($value, $data)
+    {
+        return json_decode($data['dispose'], true);
     }
 }

@@ -24,6 +24,8 @@ class Status
     const CODE_LOGIN_W_PASS = 305;   //用户名或密码错误
     const CODE_USER_FOLLOW = 306;   //关注失败
     const CODE_W_PHONE = 307;   //手机号错误
+    const CODE_ADD_POST = 308;      //用户发布帖子失败
+    const CODE_ADD_POST_SENSITIVE = 309;      //用户发布帖子包含敏感词
     const CODE_W_FORMAT_PASS = 310;   //密码格式错误
     const CODE_W_STATUS = 311;   //用户禁用
     const CODE_W_FORMAT_NICKNAME = 312;   //用户名不合规
@@ -32,13 +34,18 @@ class Status
     const CODE_FAIL_LOGON = 315;   //注册失败
     const CODE_USER_NOT_EXIST = 316;   //注册失败
     const CODE_USER_OPERATE_FAIL = 317;      //点赞等操作失败
+    const CODE_TASK_LIMIT = 318;      //任务次数已满
+    const CODE_UNBIND_WX= 319;      //微信未绑定
+    const CODE_BIND_WX= 320;      //微信已绑定
+    const CODE_USER_STATUS_BAN = 321;      //账号禁用
+    const CODE_USER_STATUS_CANCLE = 322;      //账号注销
+    const CODE_SENSITIVE_WORD = 323;      //敏感词
+    const CODE_UNVALID_CODE = 324;      //非utf8编码
+    const CODE_STATUS_FORBIDDEN = 325;      //被禁言
 
-    //帖子
-    const CODE_ADD_POST = 308;      //用户发布帖子失败
-    const CODE_ADD_POST_SENSITIVE = 309;      //用户发布帖子包含敏感词
 
 
-
+    const CODE_WRONG_MATCH = 326;      //没有相关比赛
 
 
     //系统错误
@@ -73,8 +80,8 @@ class Status
         self::CODE_WRONG_USER  => '未查询到有效用户',
         self::CODE_WRONG_RES  => '未查询到有效数据',
         self::CODE_WRONG_LIMIT  => '请勿频繁操作',
-        self::CODE_W_PHONE  => '手机号码错误',
-        self::CODE_W_FORMAT_PASS => '密码6-16位字符（英文/数字/符号）三种组合，请修改',
+        self::CODE_W_PHONE  => '手机号码或密码错误',
+        self::CODE_W_FORMAT_PASS => '密码6-16位字符（英文/数字）组合，请修改',
         self::CODE_W_STATUS => '该账号已被禁用,详情请联系客服',
         self::CODE_W_FORMAT_NICKNAME => '用户名由2-16位数字或字母、汉字、下划线组成,请修改',
         self::CODE_W_PHONE_CODE => '验证码不存在或错误',
@@ -82,7 +89,13 @@ class Status
         self::CODE_FAIL_LOGON => '注册异常，请稍后重试',
         self::CODE_USER_NOT_EXIST => '用户不存在',
         self::CODE_USER_OPERATE_FAIL => '操作失败，请稍后重试',
-
+        self::CODE_TASK_LIMIT => '任务次数已满',
+        self::CODE_UNBIND_WX => '微信未绑定',
+        self::CODE_BIND_WX => '微信已绑定',
+        self::CODE_USER_STATUS_BAN => '该账户已被禁用',
+        self::CODE_USER_STATUS_CANCLE => '该账户已被注销',
+        self::CODE_STATUS_FORBIDDEN => '用户已被禁言',
+        self::CODE_WRONG_MATCH => '暂无此场比赛资料',
 
 
 
@@ -91,5 +104,8 @@ class Status
         self::CODE_WRONG_MATCH_ORIGIN => '比赛源错误',
         self::CODE_MATCH_FOLLOW_ERR => '关注比赛失败',
         self::CODE_MATCH_LINE_UP_ERR => '阵容获取失败',
+        self::CODE_SENSITIVE_WORD => '敏感词',
+
+        self::CODE_UNVALID_CODE => '格式错误，请重新编辑',
     ];
 }

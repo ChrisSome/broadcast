@@ -26,8 +26,7 @@ class OnlineUser
         TableManager::getInstance()->add('onlineUsers', [
             'fd' => ['type' => Table::TYPE_INT, 'size' => 8],
             'nickname' => ['type' => Table::TYPE_STRING, 'size' => 128], //昵称
-            'token' => ['type' => Table::TYPE_STRING, 'size' => 128], //token
-            'mid' => ['type' => Table::TYPE_STRING, 'size' => 15], //websocket分配mid
+//            'mid' => ['type' => Table::TYPE_STRING, 'size' => 15], //websocket分配mid
             'last_heartbeat' => ['type' => Table::TYPE_INT, 'size' => 4], //最后心跳
             'match_id' => ['type' => Table::TYPE_INT, 'size' => 4], //比赛id
             'user_id' => ['type' => Table::TYPE_INT, 'size' => 4], //用户id
@@ -47,9 +46,8 @@ class OnlineUser
     {
         return $this->table->set($fd, [
             'fd' => $fd,
-            'mid' => $info['mid'],
+//            'mid' => $info['mid'],
             'nickname' => $info['nickname'],
-            'token' => $info['token'],
             'user_id' => $info['user_id'],
             'last_heartbeat' => time(),
             'match_id' => !empty($info['match_id']) ? $info['match_id'] : 0
@@ -105,8 +103,8 @@ class OnlineUser
     {
         $info = $this->get($fd);
         if ($info) {
-            $key = sprintf(self::LIST_ONLINE, $info['match_id']);
-            Login::getInstance()->lrem($key, 0, $info['mid']);
+//            $key = sprintf(self::LIST_ONLINE, $info['match_id']);
+//            Login::getInstance()->lrem($key, 0, $info['mid']);
             return $this->table->del($fd);
         }
 

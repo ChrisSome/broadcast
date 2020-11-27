@@ -16,6 +16,8 @@ class WebSocketStatus
     const STATUS_NOT_IN_ROOM = 405; //用户不再当前直播间
     const STATUS_W_USER_RIGHT = 406; //用户权限错误
     const STATUS_NOT_LOGIN = 407;//用户未登录
+    const STATUS_WRONG_MATCH = 408;//比赛错误
+    const STATUS_OPERATE_UNUSUAL = 409;//操作异常
 
     static $msg = [
         self::STATUS_SUCC => '操作成功',
@@ -28,5 +30,7 @@ class WebSocketStatus
         self::STATUS_LEAVE_ROOM => '退出房间失败',
         self::STATUS_NOT_IN_ROOM => '用户不再当前直播间',
         self::STATUS_NOT_LOGIN => '请登录',
+        self::STATUS_WRONG_MATCH => '比赛源错误',
+        self::STATUS_OPERATE_UNUSUAL => '操作异常,请重试',
     ];
 }

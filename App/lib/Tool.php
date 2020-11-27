@@ -4,6 +4,7 @@
 namespace App\lib;
 
 
+use App\Utility\Log\Log;
 use EasySwoole\Component\Singleton;
 
 class Tool
@@ -16,7 +17,8 @@ class Tool
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             if (!empty($headers)) {
-                curl_setopt($ch, CURLOPT_HEADER, $headers);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_HEADER, 0);//返回response头部信息
             }
             if ($method == 'POST') {
                 curl_setopt($ch, CURLOPT_POST, 1);         //发送POST类型数据

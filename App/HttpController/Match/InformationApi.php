@@ -3,19 +3,20 @@
 namespace App\HttpController\Match;
 
 use App\Base\FrontUserController;
+use App\Common\AppFunc;
+use App\Common\Time;
 use App\lib\FrontService;
+use App\lib\Tool;
 use App\Model\AdminCompetition;
 use App\Model\AdminInformation;
 use App\Model\AdminInformationComment;
 use App\Model\AdminMatch;
-use App\Model\AdminPostComment;
+use App\Model\AdminMessage;
 use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
 use App\Model\AdminUserOperate;
-use App\Model\AdminUserPost;
 use App\Task\SerialPointTask;
-use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Task\TaskManager;
@@ -29,6 +30,11 @@ use EasySwoole\Validate\Validate;
  */
 class InformationApi extends FrontUserController
 {
+
+    protected $trend_detail = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s'; //获取比赛趋势详情
+    private $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
+    private $user = 'mark9527';
+    private $secret = 'dbfe8d40baa7374d54596ea513d8da96';
 
 
     /**
@@ -57,13 +63,20 @@ class InformationApi extends FrontUserController
             'type' => 1
         ];
         $return[] = $head;
+        $changeClub = [
+            'competition_id' => 0,
+            'short_name_zh' => '转会',
+            'type' => 2
+        ];
+        $return[] = $changeClub;
+
         $normal_competition = $data_competitions_info['normal_competition'];
         foreach ($normal_competition as $item) {
 
             if ($competition = AdminCompetition::getInstance()->where('competition_id', $item)->get()) {
                 $data['competition_id'] = $competition->competition_id;
-                $data['short_name_Zh'] = $competition->short_name_zh;
-                $data['type'] = 0;
+                $data['short_name_zh'] = $competition->short_name_zh;
+                $data['type'] = 3;
                 $return[] = $data;
                 unset($data);
             } else {
@@ -78,68 +91,97 @@ class InformationApi extends FrontUserController
     }
 
 
+
     /**
-     * 头条banner及推荐赛事及文章
+     * 获取个分类的内容
      * @return bool
      */
-    public function titleContent()
+    public function getCategoryInformation()
     {
-        //头条banner
-        $banner = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_TITLE_BANNER)->get();
-        $sys_value = json_decode($banner['sys_value'], true);
-        foreach ($sys_value as $value) {
-            if ($information = AdminInformation::getInstance()->find($value['information_id'])) {
-                $data['img'] = $value['img'];
-                $data['title'] = $information->title;
-                $data['information_id'] = $information->id;
-                $title_banner[] = $data;
-                unset($data);
-            } else {
-                continue;
-            }
-        }
 
-        //推荐比赛
-        $com = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
-        $title_competition_id = json_decode($com['sys_value'], true)['title_competition'];
-
-        if ($competition = AdminCompetition::getInstance()->where('competition_id', $title_competition_id, 'in')->get()) {
-            $matches = AdminMatch::getInstance()->where('competition_id', $title_competition_id, 'in')->where('status_id', FootballApi::STATUS_NO_START)->order('match_time', 'ASC')->limit(2)->all();
-            $formatMatches = FrontService::handMatch($matches, 0, true);
-
-        } else {
-            $formatMatches = [];
-        }
 
         //资讯文章
         $page = $this->params['page'] ?: 1;
         $size = $this->params['size'] ?: 10;
-        $model = AdminInformation::getInstance()->where('competition_id', $title_competition_id, 'in')->where('status', AdminInformation::STATUS_NORMAL)->field(['id', 'title', 'img', 'respon_number', 'hit', 'fabolus_number', 'competition_id'])->getLimit($page, $size);
-        $list = $model->all(null);
-        if ($list) {
-            foreach ($list as $k => $item) {
-                $data['id'] = $item['id'];
-                $data['title'] = $item['title'];
-                $data['img'] = $item['img'];
-                $data['respon_number'] = $item['respon_number'];
-                $data['hit'] = $item['hit'];
-                $data['fabolus_number'] = $item['fabolus_number'];
-                $data['competition_id'] = $item['competition_id'];
-                $data['competition_short_name_zh'] = $item->getCompetition()['short_name_zh'];
-                $informations[] = $data;
-                unset($data);
+        $type = !empty($this->params['type']) ? $this->params['type'] : 1;
+        if ($type == 1) {
+            //头条banner
+            $setting = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_TITLE_BANNER)->get();
+            $decode = json_decode($setting->sys_value, true);
+            $banner_list = [];
+
+            if ($banner = $decode['banner']) {
+                $sort = array_column($banner, 'sort');
+                array_multisort($banner,SORT_DESC,$sort);
+                foreach ($banner as $item_banner) {
+                    if (Time::isBetween($item_banner['start_time'], $item_banner['end_time'])) {
+                        $banner_list[] = $item_banner;
+                    } else {
+                        continue;
+                    }
+                }
+            }
+
+            $matches = AdminMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
+            $formatMatches = FrontService::handMatch($matches, 0, true);
+
+            $model = AdminInformation::getInstance()->where('type', 1)->where('status', AdminInformation::STATUS_NORMAL)->getLimit($page, $size);
+
+            $list = $model->all(null);
+            $format_information = FrontService::handInformation($list, $this->auth['id']);
+
+            $count = $model->lastQueryResult()->getTotalCount();
+            $return_data = [
+                'banner' => $banner_list,
+                'matches' => $formatMatches,
+                'information' => ['list' => $format_information, 'count' => $count]
+            ];
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_data);
+        } else if ($type == 2) {
+            //转会
+            $model = AdminInformation::getInstance()->where('type', 2)->where('status', AdminInformation::STATUS_NORMAL)->getLimit($page, $size);
+            $list = $model->all(null);
+            $count = $model->lastQueryResult()->getTotalCount();
+            $format_information = FrontService::handInformation($list, $this->auth['id']);
+
+            $return_data = [
+                'banner' => [],
+                'matches' => [],
+                'information' => ['list' => $format_information, 'count' => $count]
+            ];
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_data);
+
+
+        } else {
+            //普通赛事
+            if ($competition_id = $this->params['competition_id']) {
+
+                $matches = AdminMatch::getInstance()->where('competition_id', $competition_id)->where('status_id', FootballApi::STATUS_NO_START)->order('match_time', 'ASC')->limit(2)->all();
+                $format_matches = FrontService::handMatch($matches, 0, true);
+
+                $page = $this->params['page'] ?: 1;
+                $size = $this->params['size'] ?: 10;
+                $model = AdminInformation::getInstance()->where('competition_id', $competition_id)->where('status', AdminInformation::STATUS_NORMAL)->getLimit($page, $size);
+                $list = $model->all(null);
+                $format_information = FrontService::handInformation($list, $this->auth['id']);
+
+                $count = $model->lastQueryResult()->getTotalCount();
+
+                $title_content = [
+                    'banner' => [],
+                    'matches' => $format_matches,
+                    'information' => ['list' => $format_information, 'count' => $count]
+                ];
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $title_content);
+
+            } else {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
             }
         }
-        $count = $model->lastQueryResult()->getTotalCount();
-        $title_content = [
-            'banner' => $title_banner ?: [],
-            'matches' => $formatMatches,
-            'information' => ['list' => isset($informations) ? $informations : [], 'count' => $count]
-        ];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $title_content);
+
 
     }
-
     /**
      * 赛事比赛及相关资讯文章
      * @return bool
@@ -153,15 +195,15 @@ class InformationApi extends FrontUserController
 
             $page = $this->params['page'] ?: 1;
             $size = $this->params['size'] ?: 10;
-            $model = AdminInformation::getInstance()->where('competition_id', $competition_id)->field(['id', 'title', 'fabolus_number', 'respon_number', 'img'])->where('status', AdminInformation::STATUS_NORMAL)->getLimit($page, $size);
+            $model = AdminInformation::getInstance()->where('competition_id', $competition_id)->field(['id', 'title', 'fabolus_number', 'respon_number', 'img'])->where('status', AdminInformation::STATUS_NORMAL)->where('created_at', date('Y-m-d H:i:s', '>='))->getLimit($page, $size);
             $list = $model->all(null);
+            $informations = [];
             if ($list) {
                 foreach ($list as $k => $item) {
                     $data['id'] = $item['id'];
                     $data['title'] = $item['title'];
                     $data['img'] = $item['img'];
                     $data['respon_number'] = $item['respon_number'];
-                    $data['hit'] = $item['hit'];
                     $data['fabolus_number'] = $item['fabolus_number'];
                     $data['competition_id'] = $item['competition_id'];
                     $data['competition_short_name_zh'] = $item->getCompetition()['short_name_zh'];
@@ -194,21 +236,30 @@ class InformationApi extends FrontUserController
      */
     public function informationInfo()
     {
-       $information_id = $this->params['information_id'];
-       if (!$information = AdminInformation::getInstance()->field(['title', 'content', 'fabolus_number', 'collect_number'])->find($information_id)) {
-
+        $uid = isset($this->auth['id']) ? $this->auth['id'] : 0;
+        $information_id = $this->params['information_id'];
+        if (!$information = AdminInformation::getInstance()->where('id', $information_id)->get()) {
            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
-       } else if ($information->status == AdminInformation::STATUS_DELETE) {
+        } else if ($information->status == AdminInformation::STATUS_DELETE) {
            return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 
-       } else {
+        } else {
+
+           $information->user_info = $information->user_info();
+           $operete_fabolus = AdminUserOperate::getInstance()->where('item_type', 3)
+               ->where('type', 1)->where('is_cancel', 0)
+               ->where('item_id', $information->id)->where('user_id', $this->auth['id'])->get();
+           $information->is_fabolus = $operete_fabolus ? true : false;
+           $operate_collect = AdminUserOperate::getInstance()->where('item_type', 3)
+               ->where('type', 2)->where('is_cancel', 0)
+               ->where('item_id', $information->id)->where('user_id', $this->auth['id'])->get();
+           $information->is_collect = $operate_collect ? true : false;
            $order_type = $this->params['order_type'] ?: 0; //0:最热 1:最早 2:最新
            $page = $this->params['page'] ?: 1;
            $size = $this->params['size'] ?: 10;
            switch ($order_type){
                case 0:
-
                    $model = AdminInformationComment::getInstance()->where('information_id', $information_id)->where('top_comment_id', 0)
                        ->where('parent_id', 0)->order('fabolus_number', 'DESC')
                        ->limit(($page - 1) * $size, $size)
@@ -230,179 +281,65 @@ class InformationApi extends FrontUserController
 
            }
            $list = $model->all(null);
+           $count = $model->lastQueryResult()->getTotalCount();
            if ($list) {
                foreach ($list as $comment) {
+                   $childs = AdminInformationComment::getInstance()->where('top_comment_id', $comment->id)->where('information_id', $information_id)->where('status', AdminInformationComment::STATUS_NORMAL)->order('created_at', 'DESC')->limit(3)->all();
+                   $child_count = AdminInformationComment::getInstance()->where('top_comment_id', $comment->id)->where('information_id', $information_id)->where('status', AdminInformationComment::STATUS_NORMAL)->count('id');
+                   $operete = AdminUserOperate::getInstance()->where('item_type', 4)->where('item_id', $comment->id)->where('type', 1)->where('user_id', $this->auth['id'])->where('is_cancel', 0)->get();
                    $data['id'] = $comment['id'];
                    $data['content'] = $comment['content'];
+                   $data['created_at'] = $comment['created_at'];
                    $data['respon_number'] = $comment['respon_number'];
                    $data['fabolus_number'] = $comment['fabolus_number'];
                    $data['user_info'] = $comment->getUserInfo();
+                   $data['child_comment_list'] = FrontService::handInformationComment($childs, $uid);
+                   $data['child_comment_count'] = $child_count;
+                   $data['is_fabolus'] = $operete ? true : false;
+                   $data['is_follow'] = AppFunc::isFollow($this->auth['id'], $comment->user_id);
 
-                   $childs = AdminInformationComment::getInstance()->where('top_comment_id', $comment->id)->where('information_id', $information_id)->where('status', AdminInformationComment::STATUS_NORMAL)->order('created_at', 'DESC')->all();
-
-                   if ($childs) {
-                       foreach ($childs as $child) {
-                           $child_data['id'] = $child['id'];
-                           $child_data['content'] = $child['content'];
-                           $child_data['user_info'] = $child->getUserInfo();
-                           $child_data['t_u_info'] = $child->getTUserInfo();
-                           $child_datas[] = $child_data;
-                           unset($child_data);
-                       }
-                   } else {
-                       $child_datas = [];
-                   }
-                   $data['child_data'] = $child_datas;
-                   unset($child_datas);
+                   $top_comment[] = $data;
+                   unset($data);
 
 
                }
            }
 
-           $count = $model->lastQueryResult()->getTotalCount();
-
-
-           TaskManager::getInstance()->async(function () use($information_id) {
-               AdminInformation::getInstance()->update(
-                   ['hit' => QueryBuilder::inc(1)],
-                   ['id' => $information_id]
-               );
-           });
-
            $match_id = $information->match_id;
            $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
-           $format_match = FrontService::handMatch([$match], 0, true);
-           if ($format_match[0]) {
-               $return_match = [
-                   'match_id' => $format_match[0]['match_id'],
-                   'competition_id' => $format_match[0]['competition_id'],
-                   'competition_name' => $format_match[0]['competition_name'],
-                   'home_team_name' => $format_match[0]['home_team_name'],
-                   'away_team_name' => $format_match[0]['away_team_name'],
-                   'format_match_time' => $format_match[0]['format_match_time'],
-               ];
+           if ($match) {
+               $format_match = FrontService::handMatch([$match], 0, true);
+               if (isset($format_match[0])) {
+
+                   $return_match = [
+                       'match_id' => $format_match[0]['match_id'],
+                       'competition_id' => $format_match[0]['competition_id'],
+                       'competition_name' => $format_match[0]['competition_name'],
+                       'home_team_name' => $format_match[0]['home_team_name'],
+                       'away_team_name' => $format_match[0]['away_team_name'],
+                       'format_match_time' => $format_match[0]['format_match_time'],
+                   ];
+               } else {
+                   $return_match = [];
+               }
            } else {
                $return_match = [];
            }
+
+
            $return = [
                'information_info' => $information,
-               'comments' => $data,
+               'comments' => $top_comment,
                'count' => $count,
                'relate_match' => $return_match
            ];
            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
-       }
+        }
     }
 
 
-    /**
-     * 用户点赞 收藏 举报    帖子 评论 资讯评论 用户
-     * @return bool
-     */
-    public function informationOperate()
-    {
-        if (!$this->auth['id']) {
-            return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 
-        }
-
-        if (Cache::get('user_operate_information_' . $this->auth['id'])) {
-            return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
-        }
-
-
-        $validate = new Validate();
-        //1. 点赞   2收藏， 3， 举报，   4， 5， 6 对应取消
-        $validate->addColumn('type')->required()->inArray(["1", "2", "3", "4", "5" , "6"]);
-        $validate->addColumn('item_type')->required()->inArray([1,2,3,4,5]); //1帖子 2帖子评论 3资讯 4资讯评论 5用户
-        $validate->addColumn('item_id')->required();
-        $validate->addColumn('author_id')->required();
-        if (!$validate->validate($this->params)) {
-            return $this->writeJson(Status::CODE_ERR, $validate->getError()->__toString());
-        }
-
-        $item_id = $this->params['item_id'];
-        $type = $this->params['type'];
-        $item_type = $this->params['item_type'];
-        if ($operate = AdminUserOperate::getInstance()->where('item_id', $this->params['item_id'])->where('type', $this->params['type'])->get()) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
-        } else {
-            if (($this->params['type'] <= 3 && ($operate = AdminUserOperate::getInstance()->where('item_id', $this->params['item_id'])->where('type', $this->params['type']+3)->get()))
-                || ($this->params['type'] > 3 && ($operate = AdminUserOperate::getInstance()->where('item_id', $this->params['item_id'])->where('type', $this->params['type']-3)->get()))
-            ) {
-                $operate->type = $this->params['type'];
-                $operate->update();
-            } else {
-                $data = [
-                    'user_id' => $this->auth['id'],
-                    'item_type' => $this->params['item_type'],
-                    'type' => $this->params['type'],
-                    'content' => addslashes(htmlspecialchars(trim($this->params['content']))),
-                    'report_cat' => $this->params['report_cat'] ?: 0,
-                    'item_id' => $this->params['item_id'] ?: 0,
-                    'author_id' => $this->params['author_id'] ?: 0
-                ];
-                AdminUserOperate::getInstance()->insert($data);
-            }
-
-        }
-
-
-        TaskManager::getInstance()->async(function () use($item_type, $type, $item_id) {
-            if ($item_type == 1) {
-                $model = AdminUserPost::getInstance();
-                $status_report = AdminUserPost::NEW_STATUS_REPORTED;
-            } else if ($item_type == 2) {
-                $model = AdminPostComment::getInstance();
-                $status_report = AdminPostComment::STATUS_REPORTED;
-
-            } else if ($item_type == 3) {
-                $model = AdminInformation::getInstance();
-                $status_report = AdminInformation::STATUS_REPORTED;
-
-            } else if ($item_type == 4) {
-                $model = AdminInformationComment::getInstance();
-                $status_report = AdminInformationComment::STATUS_REPORTED;
-
-            } else if ($item_type == 5) {
-                $model = AdminUser::getInstance();
-                $status_report = AdminUser::STATUS_REPORTED;
-
-
-            } else {
-                return false;
-            }
-            switch ($type) {
-                case 1:
-                    $model->update(['fabolus_number' => QueryBuilder::inc(1)], ['id' => $item_id]);
-                    break;
-                case 2:
-
-                    $model->update(['collect_number' => QueryBuilder::inc(1)], ['id' => $item_id]);
-
-                    break;
-                case 3:
-                    $model->update(['status', $status_report], ['id' => $item_id]);
-                    break;
-                case 4:
-                    $model->update(['fabolus_number' => QueryBuilder::dec(1)], ['id' => $item_id]);
-                    break;
-                case 5:
-                    $model->update(['collect_number' => QueryBuilder::dec(1)], ['id' => $item_id]);
-                    break;
-                case 6:
-                    break;
-
-            }
-        });
-
-
-        Cache::set('user_operate_information_' . $this->auth['id'], 1, 5);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
-    }
 
 
 
@@ -412,12 +349,15 @@ class InformationApi extends FrontUserController
      */
     public function informationComment()
     {
+
         if (!$this->auth['id']) {
             return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
+        } else if ($this->auth['status'] == AdminUser::STATUS_FORBIDDEN) {
+            return $this->writeJson(Status::CODE_STATUS_FORBIDDEN, Status::$msg[Status::CODE_STATUS_FORBIDDEN]);
         }
+
         if (Cache::get('user_comment_information_' . $this->auth['id'])) {
             return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
-
         }
 
 
@@ -426,6 +366,7 @@ class InformationApi extends FrontUserController
         $validator->addColumn('top_comment_id')->required();
         $validator->addColumn('parent_id')->required();
         $validator->addColumn('t_u_id')->required();
+        $validator->addColumn('content')->required();
         if (!$validator->validate($this->params)) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
@@ -446,30 +387,59 @@ class InformationApi extends FrontUserController
         } else {
             $data = [
                 'information_id' => $this->params['information_id'],
-                'content' => addslashes(htmlspecialchars($this->params['content'])),
+                'content' => base64_encode(addslashes(htmlspecialchars($this->params['content']))),
                 'top_comment_id' => $this->params['top_comment_id'],
-                'user_id' => $this->params['user_id'],
+                'user_id' => $this->auth['id'],
                 'parent_id' => $this->params['parent_id'],
-                't_u_id' => $this->params['t_u_id']
+                't_u_id' => $this->params['t_u_id'],
             ];
-            AdminInformationComment::getInstance()->insert($data);
+
+            $rs = AdminInformationComment::getInstance()->insert($data);
             $parent_id = $this->params['parent_id'];
-            if ($this->params['parent_id']) {
-                TaskManager::getInstance()->async(function () use($parent_id) {
+            TaskManager::getInstance()->async(function () use($parent_id, $information_id) {
+                if ($parent_id) {
                     AdminInformationComment::getInstance()->update(
                         ['respon_number' => QueryBuilder::inc(1)],
                         ['id' => $parent_id]
                     );
-                });
+                }
+                AdminInformation::getInstance()->update(
+                    ['respon_number' => QueryBuilder::inc(1)],
+                    ['id' => $information_id]
+                );
 
-            }
+            });
 
         }
-        $data['task_id'] = 4;
-        $data['user_id'] = $this->auth['id'];
-        TaskManager::getInstance()->async(new SerialPointTask($data));
+        $data_task['task_id'] = 4;
+        $data_task['user_id'] = $this->auth['id'];
+        TaskManager::getInstance()->async(new SerialPointTask($data_task));
         Cache::set('user_comment_information_' . $this->auth['id'], 1, 5);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+        $data['id'] = $rs;
+
+
+        if ($parent_id) {
+            $message_data = [
+                'status' => AdminMessage::STATUS_UNREAD,
+                'type' => 3,
+                'item_type' => 4,
+                'item_id' => $rs,
+                'title' => '资讯回复通知',
+                'did_user_id' => $this->auth['id']
+            ];
+            $message_data['user_id'] = AdminInformationComment::getInstance()->where('id', $this->params['parent_id'])->get()->user_id;
+            AdminMessage::getInstance()->insert($message_data);
+
+        }
+        if ($comment_info = AdminInformationComment::getInstance()->where('id', $rs)->get()) {
+            $format = FrontService::handInformationComment([$comment_info], $this->auth['id']);
+
+            $comment_info_format = !empty($format[0]) ? $format[0] : [];
+        } else {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $comment_info_format);
 
     }
 
@@ -478,28 +448,31 @@ class InformationApi extends FrontUserController
      */
     public function informationChildComment()
     {
-        $information_id = $this->params['information_id'];
         $top_comment_id = $this->params['top_comment_id'];
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['sie'] ?: 10;
-        $model = AdminInformationComment::getInstance()->where('information_id', $information_id)->where('top_comment_id', $top_comment_id)->getLimit($page, $size);
-        $list = $model->all(null);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
+        $page = isset($this->params['page']) ? $this->params['page'] : 1;
+        $size = isset($this->params['size']) ? $this->params['size'] : 1;
+        if (!$father_comment = AdminInformationComment::getInstance()->find($top_comment_id)) {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
-        $count = $model->lastQueryResult()->getTotalCount();
-        if ($list) {
-            foreach ($list as $item) {
-                $data['content'] = $item['content'];
-                $data['user_info'] = $item->getUserInfo();
-                $data['t_u_info'] = $item->getTUserInfo();
-                $comments[] = $data;
-                unset($data);
-            }
-        } else {
-            $comments = [];
         }
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], ['comments' => $comments, 'count' => $count]);
+        $format_father = FrontService::handInformationComment([$father_comment], $this->auth['id']);
+
+        $model = AdminInformationComment::getInstance()->where('top_comment_id', $top_comment_id)->getLimit($page, $size);
+        $list = $model->all(null);
+        $total = $model->lastQueryResult()->getTotalCount();
+
+        $format_information_child_comments = FrontService::handInformationComment($list, $this->auth['id']);
+
+        $return = [
+            'fatherComment' => isset($format_father[0]) ? $format_father[0] : [],
+            'childComment' => $format_information_child_comments,
+            'count' => $total
+        ];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
 
     }
+
+
 }

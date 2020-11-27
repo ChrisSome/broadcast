@@ -23,7 +23,7 @@ class AdminMessage extends BaseModel
     }
 
     public function getLimit($page, $limit) {
-        return $this->orderBy('created_at', 'DESC')
+        return $this->order('created_at', 'DESC')
             ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();
     }
@@ -31,5 +31,8 @@ class AdminMessage extends BaseModel
     {
         return $this->where('id', $id)->update($data);
     }
+
+
+
 
 }

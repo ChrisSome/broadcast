@@ -5,8 +5,9 @@ namespace App\lib\pool;
 
 
 use App\Utility\Log\Log;
-use App\Utility\Pool\RedisPool;
+use App\Pool\RedisPool;
 use EasySwoole\Component\Singleton;
+use EasySwoole\Redis\Redis as Redis;
 
 class User extends RedisPool
 {

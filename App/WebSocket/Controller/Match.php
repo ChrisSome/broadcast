@@ -4,6 +4,7 @@
 namespace App\WebSocket\Controller;
 
 
+use App\Common\AppFunc;
 use App\lib\pool\Login;
 use App\lib\pool\MatchRedis;
 use App\lib\Tool;
@@ -17,6 +18,7 @@ use App\Utility\Log\Log;
 use App\Storage\OnlineUser;
 use App\Task\BroadcastTask;
 use App\WebSocket\WebSocketStatus;
+use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Task\TaskManager;
 
 class Match extends Base
@@ -51,10 +53,9 @@ class Match extends Base
         if ($matchId == true) {
             //对比赛状态查询, 状态正常
             if (!OnlineUser::getInstance()->get($fd)) {
-                $mid = Login::getInstance()->getMid();
+//                $mid = Login::getInstance()->getMid();
                 $data = [
                     'match_id' => $matchId,
-                    'mid' => $mid,
                     'fd'=> $fd,
                     'user_id' => $uid,
                     'nickname' => isset($user->nickname) ? $user->nickname : ''
@@ -69,34 +70,72 @@ class Match extends Base
         $user['match_id'] = $matchId;
         $user['fd'] = $fd;
         //设置房间对象
-        Login::getInstance()->userInRoom($args['match_id'], $fd);
+        AppFunc::userEnterRoom($args['match_id'], $fd);
         //最近二十条聊天记录
         $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->order('created_at', 'DESC')->limit(20)->all();
 
         //比赛状态
-        $match = AdminMatch::getInstance()->where('match_id', $matchId)->get();
-        if ($match && $match->status_id == 8) {
-            $matchTlive = AdminMatchTlive::getInstance()->where('match_id', $matchId)->get();
-            if ($matchTlive) {
-                $tlive = $matchTlive->tlive;
-                $stats = $matchTlive->stats;
-                $score = $matchTlive->score;
+
+        if ($match = AdminMatch::getInstance()->where('match_id', $matchId)->get()) {
+            if ($matchTlive = AdminMatchTlive::getInstance()->where('match_id', $matchId)->get()) {
+                $tlive = json_decode($matchTlive->tlive, true);
+                $stats = json_decode($matchTlive->stats, true);
+                $score = json_decode($matchTlive->score, true);
+                $match_trend = json_decode($matchTlive->match_trend, true);
+                $goal_tlive = [];
+                $corner_tlive = [];
+                $yellow_card_tlive = [];
+                $red_card_tlive = [];
+                foreach ($tlive as $item) {
+                    $item['time'] = intval($item['time']);
+                    if ($item['type'] == 1) { //进球
+                        $goal_tlive[] = $item;
+                    } else if ($item['type'] == 2) { //角球
+                        $corner_tlive[] = $item;
+                    } else if ($item['type'] == 3) { //黄牌
+                        $yellow_card_tlive[] = $item;
+                    } else if ($item['type'] == 4) { //红牌
+                        $red_card_tlive[] = $item;
+                    } else {
+                        continue;
+                    }
+
+                    unset($item);
+                }
+                $matchStats = [];
+                foreach ($stats as $stat) {
+                    if ($stat['type'] == 21 || $stat['type'] == 22 || $stat['type'] == 23 || $stat['type'] == 24 ||  $stat['type'] == 25) {
+                        $matchStats[] = $stat;
+                    }
+                }
+                $return_data = [
+                    'signal_count' => ['goal' => $goal_tlive, 'corner' => $corner_tlive, 'yellow_card' => $yellow_card_tlive, 'red_card' => $red_card_tlive],
+                    'match_trend' => $match_trend,
+                    'match_id' => $matchId,
+                    'time' => 0,
+                    'status' => 8,
+                    'match_stats' => $matchStats,
+                    'score' => ['home' => $score[2], 'away' => $score[3]],
+
+                ];
             } else {
-                $tlive = [];
-                $stats = [];
-                $score = [];
+                /**
+                 * 比赛刚结束 数据还没同步到sql，几秒钟时差 还是利用Cache做
+                 *
+                 */
+                $return_data = [];
+                if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
+                    $return_data = json_decode($match_data_info, true);
+                }
+                $tlive = json_decode(Cache::get('match_tlive_' . $matchId), true) ?: [];
+                $stats = json_decode(Cache::get('match_stats_' . $matchId), true) ?: [];
+
             }
         } else {
-            //该场比赛的文字直播内容
-            $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, $matchId);
-            $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, $matchId);
-            $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, $matchId);
-
-            $tlive = MatchRedis::getInstance()->get($tlive_key);
-            $stats = MatchRedis::getInstance()->get($stats_key);
-            $score = MatchRedis::getInstance()->get($score_key);
+            $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_WRONG_MATCH, WebSocketStatus::$msg[WebSocketStatus::STATUS_WRONG_MATCH]));
+            return;
         }
-
+        $messages = [];
         if ($lastMessages) {
             foreach ($lastMessages as $lastMessage) {
                 $data['message_id'] = $lastMessage['id'];
@@ -108,18 +147,16 @@ class Match extends Base
                 $messages[] = $data;
                 unset($data);
             }
-        } else {
-            $messages = [];
         }
         $respon = [
             'event' => 'match-enter',
             'data' => [
                 'userInfo' => $user,
-                'matchInfo' => [],
+                'match_info' => $return_data,
                 'lastMessage' => $messages,
-                'tlive' => $tlive ? json_decode($tlive, true) : [],
-                'stats' => $stats ? json_decode($stats, true): [],
-                'score' => $score ? json_decode($score, true) : []
+                'stats' => $stats,
+                'tlive' => $tlive,
+
             ],
 
         ];
@@ -165,9 +202,7 @@ class Match extends Base
                 $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_NOT_IN_ROOM, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_IN_ROOM]));
                 return  ;
             }
-            //将用户删除本直播间
-            $user = $this->currentUser($fd);
-            $res_outroom = Login::getInstance()->userOutRoom($user['match_id'], $fd);
+            $res_outroom = AppFunc::userOutRoom($args['match_id'], $fd);
             $resp = [
                 'event' => 'match-leave'
             ];
@@ -189,9 +224,5 @@ class Match extends Base
     }
 
 
-    public function matchList()
-    {
-
-    }
 
 }

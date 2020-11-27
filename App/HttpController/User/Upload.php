@@ -77,7 +77,6 @@ class Upload extends FrontUserController
         }
 
         $fileName = $file->getClientFileName();
-        Log::getInstance()->log('request is ' . json_encode($fileName));
 
         $extension = pathinfo($fileName)['extension'];
         $baseName = Utils::getFileKey($fileName) . '.' .$extension;

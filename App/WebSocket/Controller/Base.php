@@ -8,12 +8,12 @@
 
 namespace App\WebSocket\Controller;
 
-use App\lib\pool\Login;
 use App\lib\Tool;
 use App\Model\AdminUser;
 use App\Storage\OnlineUser;
-use App\Utility\Log\Log;
+use App\WebSocket\WebSocketStatus;
 use EasySwoole\Component\Pool\PoolManager;
+use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\Socket\AbstractInterface\Controller;
 use EasySwoole\Socket\Client\WebSocket as WebSocketClient;
 use Exception;
@@ -34,33 +34,36 @@ class Base extends Controller
      * @param string $message
      * @return bool
      */
-    public function checkUserRight($fd, $args, &$message = '')
+    public function checkUserRight($fd, $args = [], &$message = '')
     {
-
+        $bool = true;
         $info = OnlineUser::getInstance()->get($fd);
 
         if (!$info) {
             $message = '用户已下线';
-            return false;
+            $bool = false;
         } else {
-            AdminUser::getInstance()->getOneByToken($info['token']); //更新token时间
             //判断是否他人窃取
             if($info['fd'] != $fd) {
+                $bool = false;
                 $message = '禁止获取他人用户信息';
-                return false;
             }
 
             $message = $info;
             $user = AdminUser::getInstance()->where('id', $info['user_id'])->limit(1)->get();
-            Log::getInstance()->info('user_id' . $info['user_id']);
 
-            if (isset($user['status']) && $user['status'] != AdminUser::STATUS_NORMAL) {
+            if (isset($user['status']) && !in_array($user['status'], [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
+                $bool = false;
                 $message = '违反直播间规定，详情请联系客服';
-                return false;
             }
 
-            return true;
         }
+        if (!$bool) {
+            $server = ServerManager::getInstance()->getSwooleServer();
+            $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_OPERATE_UNUSUAL, $message));
+
+        }
+
     }
 
     /**
@@ -95,15 +98,6 @@ class Base extends Controller
         return ;
     }
 
-    /**
-     * 获取用户信息
-     * @param $uid
-     * @param $mid
-     * @return mixed
-     */
-    public function getUserInfoByMiD($uid, $mid)
-    {
-        return Login::getInstance()->getUser($uid, $mid);
-    }
+
 
 }

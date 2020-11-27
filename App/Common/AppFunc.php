@@ -3,10 +3,37 @@
 namespace App\Common;
 
 
+use App\HttpController\Match\FootballApi;
+use App\lib\FrontService;
+use App\Model\AdminAlphaMatch;
+use App\Model\AdminInterestMatches;
+use App\Model\AdminMatch;
+use App\Model\AdminSeason;
+use App\Model\AdminUser;
+use App\Model\AdminUserSetting;
+use App\Model\AdminZoneList;
 use easySwoole\Cache\Cache;
+use EasySwoole\Redis\Redis as Redis;
+use EasySwoole\RedisPool\Redis as RedisPool;
 
 class AppFunc
 {
+
+    const USER_FOLLOWS = "user_follows:uid:%s";  //用户关注列表
+    const USER_FANS = 'user_fans:uid:%s'; //用户粉丝列表
+
+
+    const USER_MESS = 'user_messageCount:uid:%s'; //哈希表 用来存放用户消息的数量
+    const USER_MESS_TYPE_COUNT = 'user_message:type_%s';  //type=4的消息的未读数
+
+    const USER_MESS_TYPE_TABLE = 'user_message_number:uid:%s';  //用与存各类消息数量的哈希表
+
+    const USER_INTEREST_MATCH = 'user_insterest_match:match_id:%s';  //关注此场比赛的用户
+    const USER_BLACK_LIST = 'user_black_list:%s';
+    const USERS_IN_ROOM = 'users_in_room:%s'; //该房间下的用户  roomid
+
+    const MATCH_INFO = 'match_info_match_id_%s'; //某场比赛的乱七八糟的信息 进攻/危险进攻/控球率/射正/射偏  从stats中提取
+
     // 二维数组 转 tree
     public static function arrayToTree($list, $pid = 'pid')
     {
@@ -283,7 +310,7 @@ class AppFunc
      * @param $number
      * @return string
      */
-    public static function changeToWan($number)
+    public static function changeToWan($number, $unit = '万')
     {
         if (!$number) {
             return 0;
@@ -293,29 +320,653 @@ class AppFunc
             return $number;
         } else {
             $wan_str = number_format($number/10000,0);
-            return $wan_str . '万欧';
+            return $wan_str . $unit;
         }
 
     }
 
     public static function getUserLvByPoint($point)
     {
-        if (0 <= $point && $point < 500) {
-            return 1;
-        } else if (500 <= $point && $point < 1000) {
-            return 2;
-        } else if (1000 <= $point && $point < 1500) {
-            return 3;
-        } else if (1500 <= $point && $point < 2000) {
-            return 4;
-        } else if (2000 <= $point && $point < 2500) {
-            return 5;
-        } else if (2500 <= $point && $point < 3000) {
-            return 6;
-        } else if (3000 <= $point && $point < 3500) {
-            return 7;
-        } else if (3500 <= $point && $point < 4000) {
-            return 8;
+
+        if (0 <= $point && $point < 15000) {
+            return floor($point/500) + 1;
+        } else if (15000 <= $point && $point < 45000) {
+            return floor(($point-15000)/1000) + 30;
+        }
+
+    }
+
+    /**
+     * @param $level
+     * @return int
+     */
+    public static function getPointOfLevel($level)
+    {
+        if ($level >= 0 && $level<30) {
+            return 500;
+        } else if ($level >= 30 && $level < 60) {
+            return 1000;
         }
     }
+
+    /**
+     * 距离下一级相差多少分
+     * @param $uid
+     * @return float|int
+     */
+    public static function getPointsToNextLevel($uid)
+    {
+        $user = AdminUser::getInstance()->where('id', $uid)->get();
+
+        $level = $user->level;
+        $point = $user->point;
+        if ($level < 30) {
+            $D_value = $level * 500 - $point;
+        } else if ($level >= 30 && $level < 60) {
+            $D_value = $level * 1000 - $point;
+        }
+        return $D_value;
+    }
+
+    /**
+     * 总比分
+     * @param $home_score
+     * @param $away_score
+     * @return array
+     */
+    public static function getFinalScore($home_score, $away_score)
+    {
+        /**
+         * 主客场加时比分不为零 总比分 = 加时比分 + 点球大战比分
+         * 主客场加时比分为零 总比分 = 常规时间比分 + 点球大战比分
+         */
+        //[0,0,0,2,2,0,0]  比分(常规时间) / 半场比分  /红牌  /黄牌 /角球 /加时比分(120分钟)加时赛才有 /点球大战比分，点球大战才有
+        if (!$home_score[5] && !$away_score[5]){
+            $home_total_score = $home_score[0] + $home_score[6];
+            $away_total_score = $away_score[0] + $away_score[6];
+        } else {
+            $home_total_score = $home_score[5] + $home_score[6];
+            $away_total_score = $away_score[6] + $away_score[6];
+
+        }
+        return [$home_total_score, $away_total_score];
+    }
+
+    /**
+     * 获取黄牌数
+     * @param $home_score
+     * @param $away_score
+     * @return array
+     */
+    public static function getYellowCard($home_score, $away_score)
+    {
+        return [$home_score[3], $away_score[3]];
+    }
+
+    /**
+     * 获取红牌数量
+     * @param $home_score
+     * @param $away_score
+     * @return array
+     */
+    public static function getRedCard($home_score, $away_score)
+    {
+        return [$home_score[2], $away_score[2]];
+
+    }
+
+    /**
+     * 获取角球数量
+     * @param $home_score
+     * @param $away_score
+     * @return array
+     */
+    public static function getCorner($home_score, $away_score)
+    {
+        return [$home_score[4], $away_score[4]];
+
+    }
+
+    /**
+     * 半场比分
+     * @param $home_score
+     * @param $away_score
+     * @return array
+     */
+    public static function getHalfScore($home_score, $away_score)
+    {
+        if (isset($home_score[1])) {
+            $home_half_score = $home_score[1];
+        } else {
+            $home_half_score = 0;
+        }
+
+        if (isset($away_score[1])) {
+            $away_half_score = $away_score[1];
+        } else {
+            $away_half_score = 0;
+        }
+
+        return [$home_half_score, $away_half_score];
+    }
+
+
+
+
+    /**
+     * 是否关注
+     * @param $uid
+     * @param $followId
+     * @return bool
+     */
+    public static function isFollow($uid, $followId)
+    {
+        if (!$uid || !$followId) {
+            return false;
+        }
+        RedisPool::invoke('redis', function(Redis $redis) use ($uid, &$id_arr) {
+            $id_arr = $redis->sMembers(sprintf(self::USER_FOLLOWS, $uid));
+        });
+        if (in_array($followId, $id_arr)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 用户点击关注 增加关注列表 增加被关注人粉丝列表
+     * @param $uid
+     * @param $followId
+     * @return bool
+     */
+    public static function addFollow($uid, $followId)
+    {
+        if (!$uid || !$followId)
+        {
+            return false;
+        }
+        RedisPool::invoke('redis', function(Redis $redis) use ($uid, $followId) {
+
+            $redis->sAdd(sprintf(self::USER_FOLLOWS, $uid), $followId);
+            $redis->sAdd(sprintf(self::USER_FANS, $followId), $uid);
+        });
+        return true;
+
+    }
+
+    /**
+     * 取消关注
+     * @param $uid
+     * @param $followId
+     * @return bool
+     */
+    public static function delFollow($uid, $followId)
+    {
+        if (!$uid || !$followId)
+        {
+            return false;
+        }
+        RedisPool::invoke('redis', function(Redis $redis) use ($uid, $followId) {
+            $redis->sRem(sprintf(self::USER_FOLLOWS, $uid), $followId);
+            $redis->sRem(sprintf(self::USER_FANS, $followId), $uid);
+        });
+        return true;
+    }
+
+    /**
+     * 用户关注列表
+     * @param $uid
+     * @return array
+     */
+    public static function getUserFollowing($uid)
+    {
+        if (!$uid) {
+            return [];
+        } else {
+            RedisPool::invoke('redis', function(Redis $redis) use ($uid, &$id_arr) {
+                $id_arr = $redis->sMembers(sprintf(self::USER_FOLLOWS, $uid));
+            });
+
+            return !empty($id_arr) ? $id_arr : [];
+        }
+    }
+
+    /**
+     * 用户粉丝列表
+     * @param $uid
+     * @return array
+     */
+    public static function getUserFans($uid)
+    {
+        if (!$uid) {
+            return [];
+        } else {
+            RedisPool::invoke('redis', function(Redis $redis) use ($uid, &$id_arr) {
+                $id_arr = $redis->sMembers(sprintf(self::USER_FANS, $uid));
+            });
+            return !empty($id_arr) ? $id_arr : [];
+
+        }
+    }
+
+
+
+    /**
+     * 获取此比赛所有的关注用户
+     * @param $match_id
+     * @return array
+     */
+    public static function getUsersInterestMatch($match_id)
+    {
+        if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
+            return [];
+        } else {
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, &$uids) {
+                $uids = $redis->sMembers(sprintf(self::USER_INTEREST_MATCH, $match_id));
+            });
+            return $uids;
+        }
+    }
+
+
+
+
+
+    public static function getTestDomain()
+    {
+        return 'http://test.ymtyadmin.com';
+    }
+
+    public function getFormalDomain()
+    {
+        return 'http://www.yemaoty.cn';
+    }
+
+    /**
+     * 是否在推荐赛事中
+     * @param $competitionId
+     * @return bool
+     */
+    public static function isInHotCompetition($competitionId)
+    {
+        $item = FootballApi::hotCompetition;
+        foreach ($item as $value) {
+            foreach ($value as $ival) {
+                $competition_ids[] = $ival;
+            }
+        }
+        $competition_ids = array_column($competition_ids, 'competition_id');
+        if (in_array($competitionId, $competition_ids)) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
+     * 是否该提示
+     * @param $uid
+     * @return bool
+     */
+    public static function onlyNoticeMyInterest($uid)
+    {
+        if (!$uid) {
+            return false;
+        } else {
+
+            if(!$userSetting = AdminUserSetting::getInstance()->where('user_id', $uid)->get()) {
+                return false;
+            } else {
+                if (!json_decode($userSetting->notice, true)['only_notice_my_interest']) {
+                    return false;
+                } else {
+                   return true;
+                }
+            }
+
+        }
+    }
+
+    /**
+     * 是否需要提示
+     * @param $user_id
+     * @param $match_id
+     * @param $type
+     * @return bool
+     */
+    public static function isNotice($user_id, $match_id, $type)
+    {
+        if (!$user_id || !$match_id) return true;
+        if ($user_setting = AdminUserSetting::getInstance()->where('user_id', $user_id)->get()) {
+            if (!$notice = json_decode($user_setting->notice, true)) {
+                return true;
+            } else {
+                if (!$notice['only_notice_my_interest']) return true;
+                //仅提示关注的比赛
+                if (!$interest = AdminInterestMatches::getInstance()->where('uid', $user_id)->get()) {
+                    return false;
+                } else {
+
+                    $match_ids = json_decode($interest->match_ids, true);
+                    if (!in_array($match_id, $match_ids)) {
+                        return false;
+                    } else {
+                        $bool = false;
+                        switch ($type) {
+                            case 1: //进球
+                                if ($notice['goal']) $bool = true;
+                                break;
+                            case 10://开始
+                                if ($notice['start']) $bool = true;
+                                break;
+                            case 12: //结束
+                                if ($notice['over']) $bool = true;
+                                break;
+
+                            case 3: //黄牌
+                                if ($notice['yellow_card']) $bool = true;
+                                break;
+
+                            case 4: //红牌
+
+                                if ($notice['red_card']) $bool = true;
+                                break;
+
+                        }
+                        return $bool;
+                    }
+
+                }
+            }
+
+        } else {
+            return false;
+        }
+
+    }
+
+
+
+
+    /**
+     * 获取房间内fd
+     * @param $match_id
+     * @return array
+     */
+    public static function getUsersInRoom($match_id)
+    {
+        if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
+            return [];
+        } else {
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, &$fd_arr) {
+                $fd_arr = $redis->sMembers(sprintf(self::USERS_IN_ROOM, $match_id));
+            });
+            return $fd_arr;
+        }
+    }
+
+    /**
+     * 用户进入房间
+     * @param $match_id
+     * @param $fd
+     * @return array
+     */
+    public static function userEnterRoom($match_id, $fd)
+    {
+        if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
+            return [];
+        } else {
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd) {
+                $redis->sAdd(sprintf(self::USERS_IN_ROOM, $match_id), $fd);
+            });
+        }
+    }
+
+    /**
+     * 用户退出房间
+     * @param $match_id
+     * @param $fd
+     * @return array
+     */
+    public static function userOutRoom($match_id, $fd)
+    {
+        if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
+            return [];
+        } else {
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd) {
+                $redis->sRem(sprintf(self::USERS_IN_ROOM, $match_id), $fd);
+            });
+        }
+    }
+
+    /**
+     * 获取正在进行中的比赛的进行时间
+     * @param $match_id
+     * @return int
+     */
+
+
+    public static function getPlayingTime($match_id)
+    {
+        $time = Cache::get('match_time_' . $match_id);
+        return $time ?: 0;
+    }
+
+    public static function setPlayingTime($match_id, $score)
+    {
+        if (!$score) {
+            return 0;
+        }
+        $status = $score[1];
+        if ($status == 2) {//上半场
+            $time = floor((time() - $score[4]) / 60 + 1);
+        } else if ($status == 4) {//下半场
+            $time = floor((time() - $score[4]) / 60 + 45 +1);
+        } else {
+            $time = 0;
+        }
+        $bool = Cache::set('match_time_' . $match_id, $time, 60 * 240);
+
+        return $time;
+    }
+
+
+    /**
+     * 用户关注比赛
+     * @param $match_id
+     * @param $uid
+     * @return bool
+     */
+    public static function userDoInterestMatch($match_id, $uid)
+    {
+        if ($matchRes = AdminInterestMatches::getInstance()->where('uid', $uid)->get()) {
+            $match_ids = json_decode($matchRes->match_ids, true);
+            if ($match_ids) {
+                if (in_array($match_id, $match_ids)) {
+                    return true;
+                }
+                array_push($match_ids, $match_id);
+                $matchRes->match_ids = json_encode($match_ids);
+            } else {
+                $matchRes->match_ids = json_encode([$match_id]);
+
+            }
+
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $uid) {
+                $redis->sAdd(sprintf(self::USER_INTEREST_MATCH, $match_id), $uid);
+            });
+            if ($matchRes->update()) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            $insert = ['uid' => $uid, 'match_ids' => json_encode([$match_id])];
+            if (AdminInterestMatches::getInstance()->insert($insert)) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+
+    /**
+     * 用户取消关注比赛
+     * @param $match_id
+     * @param $uid
+     * @return bool
+     */
+    public static function userDelInterestMatch($match_id, $uid)
+    {
+        if ($match = AdminInterestMatches::getInstance()->where('uid', $uid)->get()) {
+            $match_ids = json_decode($match->match_ids, true);
+            $data = [];
+            foreach ($match_ids as $id) {
+                if ($match_id == $id) {
+                    continue;
+                } else {
+                    $data[] = $id;
+                }
+            }
+            $match->match_ids = json_encode($data);
+            RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $uid) {
+                $redis->sRem(sprintf(self::USER_INTEREST_MATCH, $match_id), $uid);
+            });
+            if ($match->update()) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public static function getMatchTeamName($match_id)
+    {
+        if ($match = AdminMatch::getInstance()->where('match_id', $match_id)->get()) {
+            $home_name_zh = $match->homeTeamName()->name_zh;
+            $away_name_zh = $match->awayTeamName()->name_zh;
+            return [$home_name_zh, $away_name_zh];
+        } else {
+            return ['', ''];
+        }
+    }
+
+    public static function getBasic($match_id)
+    {
+        if ($match = AdminMatch::getInstance()->where('match_id', $match_id)->get()) {
+            $format = FrontService::handMatch([$match], 0, true);
+            if (isset($format[0])) {
+                return $format[0];
+            } else {
+                return [];
+            }
+        } else {
+            return [];
+        }
+    }
+
+
+    public static function changeArrToStr(array $arr)
+    {
+        if (!$arr) return '';
+        $str = '(';
+        foreach ($arr as $item) {
+            $str .= $item . ',';
+        }
+        $str = rtrim($str, ',') . ')';
+        return $str;
+    }
+
+
+    public static function getAlphaLiving($home_team_en, $away_team_en)
+    {
+        if (!$home_team_en || !$away_team_en) {
+            return false;
+        }
+        $str_like = trim($home_team_en, ' FC') . '%' . trim($away_team_en, ' FC') . '%';
+        return AdminAlphaMatch::getInstance()->where('teamsEn', $str_like, 'like')->get();
+    }
+
+    public static function getProvinceAndCityCode($province, $city)
+    {
+        $provinceCode = '';
+        $cityCode = '';
+        if ($province = AdminZoneList::getInstance()->where('name', $province . '%', 'like')->get()) {
+            $provinceCode = $province->id;
+        }
+        if ($city = AdminZoneList::getInstance()->where('name', $city . '%', 'like')->get()) {
+            $cityCode = $city->id;
+        }
+        return [$provinceCode, $cityCode];
+    }
+
+
+    public static function is_utf8($string)
+    {
+        return mb_detect_encoding($string, 'UTF-8') === 'UTF-8';
+    }
+
+
+    public static function redisSetStr($key, $value)
+    {
+        if (!$key || !$key) {
+            return false;
+        }
+        RedisPool::invoke('redis', function(Redis $redis) use ($key, $value) {
+           $redis->set($key, $value);
+        });
+        return true;
+    }
+
+
+    public static function redisGetKey($key)
+    {
+        if ($key) return false;
+        RedisPool::invoke('redis', function(Redis $redis) use ($key, &$value) {
+            $value = $redis->set($key, $value);
+        });
+        return $value;
+    }
+
+    public static function getPlayerSeasons($seasons)
+    {
+
+        //[9695,9722]
+        if (!$seasons) return [];
+        $data = [];
+        foreach ($seasons as $season) {
+            $season_info = AdminSeason::getInstance()->where('season_id', $season)->get();
+
+            $competition_info = $season_info->getCompetition();
+            $season_item = ['season_id' => $season_info->season_id, 'year' => $season_info->year];
+
+
+            if (isset($data[$competition_info->competition_id])) {
+                array_push($data[$competition_info->competition_id]['season_list'], $season_item);
+            } else {
+                $data[$competition_info->competition_id] = [
+                    'competition_info' => ['competition_id' => $competition_info->competition_id, 'short_name_zh' => $competition_info->short_name_zh],
+                    'season_list' => [$season_item],
+                ];
+            }
+
+
+        }
+        $return = [];
+        if ($data) {
+            foreach ($data as $datum) {
+                $return[] = $datum;
+            }
+        }
+
+        return $return;
+    }
+
+
+
 }

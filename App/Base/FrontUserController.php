@@ -4,6 +4,7 @@ namespace App\Base;
 
 use App\lib\pool\Login;
 use App\Model\AdminUser;
+use App\Utility\Message\Status as Statuses;
 use EasySwoole\EasySwoole\Config;
 
 use App\Model\AdminAuth as AuthModel;
@@ -26,6 +27,8 @@ class FrontUserController extends BaseController
 	protected $auth;   // 保存了登录用户的信息
 	protected $role_group;
 	protected $isCheckSign = false;
+
+
 
     public function render(string $template, array $data = [])
     {
@@ -73,21 +76,22 @@ class FrontUserController extends BaseController
 		$r = $this->request();
 		$id = $r->getCookieParams('front_id');
 		$time = $r->getCookieParams('front_time');
-		$token = md5( $id . Config::getInstance()->getConf('app.token') . $time);
+		$token = md5($id . Config::getInstance()->getConf('app.token') . $time);
         if (!$id) {
             return false;
         }
-		if($r->getCookieParams('front_token') == $token) {
+        $this->auth['id'] = 0;
+        if($r->getCookieParams('front_token') == $token) {
             $this->auth = AdminUser::getInstance()->find($id);
 			return true;
 		} else if ($token = $r->getHeaderLine('authorization')) {
 		    //头部传递access_token
 		    $tokenKey = sprintf(AdminUser::USER_TOKEN_KEY, $token);
-		    $json = Login::getInstance()->get($tokenKey);
-		    if (!$json) {
+
+		    if (!$json = AppFunc::redisGetKey($tokenKey)) {
                 return false;
             } else {
-		        Login::getInstance()->set($tokenKey, $json);
+		        AppFunc::redisSetStr($tokenKey, $json);
 		        $this->auth = json_decode($json, true);
 		        return true;
             }

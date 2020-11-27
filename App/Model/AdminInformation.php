@@ -42,11 +42,12 @@ class AdminInformation extends BaseModel
 
     }
 
-    public function userInfo()
+    public function user_info()
     {
-        return $this->hasOne(AdminUser::class, null, 'user_id', 'id')->field(['id', 'nickname']);
+        return $this->hasOne(AdminUser::class, null, 'user_id', 'id')->field(['id', 'nickname', 'photo', 'is_offical', 'level']);
 
     }
+
 
 
 

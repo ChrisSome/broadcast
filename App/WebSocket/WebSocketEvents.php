@@ -44,39 +44,37 @@ class WebSocketEvents
     {
 
         $fd = $request->fd;
-        $data = ['fd' => $fd];
-        $user = OnlineUser::getInstance()->get($fd);
-        if ($user) {
-            $data['user'] = $user;
-        } else {
-            $data['user'] = [];
-        }
-
-
-
-        //如果已经有设备登陆,则强制退出, 根据后台配置是否允许多终端登陆
-        if (false) {
-//            self::userClose($server, $info['id']);
-        }
-        //推送消息
-//        Login::getInstance()->sadd("members:".$info['id'], $fd);
-        // 发送欢迎消息给用户
-        if ($old = Cache::get($fd)) {
-//                $oldHashKey = Login::getInstance()->getUserKey($info['id'], $old);
-//                Login::getInstance()->del($oldHashKey);
-//                Login::getInstance()->lrem(Login::ONLINE_USER_QUEUES, 0, $old);
-        }
+        $user_online = OnlineUser::getInstance()->get($fd);
 
         //分配对应mid写入redis队列
         $mid = Login::getInstance()->getMid();
-
-        //记录房间内用户
-        $resp = [
+        $user_id = $request->get['user_id'];
+        if ($user_id) {
+            $user = AdminUser::getInstance()->where('id', $user_id)->get();
+        }
+        //如果已经有设备登陆,则强制退出, 根据后台配置是否允许多终端登陆
+//        if (false) {
+//            self::userClose($server, $info['id']);
+//        }
+        $info = [
             'fd' => $fd,
-            'mid' => $mid
+            'nickname' => isset($user) ? $user->nickname : '',
+            'token' => '',
+            'user_id' => isset($user) ? $user->id : 0,
         ];
-        Cache::set($fd, $mid);
-        $server->push($fd, Tool::getInstance()->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $resp));
+        if (!$user_online) {
+            OnlineUser::getInstance()->set($fd, $info);
+        } else {
+            OnlineUser::getInstance()->update($fd, $info);
+        }
+
+        $resp_info = [
+            'event' => 'connection-succ',
+            'info' => ['fd' => $fd, 'mid' => $mid],
+
+        ];
+
+        $server->push($fd, Tool::getInstance()->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $resp_info));
 
     }
 
@@ -110,13 +108,11 @@ class WebSocketEvents
         if (isset($info['websocket_status']) && $info['websocket_status'] !== 0) {
             // 移除用户并广播告知
            if ($mid = Cache::get($fd)) {
-                Login::getInstance()->del($mid);
-                Login::getInstance()->lrem(Login::ONLINE_USER_QUEUES, 0, $mid);
                // 移除用户并广播告知
                $userOnline = OnlineUser::getInstance()->get($mid);
                $hashKey =  Login::getInstance()->getUserKey($userOnline['user_id'], $mid);;
                Login::getInstance()->del($hashKey);
-               OnlineUser::getInstance()->close($mid);
+               OnlineUser::getInstance()->delete($fd);
 
             }
 

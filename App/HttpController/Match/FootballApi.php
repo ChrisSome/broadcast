@@ -2,16 +2,20 @@
 
 namespace App\HttpController\Match;
 use App\Base\FrontUserController;
+use App\Common\AppFunc;
 use App\lib\FrontService;
-use App\lib\pool\User as UserRedis;
 use App\lib\Tool;
 use App\Model\AdminClashHistory;
 use App\Model\AdminMatch;
+use App\Model\AdminMatchTlive;
 use App\Model\AdminPlayer;
+use App\Model\AdminSysSettings;
 use App\Model\AdminSystemAnnoucement;
 use App\Model\AdminUserInterestCompetition;
+use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
+use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\Validate\Validate;
 
@@ -19,33 +23,32 @@ class FootballApi extends FrontUserController
 {
     protected $lineUpDetail = 'https://open.sportnanoapi.com/api/v4/football/match/lineup/detail?user=%s&secret=%s&id=%s';
     protected $urlIntvalRank = 'https://open.sportnanoapi.com/api/v4/football/season/table/detail?user=%s&secret=%s&id=%s';
+    protected $matchHistory = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s';
+
+
 
     protected $playerLogo = 'http://cdn.sportnanoapi.com/football/player/';
     public $needCheckToken = false;
 
     const STATUS_PLAYING = [2, 3, 4, 5, 7];
-    const STATUS_SCHEDULE = [0, 1, 9, 11, 12, 13];
-    const STATUS_RESULT= [8, 10];
+    const STATUS_SCHEDULE = [0, 1, 9];
+    const STATUS_RESULT= [8, 9, 10, 11, 12, 13];
 
     const STATUS_NO_START = 1;
 
     const hotCompetition = [
         'hot' => [['competition_id' => 45, 'short_name_zh' => '欧洲杯'], ['competition_id'=>47, 'short_name_zh' =>'欧联杯'], ['competition_id'=>542, 'short_name_zh' =>'中超']],
         'A' => [
-            ['competition_id' => 3099, 'short_name_zh' => '澳威北后备'],
             ['competition_id' => 1961, 'short_name_zh' => '澳黄后备'],
             ['competition_id' => 3109, 'short_name_zh' => '澳昆后备'],
             ['competition_id' => 598, 'short_name_zh' => '澳昆超'],
             ['competition_id' => 1858, 'short_name_zh' => '澳昆U20'],
-            ['competition_id' => 3083, 'short_name_zh' => '澳达超'],
-            ['competition_id' => 1878, 'short_name_zh' => '澳威北超'],
+            ['competition_id' => 1850, 'short_name_zh' => '澳南后备'],
         ],
         'B' => [
             ['competition_id' => 447, 'short_name_zh' => '巴波联'],
-            ['competition_id' => 178, 'short_name_zh' => '比U21'],
             ['competition_id' => 282, 'short_name_zh' => '冰岛乙'],
             ['competition_id' => 284, 'short_name_zh' => '冰岛杯'],
-            ['competition_id' => 469, 'short_name_zh' => '巴拉甲'],
             ['competition_id' => 436, 'short_name_zh' => '巴西乙'],
             ['competition_id' => 1821, 'short_name_zh' => '巴丙'],
         ],
@@ -55,14 +58,15 @@ class FootballApi extends FrontUserController
         ],
         'E' => [
             ['competition_id' => 238, 'short_name_zh' => '俄超'],
-            ['competition_id' => 478, 'short_name_zh' => '厄瓜甲秋'],
+            ['competition_id' => 241, 'short_name_zh' => '俄青联'],
             ['competition_id' => 240, 'short_name_zh' => '俄乙'],
 
         ],
         'F' => [
             ['competition_id' => 195, 'short_name_zh' => '芬超'],
             ['competition_id' => 1940, 'short_name_zh' => '芬丙'],
-            ['competition_id' => 1816, 'short_name_zh' => '法戊'],
+            ['competition_id' => 3053, 'short_name_zh' => '斐济女联'],
+            ['competition_id' => 1932, 'short_name_zh' => '斐济杯'],
         ],
         'G' => [
             ['competition_id' => 486, 'short_name_zh' => '哥斯甲'],
@@ -83,15 +87,12 @@ class FootballApi extends FrontUserController
             ['competition_id' => 2979, 'short_name_zh' => '老挝超'],
         ],
         'M' => [
+            ['competition_id' => 457, 'short_name_zh' => '美职业'],
+            ['competition_id' => 466, 'short_name_zh' => '墨西乙'],
             ['competition_id' => 2115, 'short_name_zh' => '墨女超'],
-            ['competition_id' => 458, 'short_name_zh' => '美乙'],
-            ['competition_id' => 465, 'short_name_zh' => '墨西超'],
-            ['competition_id' => 2846, 'short_name_zh' => '蒙古超'],
         ],
         'N' => [
-            ['competition_id' => 717, 'short_name_zh' => '南非甲'],
             ['competition_id' => 716, 'short_name_zh' => '南非超'],
-            ['competition_id' => 202, 'short_name_zh' => '挪甲'],
             ['competition_id' => 203, 'short_name_zh' => '挪乙'],
         ],
         'O' => [
@@ -102,17 +103,23 @@ class FootballApi extends FrontUserController
         ],
         'R' => [
             ['competition_id' => 185, 'short_name_zh' => '瑞典超甲'],
-            ['competition_id' => 187, 'short_name_zh' => '瑞典乙'],
-            ['competition_id' => 192, 'short_name_zh' => '瑞典杯'],
             ['competition_id' => 226, 'short_name_zh' => '瑞士甲'],
-            ['competition_id' => 186, 'short_name_zh' => '瑞典甲'],
+            ['competition_id' => 569, 'short_name_zh' => '日足联'],
+            ['competition_id' => 572, 'short_name_zh' => '日职丙'],
+            ['competition_id' => 567, 'short_name_zh' => '日职联'],
         ],
         'S' => [
             ['competition_id' => 3121, 'short_name_zh' => '斯里总统杯'],
             ['competition_id' => 277, 'short_name_zh' => '斯伐杯'],
+            ['competition_id' => 3129, 'short_name_zh' => '所罗岛联'],
+        ],
+        'T' => [
+            ['competition_id' => 1842, 'short_name_zh' => '泰乙'],
+            ['competition_id' => 318, 'short_name_zh' => '土丙C'],
         ],
         'W' => [
             ['competition_id' => 674, 'short_name_zh' => '乌兹超'],
+            ['competition_id' => 675, 'short_name_zh' => '乌兹甲'],
             ['competition_id' => 1736, 'short_name_zh' => '乌拉乙'],
         ],
         'X' => [
@@ -120,12 +127,12 @@ class FootballApi extends FrontUserController
             ['competition_id' => 126, 'short_name_zh' => '西超杯'],
         ],
         'Y' => [
-            ['competition_id' => 1788, 'short_name_zh' => '印尼甲'],
+            ['competition_id' => 1978, 'short_name_zh' => '越南乙'],
             ['competition_id' => 625, 'short_name_zh' => '伊朗甲'],
         ],
         'Z' => [
-            ['competition_id' => 1928, 'short_name_zh' => '中台联'],
             ['competition_id' => 543, 'short_name_zh' => '中甲'],
+            ['competition_id' => 544, 'short_name_zh' => '中乙'],
         ],
     ];
 
@@ -134,7 +141,6 @@ class FootballApi extends FrontUserController
         $time = strtotime(date('Y-m-d',time()));
 
         $match = AdminMatch::getInstance()->where('match_time', $time, '>')->all();
-        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
 
         return $this->writeJson(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN], $match);
 
@@ -179,16 +185,15 @@ class FootballApi extends FrontUserController
 
     public function frontMatchList()
     {
-//        $todayMatch =
+
         $todayTime = strtotime(date('Y-m-d', time()));
         $tomorrowTime = strtotime(date('Y-m-d',strtotime('+1 day')));
         $afterTomorrowTime = strtotime(date('Y-m-d',strtotime('+2 day')));
         $hotCompetition = FrontService::getHotCompetitionIds();
-        $playingMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')->where('match_time', $todayTime, '<')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
+        $playingMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')->where('match_time', time(), '<')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
 
-        $todayMatch = AdminMatch::getInstance()->where('match_time', $todayTime, '>')->where('match_time', $tomorrowTime, '<')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
+        $todayMatch = AdminMatch::getInstance()->where('match_time', $todayTime, '>')->where('status_id', self::STATUS_PLAYING, 'not in')->where('match_time', $tomorrowTime, '<')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
         $tomorrowMatch = AdminMatch::getInstance()->where('match_time', $tomorrowTime, '>')->where('match_time', $afterTomorrowTime, '<')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
         $playing = FrontService::handMatch($playingMatch, isset($this->auth['id']) ? $this->auth['id'] : 0);
         $today = FrontService::handMatch($todayMatch, isset($this->auth['id']) ? $this->auth['id'] : 0);
         $tomorrow = FrontService::handMatch($tomorrowMatch, isset($this->auth['id']) ? $this->auth['id'] : 0);
@@ -197,6 +202,7 @@ class FootballApi extends FrontUserController
             'today' => $today,
             'tomorrow' => $tomorrow
         ];
+        Cache::set('today_match_list', json_encode($resp), 60);
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $resp);
 
     }
@@ -205,14 +211,33 @@ class FootballApi extends FrontUserController
      * 正在进行中的比赛列表
      * @return bool
      */
-    public function playingMatches()
+    public function matchListPlaying()
     {
 
         $hotCompetition = FrontService::getHotCompetitionIds();
-        $playMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
+        $playMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')
+            ->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
 
-        $formatMatch = FrontService::handMatch($playMatch, $this->auth['id']);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMatch);
+
+        $formatMatch = FrontService::handMatch($playMatch, $this->auth['id'], false, true);
+        if (isset($this->auth['id'])) {
+            if ($userInterestMatch = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->get()) {
+                $match = json_decode($userInterestMatch->match_ids);
+                $count = count($match);
+            } else {
+                $count = 0;
+            }
+
+
+        } else {
+            $count = 0;
+        }
+        $return = [
+            'user_interest_count' => $count, //关注的比赛数
+            'list' => $formatMatch
+        ];
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
 
     }
@@ -236,10 +261,9 @@ class FootballApi extends FrontUserController
 
         $end = $start + 60 * 60 * 24;
 
-        $matches = AdminMatch::getInstance()->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')->where('status_id', self::STATUS_SCHEDULE, 'in')->where('is_delete', 0)->all();
-        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
+        $matches = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')->where('is_delete', 0)->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')->order('match_time', 'ASC')->all();
 
-        $formatMatch = FrontService::handMatch($matches, $this->auth['id']);
+        $formatMatch = FrontService::handMatch($matches, $this->auth['id'], false, true);
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMatch);
 
     }
@@ -258,96 +282,13 @@ class FootballApi extends FrontUserController
         $start = strtotime($this->params['time']);
         $end = $start + 60 * 60 * 24;
 
-        $matches = AdminMatch::getInstance()->where('match_time', $start, '>=')->where('match_time', $end, '<')->where('status_id', self::STATUS_RESULT, 'in')->where('is_delete', 0)->all();
-        $formatMatch = FrontService::handMatch($matches, $this->auth['id']);
+        $matches = AdminMatch::getInstance()->where('status_id', self::STATUS_RESULT, 'in')->where('is_delete', 0)->where('match_time', $start, '>=')->where('match_time', $end, '<')->order('match_time', 'DESC')->all();
+
+        $formatMatch = FrontService::handMatch($matches, $this->auth['id'], false, true);
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMatch);
     }
 
-    /**
-     * 用户关注比赛
-     * @return bool
-     */
-    function userInterestMatch()
-    {
-        if (!$this->auth['id']) {
-            return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
 
-        }
-
-        $validate = new Validate();
-        $validate->addColumn('match_id')->required();
-        $validate->addColumn('type')->required()->inArray(['add', 'del']);
-        if ($validate->validate($this->params))
-        {
-            $uid = $this->auth['id'];
-            $match_id = $this->params['match_id'];
-            $matches = AdminInterestMatches::getInstance()->get(['uid' => $uid]);
-            if ($this->params['type'] == 'add')
-            {
-                $insertData = [
-                    'uid' => $this->auth['id'],
-                    'match_ids' => json_encode([$match_id])
-                ];
-                if ($matches) {
-                    $matchesArr = json_decode($matches['match_ids'], true);
-                    array_push($matchesArr, $match_id);
-                    if (!AdminInterestMatches::getInstance()->update(['match_ids' => json_encode($matchesArr)], ['uid' => $uid])) {
-                        $code = Status::CODE_MATCH_FOLLOW_ERR;
-
-                    } else {
-                        $code = Status::CODE_OK;
-
-                    }
-                } else {
-                    if (!AdminInterestMatches::getInstance()->insert($insertData)) {
-                        $code = Status::CODE_MATCH_FOLLOW_ERR;
-
-                    } else {
-
-                        $code = Status::CODE_OK;
-
-                    }
-                }
-
-            } else if($this->params['type'] == 'del') {
-
-                if (!$matches)
-                {
-                    $code = Status::CODE_WRONG_RES;
-
-                } else {
-                    $mids = json_decode($matches['match_ids'], true);
-                    foreach ($mids as $k => $mid) {
-                        if ($mid == $this->params['match_id']) {
-                            unset($mids[$k]);
-                        }
-                    }
-                    if (AdminInterestMatches::getInstance()->update(['match_ids' => json_encode($mids)], ['uid' => $uid])) {
-                        $code = Status::CODE_OK;
-
-                    } else {
-                        $code = Status::CODE_WRONG_RES;
-
-                    }
-                }
-            } else {
-                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-            }
-
-            TaskManager::getInstance()->async(function () use ($uid, $match_id) {
-                //用户关注比赛redis
-                $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match_id);
-                UserRedis::getInstance()->sadd($key, $uid);
-            });
-
-        } else {
-            $code = Status::CODE_W_PARAM;
-        }
-
-        return $this->writeJson($code, Status::$msg[$code]);
-
-    }
 
 
     public function userInterestMatchList()
@@ -389,7 +330,6 @@ class FootballApi extends FrontUserController
         }
         $res = Tool::getInstance()->postApi(sprintf($this->lineUpDetail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $match_id));
         $decode = json_decode($res, true);
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
         $homeFirstPlayers = [];
         $homeAlternatePlayers = [];
         $awayFirstPlayers = [];
@@ -426,9 +366,7 @@ class FootballApi extends FrontUserController
                 foreach ($away as $awayItem) {
                     if (!$awayItem['logo']) {
                         $awayplayerinfo = AdminPlayer::getInstance()->where('player_id', $awayItem['id'])->get();
-
                     }
-
                     $awayPlayer['player_id'] = $awayItem['id'];
                     $awayPlayer['name'] = $awayItem['name'];
                     $awayPlayer['logo'] = $awayItem['logo'] ? $this->playerLogo . $awayItem['logo'] : ($awayplayerinfo ? $awayplayerinfo->logo : '');
@@ -476,7 +414,7 @@ class FootballApi extends FrontUserController
      * 历史
      * @return bool
      */
-    public function clashHistory()
+    public function getClashHistory()
     {
         if (!isset($this->params['match_id'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -546,8 +484,8 @@ class FootballApi extends FrontUserController
 
         $returnData = [
             'intvalRank' => $intvalRank, //积分排名
-            'historyResult' => json_decode($sensus['history'], true),
-            'recentResult' => json_decode($sensus['recent'], true),
+            'historyResult' => !empty($sensus['history']) ? json_decode($sensus['history'], true) : [],
+            'recentResult' => !empty($sensus['recent']) ? json_decode($sensus['recent'], true) : [],
             'history' => $formatHistoryMatches, //历史交锋
             'homeRecent' => FrontService::handMatch($homeRecentMatches, 0, true),//主队近期战绩
             'awayRecent' => FrontService::handMatch($awayRecentMatches, 0, true),//客队近期战绩
@@ -562,24 +500,23 @@ class FootballApi extends FrontUserController
      * 直播间公告
      * @return bool
      */
-    public function noticeMatch()
+    public function noticeInMatch()
     {
-        $matchNotice = AdminSystemAnnoucement::getInstance()->where('type', 2)->order('created_at', 'DESC')->limit(1)->get();
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $matchNotice ?: []);
+        $setting = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_MATCH_NOTICEMENT)->get();
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], isset($setting->sys_value) ? $setting->sys_value : []);
 
     }
 
     public function test()
     {
-
-        $time = date('Ymd');
-//        $time = '20200821';
-        $url = sprintf($this->uriM, $this->user, $this->secret, $time);
-
-        $res = Tool::getInstance()->postApi($url);
-        $teams = json_decode($res, true);
-        $decodeDatas = $teams['results'];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
+//        go(function () {
+//            $redis_client = Manager::getInstance()->get('redisClient')->getObj();
+//            $redis_client->set('test_redis', 2);
+//
+//        });
+//        $a = UserRedis::getInstance()->get('test_redis');
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 2);
 
 
     }
@@ -590,12 +527,40 @@ class FootballApi extends FrontUserController
         if (!isset($this->params['match_id'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
+        } else if (!$match = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->get()) {
+            return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
+
         }
 
         $match = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->get();
-        $formatMatch = FrontService::handMatch([$match], $this->auth['id'] ?: 0);
+        $formatMatch = FrontService::handMatch([$match], $this->auth['id'] ?: 0, true, true);
         $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+
+    }
+
+
+    public function getMatchHistory()
+    {
+
+
+        $url = sprintf($this->matchHistory, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', 3478550);
+
+        $res = Tool::getInstance()->postApi($url);
+        $resp = json_decode($res, true)['results'];
+
+
+        if (!$matchTlive = AdminMatchTlive::getInstance()->where('match_id', $resp['id'])->get()) {
+            $data = [
+                'match_id' => $resp['id'],
+                'score' => json_encode($resp['score']),
+                'stats' => json_encode($resp['stats']),
+                'incidents' => json_encode($resp['incidents']),
+                'tlive' => json_encode($resp['tlive']),
+            ];
+            AdminMatchTlive::getInstance()->insert($data);
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $resp);
 
     }
 

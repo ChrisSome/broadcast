@@ -8,11 +8,7 @@
 
 namespace App\WebSocket\Controller;
 
-use App\lib\pool\Login;
 use App\lib\Tool;
-use App\Model\AdminUser as UserModel;
-use App\Model\AdminUser;
-use App\Storage\OnlineUser;
 use App\Task\BroadcastTask;
 use App\WebSocket\Actions\Broadcast\BroadcastMessage;
 use App\WebSocket\WebSocketStatus;
@@ -20,10 +16,8 @@ use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\Socket\AbstractInterface\Controller;
 use EasySwoole\Socket\Client\WebSocket as WebSocketClient;
-use App\Utility\Log\Log;
-use function MongoDB\BSON\toJSON;
 
-class Broadcast extends Controller
+class Broadcast extends Base
 {
 
     public static $type = ['text' => 0, 'img' => 1];
@@ -50,7 +44,7 @@ class Broadcast extends Controller
             $server = ServerManager::getInstance()->getSwooleServer();
             $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
         }
-
+        $this->checkUserRight($client->getFd());
 //        OnlineUser::getInstance()->update($client->getFd(), )
         if (!empty($broadcastPayload) && isset($broadcastPayload['content']) && isset($broadcastPayload['match_id'])) {
             $message = new BroadcastMessage;
@@ -59,9 +53,8 @@ class Broadcast extends Controller
             $message->setContent($broadcastPayload['content']);
             $message->setType($type);
             $message->setSendTime(date('Y-m-d H:i:s'));
-            $message->setUserMatchId($broadcastPayload['match_id']);
+            $message->setMatchId($broadcastPayload['match_id']);
             $message->setAtUserId($broadcastPayload['at_user_id']);
-
             TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $client->getFd()]));
         }
         $this->response()->setStatus($this->response()::STATUS_OK);

@@ -10,10 +10,8 @@ namespace EasySwoole\EasySwoole;
 
 
 use App\Process\Consumer;
-use App\Storage\MatchLive;
-use App\Storage\OnlineUser;
 use App\Process\NamiPushTask;
-use App\Utility\Log\Log;
+use App\Storage\OnlineUser;
 use App\WebSocket\event\OnWorkStart;
 use App\WebSocket\WebSocketEvents;
 use App\WebSocket\WebSocketParser;
@@ -21,16 +19,12 @@ use EasySwoole\EasySwoole\Swoole\EventRegister;
 use EasySwoole\EasySwoole\AbstractInterface\Event;
 use EasySwoole\Http\Request;
 use EasySwoole\Http\Response;
-
-use EasySwoole\RedisPool\RedisPool;
+use EasySwoole\Component\Pool\PoolManager;
 use EasySwoole\Socket\Dispatcher;
 use EasySwoole\Utility\File;
-
 use App\Process\HotReload;
-
 use App\Utility\Template\Blade;
 use EasySwoole\Template\Render;
-
 use easySwoole\Cache\Cache;
 use EasySwoole\ORM\Db\Config as DbConfig;
 use EasySwoole\ORM\DbManager;
@@ -47,7 +41,7 @@ class EasySwooleEvent implements Event
         // 加载配置项
         self::loadConf();
 
-//        //设置redisPool
+//        //设置redis
         $redisConf = Config::getInstance()->getConf('database')['REDIS'];
         $redisPoolConfig = new  \EasySwoole\Redis\Config\RedisConfig();
         $redisPoolConfig->setHost($redisConf['host']);
@@ -93,29 +87,33 @@ class EasySwooleEvent implements Event
 
     public static function mainServerCreate(EventRegister $register)
     {
-        // 热更新
+        /**
+         * ****************  服务热启动  ****************
+         */
         $hot_reload = (new HotReload('HotReload', ['disableInotify' => false]))->getProcess();
         ServerManager::getInstance()->getSwooleServer()->addProcess($hot_reload);
-
-        //纳米数据推送
-//        $nami_push = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
-//        ServerManager::getInstance()->getSwooleServer()->addProcess($nami_push);
-
+        /**
+         * timer定时
+         */
+//        $nami_task = (new NamiPushTask('NamiPush', ['disableInotify' => false]))->getProcess();
+//        ServerManager::getInstance()->getSwooleServer()->addProcess($nami_task);
         // template
         $viewDir = EASYSWOOLE_ROOT . '/App/Views';
         $cacheDir = EASYSWOOLE_ROOT . '/Temp/Template';
         Render::getInstance()->getConfig()->setRender(new Blade($viewDir,$cacheDir));
         Render::getInstance()->attachServer(ServerManager::getInstance()->getSwooleServer());
 
-        // cache -- file redis memcache
+        /**
+         * ****************  缓存  ****************
+         */
         $conf = Config::getInstance()->getConf('app.cache');
         Cache::init($conf);
-        //注册websocket相关
-        // 注册服务事件
+
+        /**
+         * ****************  注册websocket相关  ****************
+         */
         $web = new WebSocketEvents();
-        //开始事件
         OnlineUser::getInstance();
-        MatchLive::getInstance();
         $onWorkerStart = new OnWorkStart();
         $register->set(EventRegister::onWorkerStart, function (\swoole_websocket_server $server,  $workerId) use ($onWorkerStart) {
             $onWorkerStart->onWorkerStart($server, $workerId);
@@ -127,7 +125,7 @@ class EasySwooleEvent implements Event
         $register->add(EventRegister::onClose, function (\swoole_server $server, int $fd, int $reactorId) use ($web) {
             $web::onClose($server, $fd, $reactorId);
         });
-        $conf = new \EasySwoole\Socket\Config;
+        $conf = new \EasySwoole\Socket\Config();
         $conf->setType($conf::WEB_SOCKET);
         $conf->setParser(new WebSocketParser);
         $dispatch = new Dispatcher($conf);
@@ -136,6 +134,16 @@ class EasySwooleEvent implements Event
         });
         $register->add(EventRegister::onTask, function () {
 
+        });
+
+
+
+        /**
+         * ****************  mysql 热启动  ****************
+         */
+        $register->add($register::onWorkerStart,function (){
+            //链接预热
+            DbManager::getInstance()->getConnection()->getClientPool()->keepMin();
         });
 
 

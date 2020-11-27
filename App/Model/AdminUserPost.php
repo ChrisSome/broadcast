@@ -10,26 +10,30 @@ use App\Utility\Log\Log;
 class AdminUserPost extends BaseModel
 {
     protected $tableName = "admin_user_posts";
-    const STATUS_NORMAL     = 0;        //用户发布成功/审核处理中
-    const STATUS_HANDING    = 1;        //处理中（举报）
     const STATUS_DEL        = 2;        //删除
     const STATUS_EXAMINE_SUCC        = 4;        //审核成功（展示）
-    const STATUS_EXAMINE_FAIL        = 3;        //审核失败
-    const STATUS_SAVE = 5; //保存草稿箱
 
     const IS_TOP        = 1; //置顶
-    const IS_UNTOP      = 0; //非置顶
     const IS_REFINE     = 1; //加精
-    const IS_UNREFINE   = 0; //非加精
-    const IS_REPRINT    = 1; //转载
-    public static $statusAccusation = [self::STATUS_HANDING, self::STATUS_DEL];        //举报状态
-    public static $statusExamine = [self::STATUS_NORMAL, self::STATUS_EXAMINE_SUCC, self::STATUS_EXAMINE_FAIL];//审核状态
 
     const NEW_STATUS_NORMAL = 1;//正常
     const NEW_STATUS_REPORTED = 2; //被举报
-    const NEW_STATUS_DELETED = 3;//删除
+    const NEW_STATUS_DELETED = 3;//自己删除
     const NEW_STATUS_SAVE = 4; //保存
+    const NEW_STATUS_ADMIN_DELETED = 5; //官方删除
+    const NEW_STATUS_LOCK = 6; //锁定
 
+    const SHOW_IN_FRONT = [self::NEW_STATUS_NORMAL, self::NEW_STATUS_REPORTED, self::NEW_STATUS_LOCK]; //前端展示的帖子
+
+    /**
+     * $value mixed 是原值
+     * $data  array 是当前model所有的值
+     */
+    protected function getContentAttr($value, $data)
+    {
+        return base64_decode($data['content']);
+
+    }
     public function findAll($page, $limit)
     {
         return $this->order('created_at', 'DESC')
@@ -66,35 +70,30 @@ class AdminUserPost extends BaseModel
 
     //发帖人信息
     public function userInfo() {
-        $res = $this->hasOne(AdminUser::class, null, 'user_id', 'id');
-        if ($res) {
-            $data = $res->field(['id', 'photo', 'nickname']);
-            return $data;
-        } else {
-            return [];
-        }
-//        return $this->hasOne(AdminUser::class, null, 'user_id', 'id')->field(['id', 'photo', 'nickname']);
+        return $this->hasOne(AdminUser::class, null, 'user_id', 'id')->field(['id', 'photo', 'nickname', 'level', 'is_offical']);
 
     }
 
     //用户是否收藏
     public function isCollect($uid, $pid) {
 
-        return $this->hasOne(AdminPostOperate::class, function(QueryBuilder $queryBuilder) use($uid, $pid) {
-            $queryBuilder->where('action_type', 2);
+        return $this->hasOne(AdminUserOperate::class, function(QueryBuilder $queryBuilder) use($uid, $pid) {
+            $queryBuilder->where('type', 2);
             $queryBuilder->where('user_id', $uid);
-            $queryBuilder->where('post_id', $pid);
-        }, 'id', 'post_id');
+            $queryBuilder->where('item_type', 1);
+            $queryBuilder->where('is_cancel', 0);
+        }, 'id', 'item_id');
 
     }
 
     //是否赞过
     public function isFablous($uid, $pid) {
-        return $this->hasOne(AdminPostOperate::class, function (QueryBuilder $queryBuilder) use($uid, $pid) {
-            $queryBuilder->where('action_type', 1);
+        return $this->hasOne(AdminUserOperate::class, function (QueryBuilder $queryBuilder) use($uid, $pid) {
+            $queryBuilder->where('type', 1);
             $queryBuilder->where('user_id', $uid);
-            $queryBuilder->where('post_id', $pid);
-        }, 'id', 'post_id');
+            $queryBuilder->where('item_type', 1);
+            $queryBuilder->where('is_cancel', 0);
+        }, 'id', 'item_id');
 
     }
 

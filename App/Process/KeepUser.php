@@ -11,6 +11,7 @@ namespace App\Process;
 
 use App\lib\pool\Login;
 use App\Storage\OnlineUser;
+use App\Utility\Log\Log;
 use EasySwoole\Component\Timer;
 use EasySwoole\EasySwoole\ServerManager;
 use Swoole\Process;
@@ -25,6 +26,7 @@ class KeepUser
     public function run()
     {
         Timer::getInstance()->loop(60 * 1000, function () {
+            Log::getInstance()->info('keep_user');
             $online = OnlineUser::getInstance();
             $server = ServerManager::getInstance()->getSwooleServer();
             foreach ($online->table() as $mid => $info) {

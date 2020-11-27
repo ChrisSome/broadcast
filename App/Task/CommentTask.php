@@ -46,7 +46,6 @@ class CommentTask implements TaskInterface
         ],[
             'id' => $this->taskData['post_id']
         ]);
-        Log::getInstance()->info('insertid' . $insertId);
         return $insertId;
     }
 

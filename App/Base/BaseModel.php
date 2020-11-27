@@ -3,15 +3,14 @@
 namespace App\Base;
 
 use App\Utility\Pool\MysqlPool;
-use App\Utility\Pool\MysqlObject;
-use EasySwoole\Component\Di;
 use EasySwoole\ORM\AbstractModel;
-
+use EasySwoole\Component\CoroutineSingleTon;
+use EasySwoole\Component\Pool\PoolManager;
 
 abstract class BaseModel extends AbstractModel
 {
+//    use CoroutineSingleTon;
 	protected $db;
-	protected $table = 'admin_auth';
     private static $instance=[];
 
     static function getInstance(...$args)

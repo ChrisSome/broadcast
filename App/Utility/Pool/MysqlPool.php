@@ -1,10 +1,11 @@
 <?php
 namespace App\Utility\Pool;
 
-use EasySwoole\Component\Pool\AbstractPool;
+//use EasySwoole\Component\Pool\AbstractPool;
 use EasySwoole\EasySwoole\Config;
+use EasySwoole\ORM\AbstractModel;
 
-class MysqlPool extends AbstractPool
+class MysqlPool extends AbstractModel
 {
     protected function createObject()
     {

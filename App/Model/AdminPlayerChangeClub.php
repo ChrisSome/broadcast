@@ -18,4 +18,11 @@ class AdminPlayerChangeClub extends BaseModel
     {
         return $this->hasOne(AdminTeam::class, null, 'to_team_id', 'team_id');
     }
+
+    public function getLimit($page, $limit)
+    {
+        return $this->order('transfer_time', 'DESC')
+            ->limit(($page - 1) * $limit, $limit)
+            ->withTotalCount();
+    }
 }

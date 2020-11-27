@@ -12,10 +12,11 @@ class AdminUser extends BaseModel
     protected $tableName = "admin_user";
 
     const USER_TOKEN_KEY = 'user:token:%s';   //token
-
+    const STATUS_BAN = 0; //封禁
     const STATUS_NORMAL = 1;   //正常
     const STATUS_REPORTED = 2; //被举报
-    const STATUS_FORBIDDEN = 3; //禁言
+    const STATUS_CANCEL = 3; //注销
+    const STATUS_FORBIDDEN = 4; //禁言
 
     const STATUS_PRE_INIT = 1;      //用户信息审核状态
     public function findAll($page, $limit)
@@ -24,7 +25,12 @@ class AdminUser extends BaseModel
             ->limit(($page - 1) * $limit, $limit)
             ->all();
     }
-
+    public function getLimit($page, $limit)
+    {
+        return $this->order('created_at', 'DESC')
+            ->limit(($page - 1) * $limit, $limit)
+            ->withTotalCount();
+    }
 
     /**
      * @param $id

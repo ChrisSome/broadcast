@@ -32,47 +32,7 @@ class Post extends AdminController
         $this->render('admin.post.index');
     }
 
-    public function getAll()
-    {
-        if (!$this->hasRuleForPost($this->rule_rule_view)) return;
-        $params = $this->request()->getRequestParam();
-        $page = isset($params['page']) ? $params['page'] : 1;
-        $offset = isset($params['offset']) ? $params['offset'] : 10;
-        $where = [];
-        $query = AdminUserPost::getInstance();
-        if (isset($params['title']) && !empty($params['title'])) {
-            $query->where('title', $params['title'], 'like');
 
-        }
-        if (isset($params['nickname']) && !empty($params['nickname'])) {
-            $query->where('nickname', $params['nickname'], 'like');
-        }
-        if (isset($params['time']) && !empty($params['time'])) {
-            $times = explode(' - ', $params['time']);
-            $query->where('created_at', $times, 'between');
-        }
-        if (isset($params['where']) && !empty($params['where'])) {
-            if ($params['where'] == 'accusation') {
-                $query->where(AppFunc::getWhereArray('status', AdminUserPost::$statusAccusation));
-            } else if ($params['where'] = 'examine') {
-                $query->where(AppFunc::getWhereArray('status', AdminUserPost::$statusExamine));
-
-            }
-        } else {
-            $query->where('status', AdminUserPost::STATUS_EXAMINE_SUCC);
-        }
-        $data = $query->findAll($page, $offset, $where);
-        if ($data) {
-            foreach ($data as $k=>$item) {
-                $data[$k]['nickname'] = $item->userInfo()->nickname;
-            }
-        }
-        $count = $query->count();
-//        $sql = $query->lastQuery()->tQuery();
-
-        $data = ['code' => Status::CODE_OK, 'data' => $data, 'count' => $count, 'params' => $params];
-        $this->dataJson($data);
-    }
 
 
     /**

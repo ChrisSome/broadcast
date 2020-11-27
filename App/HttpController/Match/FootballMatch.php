@@ -2,38 +2,53 @@
 namespace App\HttpController\Match;
 
 use App\Base\FrontUserController;
+use App\Common\AppFunc;
+use App\HttpController\User\WebSocket;
 use App\lib\FrontService;
-use App\lib\pool\Login;
-use App\lib\pool\MatchRedis;
 use App\Model\AdminAllStat;
+use App\Model\AdminAlphaMatch;
 use App\Model\AdminClashHistory;
 use App\Model\AdminCompetition;
+use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
+use App\Model\AdminInterestMatches;
+use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
+use App\Model\AdminMatchTlive;
+use App\Model\AdminMessage;
 use App\Model\AdminNoticeMatch;
 use App\Model\AdminPlayer;
 use App\Model\AdminPlayerChangeClub;
+use App\Model\AdminPlayerHonorList;
+use App\Model\AdminPlayersOne;
 use App\Model\AdminPlayerStat;
 use App\Model\AdminSeason;
+use App\Model\AdminStageList;
 use App\Model\AdminSteam;
 use App\Model\AdminSysSettings;
 use App\Model\AdminTeam;
 use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
 use App\Model\AdminUser;
+use App\Model\AdminUserInterestCompetition;
+use App\Model\AdminUserPost;
+use App\Model\AdminUserPostsCategory;
 use App\Model\AdminUserSetting;
+use App\Model\SeasonTeamPlayer;
+use App\Model\Test;
 use App\Storage\OnlineUser;
-use App\Task\GameOverTask;
-use App\Task\GoalTask;
+use App\Task\MatchNotice;
+use App\Task\MatchUpdate;
 use App\Utility\Log\Log;
 use App\lib\Tool;
 use App\Utility\Message\Status;
-use App\lib\pool\User as UserRedis;
 use App\GeTui\BatchSignalPush;
+use App\Utility\Pool\MysqlPool;
 use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
+use EasySwoole\Validate\Validate;
 
 class FootBallMatch extends FrontUserController
 {
@@ -41,174 +56,168 @@ class FootBallMatch extends FrontUserController
     protected $isCheckSign = false;
     public $needCheckToken = false;
     public $start_id = 0;
+    public $start_time = 0;
+
+    public $taskData = [];
     protected $user = 'mark9527';
 
     protected $secret = 'dbfe8d40baa7374d54596ea513d8da96';
 
     protected $url = 'https://open.sportnanoapi.com';
 
-    protected $uriMatchList = '/api/v4/football/competition/list?user=%s&secret=%s';
-    protected $uriTeamList = '/api/v4/football/team/list?user=%s&secret=%s&id=%s';
+    protected $uriTeamList = '/api/v4/football/team/list?user=%s&secret=%s&time=%s';  //球队列表
+    protected $uriTeamList1 = '/api/v4/football/team/list?user=%s&secret=%s&id=%s';  //球队列表
 
     protected $uriM = 'https://open.sportnanoapi.com/api/v4/football/match/diary?user=%s&secret=%s&date=%s';
-    protected $uriCompetition = '/api/v4/football/competition/list?user=%s&secret=%s&id=%s';
+    protected $uriCompetition = '/api/v4/football/competition/list?user=%s&secret=%s&time=%s';
 
     protected $uriStage = '/api/v4/football/stage/list?user=%s&secret=%s&date=%s';
 
     protected $uriSteam = '/api/sports/stream/urls_free?user=%s&secret=%s'; //直播地址
-    protected $uriLineUp = '/api/v4/football/team/squad/list?user=%s&secret=%s&id=%s';  //阵容
+    protected $uriLineUp = '/api/v4/football/team/squad/list?user=%s&secret=%s&time=%s';  //阵容
     protected $uriPlayer = '/api/v4/football/player/list?user=%s&secret=%s&time=%s';  //球员
-    protected $uriCompensation = '/api/v4/football/compensation/list?user=%s&secret=%s&date=%s&id=%s';  //获取比赛历史同赔统计数据列表
-    protected $live_url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
-    protected $season_url = 'https://open.sportnanoapi.com/api/v4/football/season/list?user=%s&secret=%s&id=%s'; //更新赛季
-    protected $player_stat = 'https://open.sportnanoapi.com/api/v4/football/player/list/with_stat?user=%s&secret=%s&id=%s'; //获取球员能力技术列表
+    protected $uriCompensation = '/api/v4/football/compensation/list?user=%s&secret=%s&time=%s';  //获取比赛历史同赔统计数据列表
+    protected $live_url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';//比赛列表
+    protected $season_url = 'https://open.sportnanoapi.com/api/v4/football/season/list?user=%s&secret=%s&time=%s'; //更新赛季
+    protected $player_stat = 'https://open.sportnanoapi.com/api/v4/football/player/list/with_stat?user=%s&secret=%s&time=%s'; //获取球员能力技术列表
     protected $player_change_club_history = 'https://open.sportnanoapi.com/api/v4/football/transfer/list?user=%s&secret=%s&id=%s'; //球员转会历史
     protected $team_honor = 'https://open.sportnanoapi.com/api/v4/football/team/honor/list?user=%s&secret=%s&id=%s'; //球队荣誉
-    protected $honor_list = 'https://open.sportnanoapi.com/api/v4/football/honor/list?user=%s&secret=%s&id=%s'; //荣誉详情
+    protected $honor_list = 'https://open.sportnanoapi.com/api/v4/football/honor/list?user=%s&secret=%s&time=%s'; //荣誉详情
     protected $all_stat = 'https://open.sportnanoapi.com/api/v4/football/season/all/stats/detail?user=%s&secret=%s&id=%s'; //获取赛季球队球员统计详情-全量
+    protected $stage_list = 'https://open.sportnanoapi.com/api/v4/football/stage/list?user=%s&secret=%s&time=%s'; //获取阶段列表
+    protected $manager_list = 'https://open.sportnanoapi.com/api/v4/football/manager/list?user=%s&secret=%s&time=%s'; //教练
 
     protected $uriDeleteMatch = '/api/v4/football/deleted?user=%s&secret=%s'; //删除或取消的比赛
-
-    public function allStat()
-    {
-
-
-        $a = AdminAllStat::getInstance()->max('season_id');
-
-        $seasonids = AdminSeason::getInstance()->where('season_id', isset($a) ? $a : 0, '>')->field(['season_id'])->all();
-
-        $seasonids = array_column($seasonids, 'season_id');
-
-//        return $this->writeJson(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN], $seasonids);
-
-        foreach ($seasonids as $seasonid) {
-            if (AdminAllStat::getInstance()->where('season_id', $seasonid)->get()) {
-                continue;
-            } else {
-                $res = Tool::getInstance()->postApi(sprintf($this->all_stat, $this->user, $this->secret, 3150));
-                $teams = json_decode($res, true);
-//                return $this->writeJson(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN], $teams);
-
-                $decode = $teams['results'];
-                if (!$decode) {
-                    continue;
-                }
-                if (AdminAllStat::getInstance()->where('season_id', $seasonid)->get()) {
-                    continue;
-                }
-                $data = [
-                    'players_stats' => json_encode($decode['players_stats']),
-                    'shooters' => json_encode($decode['shooters']),
-                    'teams_stats' => json_encode($decode['teams_stats']),
-                    'updated_at' => $decode['updated_at'],
-                    'season_id' => $seasonid,
-                ];
-                AdminAllStat::getInstance()->insert($data);
-
-            }
-        }
+    protected $player_honor_list = 'https://open.sportnanoapi.com/api/v4/football/player/honor/list?user=%s&secret=%s&time=%s'; //获取球员荣誉列表
+    protected $trend_detail = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s'; //获取比赛趋势详情
+    protected $competition_rule = 'https://open.sportnanoapi.com/api/v4/football/competition/rule/list?user=%s&secret=%s&time=%s'; //获取赛事赛制列表
+    protected $history = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s'; //历史比赛数据
 
 
-        return $this->writeJson(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN], $teams);
-
-    }
-    function index()
-    {
-        $res = Tool::getInstance()->postApi(sprintf($this->url . $this->uriMatchList, $this->user, $this->secret));
-
-        $matchsInfo = json_decode($res, true);
-        if (json_last_error()) {
-            return $this->writeJson(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN]);
-
-        }
-        if ($matchsInfo['code'] == self::STATUS_SUCCESS) {
-
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $matchsInfo);
-
-        } else {
-
-            return $this->writeJson(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN]);
-
-        }
-
-    }
-
+    protected $uriPlayerOne = '/api/v4/football/player/list?user=%s&secret=%s&id=%s';  //球员
 
     /**
-     * 每天跑一次
-     * @return bool
+     * 获取赛季球队球员统计详情-全量
+     */
+    public function seasonAllStatDetail()
+    {
+
+        $url = sprintf($this->all_stat, $this->user, $this->secret, 9384);
+        $res = Tool::getInstance()->postApi($url);
+        $decodeDatas = json_decode($res, true);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
+
+        $season = AdminSeason::getInstance()->where('season_id', 9728, '>')->field(['season_id'])->limit(100)->all();
+        if (!$season) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+
+        }
+
+        foreach ($season as $item) {
+            $url = sprintf($this->all_stat, $this->user, $this->secret, 9839);
+            $res = Tool::getInstance()->postApi($url);
+            $decodeDatas = json_decode($res, true);
+            if ($decodeDatas['code'] == 0) {
+                if (!$table = SeasonTeamPlayer::getInstance()->where('season_id', $item->season_id)->get()) {
+                    $data = [
+                        'players_stats' => json_encode($decodeDatas['results']['players_stats']),
+                        'shooters' => json_encode($decodeDatas['results']['shooters']),
+                        'teams_stats' => json_encode($decodeDatas['results']['teams_stats']),
+                        'updated_at' => json_encode($decodeDatas['results']['updated_at']),
+                        'season_id' => $item->season_id,
+                    ];
+                    SeasonTeamPlayer::getInstance()->insert($data);
+                } else {
+                    $table->players_stats = json_encode($decodeDatas['results']['players_stats']);
+                    $table->shooters = json_encode($decodeDatas['results']['shooters']);
+                    $table->teams_stats = json_encode($decodeDatas['results']['teams_stats']);
+                    $table->updated_at = json_encode($decodeDatas['results']['updated_at']);
+                    $table->update();
+                }
+
+            } else {
+                continue;
+            }
+
+        }
+        return $this->writeJson(Status::CODE_WRONG_MATCH_ORIGIN, Status::$msg[Status::CODE_WRONG_MATCH_ORIGIN], 1);
+
+    }
+
+    /**
+     * 更新球队列表  one day / time
      */
     function teamList()
     {
-
-        $max = AdminTeam::getInstance()->order('team_id', 'DESC')->limit(1)->all()[0];
-        $maxId = $max['team_id'];
-        $url = sprintf($this->url . $this->uriTeamList, $this->user, $this->secret, $maxId + 1);
-        $res = Tool::getInstance()->postApi($url);
-        $teams = json_decode($res, true);
-
-        if ($teams['query']['total'] == 0) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], '插入完成');
-
-        }
-        $decodeTeams = $teams['results'];
-        foreach ($decodeTeams as $team) {
-            $exist = AdminTeam::getInstance()->where('team_id', $team['id'])->all();
-            if ($exist) {
-                continue;
+        while (true) {
+            $time_stamp = AdminTeam::getInstance()->max('updated_at');
+            $url = sprintf($this->url . $this->uriTeamList, $this->user, $this->secret, $time_stamp+1);
+            $res = Tool::getInstance()->postApi($url);
+            $teams = json_decode($res, true);
+            if ($teams['query']['total'] == 0) {
+                break;
             }
-            $data = [
-                'team_id' => $team['id'],
-                'competition_id' => $team['competition_id'],
-                'country_id' => $team['country_id'],
-                'name_zh' => $team['name_zh'],
-                'logo' => $team['logo'],
-                'national' => $team['national'],
-                'foundation_time' => $team['foundation_time'],
-                'website' => $team['website'],
-                'manager_id' => $team['manager_id'],
-                'venue_id' => $team['venue_id'],
-                'market_value' => $team['market_value'],
-                'market_value_currency' => $team['market_value_currency'],
-                'country_logo' => $team['country_logo'],
-                'total_players' => $team['total_players'],
-                'foreign_players' => $team['foreign_players'],
-                'national_players' => $team['national_players'],
-                'updated_at' => $team['updated_at'],
-            ];
+            $decodeTeams = $teams['results'];
+            foreach ($decodeTeams as $team) {
+                $data = [
+                    'team_id' => $team['id'],
+                    'competition_id' => $team['competition_id'],
+                    'country_id' => isset($team['country_id']) ? $team['country_id'] : 0,
+                    'name_zh' => $team['name_zh'],
+                    'short_name_zh' => $team['short_name_zh'],
+                    'name_en' => $team['name_en'],
+                    'short_name_en' => $team['short_name_en'],
+                    'logo' => isset($team['logo']) ? $team['logo'] : '',
+                    'national' => $team['national'],
+                    'foundation_time' => $team['foundation_time'],
+                    'website' => isset($team['website']) ? $team['website'] : '',
+                    'manager_id' => $team['manager_id'],
+                    'venue_id' => isset($team['venue_id']) ? $team['venue_id'] : 0,
+                    'market_value' => isset($team['market_value']) ? $team['market_value'] : '',
+                    'market_value_currency' => isset($team['market_value_currency']) ? $team['market_value_currency'] : '',
+                    'country_logo' => isset($team['country_logo']) ? $team['country_logo'] : '',
+                    'total_players' => isset($team['total_players']) ? $team['total_players'] : 0,
+                    'foreign_players' => isset($team['foreign_players']) ? $team['foreign_players'] : 0,
+                    'national_players' => isset($team['national_players']) ? $team['national_players'] : 0,
+                    'updated_at' => $team['updated_at'],
+                ];
+                $exist = AdminTeam::getInstance()->where('team_id', $team['id'])->get();
+                if ($exist) {
+                    unset($data['team_id']);
+                    AdminTeam::getInstance()->update($data, ['team_id' => $team['id']]);
+                } else {
+                    AdminTeam::getInstance()->insert($data);
 
-            if (!AdminTeam::getInstance()->insert($data)) {
-                $sql = AdminTeam::getInstance()->lastQuery()->getLastQuery();
+                }
+
             }
         }
-        self::teamList();
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $max);
-
 
     }
+
 
     /**
      * 当天比赛 十分钟一次
      * @param int $isUpdateYes
      */
-    function todayMatchList($isUpdateYes = 0)
+    function getTodayMatches($isUpdateYes = 0)
     {
 
-        if ($isUpdateYes) {
+        if (!isset($isUpdateYes)) {
             $time = date("Ymd", strtotime("-1 day"));
         } else {
             $time = date('Ymd');
         }
-
         $url = sprintf($this->uriM, $this->user, $this->secret, $time);
 
         $res = Tool::getInstance()->postApi($url);
         $teams = json_decode($res, true);
-//                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $teams);
 
         $decodeDatas = $teams['results'];
+
         if (!$decodeDatas) {
             Log::getInstance()->info(date('Y-d-d H:i:s') . ' 更新无数据');
+            return;
         }
         foreach ($decodeDatas as $data) {
 
@@ -220,6 +229,7 @@ class FootBallMatch extends FrontUserController
                 'match_time' => $data['match_time'],
                 'neutral' => $data['neutral'],
                 'note' => $data['note'],
+                'season_id' => $data['season_id'],
                 'home_scores' => json_encode($data['home_scores']),
                 'away_scores' => json_encode($data['away_scores']),
                 'home_position' => $data['home_position'],
@@ -234,26 +244,22 @@ class FootBallMatch extends FrontUserController
             ];
 
             if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
-                $signal->neutral = $data['neutral'];
-                $signal->note = $data['note'];
-                $signal->match_time = $data['match_time'];
-                $signal->competition_id = $data['competition_id'];
-                $signal->home_team_id = $data['home_team_id'];
-                $signal->away_team_id = $data['away_team_id'];
                 $signal->home_scores = json_encode($data['home_scores']);
                 $signal->away_scores = json_encode($data['away_scores']);
                 $signal->home_position = $data['home_position'];
                 $signal->away_position = $data['away_position'];
-                $signal->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
-                $signal->venue_id = isset($data['venue_id']) ? $data['venue_id'] : 0;
-                $signal->referee_id = isset($data['referee_id']) ? $data['referee_id'] : 0;
-                $signal->round = isset($data['round']) ? json_encode($data['round']) : '';
                 $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
                 $signal->status_id = $data['status_id'];
                 $signal->updated_at = $data['updated_at'];
+                $signal->match_time = $data['match_time'];
+                $signal->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
+                $signal->referee_id = isset($data['referee_id']) ? json_encode($data['referee_id']) : 0;
+                $signal->round = isset($data['round']) ? json_encode($data['round']) : '';
+                $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
                 $signal->update();
 
             } else {
+                Log::getInstance()->info('insert_match_id-t-' . $data['id']);
                 AdminMatch::getInstance()->insert($insertData);
             }
         }
@@ -274,19 +280,19 @@ class FootBallMatch extends FrontUserController
     public function updateYesMatch()
     {
 
-        $this->todayMatchList(1);
+        $this->getTodayMatches(1);
     }
 
+
+
     /**
-     *
-     * @return bool
+     * 未来一周比赛列表 30 min / time
      */
     function getWeekMatches()
     {
         $weeks = FrontService::getWeek();
         foreach ($weeks as $week) {
             $url = sprintf($this->uriM, $this->user, $this->secret, $week);
-//            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $weeks);
 
             $res = Tool::getInstance()->postApi($url);
             $teams = json_decode($res, true);
@@ -304,6 +310,7 @@ class FootBallMatch extends FrontUserController
                     'match_time' => $data['match_time'],
                     'neutral' => $data['neutral'],
                     'note' => $data['note'],
+                    'season_id' => $data['season_id'],
                     'home_scores' => json_encode($data['home_scores']),
                     'away_scores' => json_encode($data['away_scores']),
                     'home_position' => $data['home_position'],
@@ -315,13 +322,26 @@ class FootBallMatch extends FrontUserController
                     'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
                     'status_id' => $data['status_id'],
                     'updated_at' => $data['updated_at'],
-
                 ];
 
                 if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
-                    AdminMatch::getInstance()->update($insertData, ['match_id' => $data['id']]);
+                    $signal->home_scores = json_encode($data['home_scores']);
+                    $signal->away_scores = json_encode($data['away_scores']);
+                    $signal->home_position = $data['home_position'];
+                    $signal->away_position = $data['away_position'];
+                    $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                    $signal->status_id = $data['status_id'];
+                    $signal->updated_at = $data['updated_at'];
+                    $signal->match_time = $data['match_time'];
+                    $signal->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
+                    $signal->referee_id = isset($data['referee_id']) ? json_encode($data['referee_id']) : 0;
+                    $signal->round = isset($data['round']) ? json_encode($data['round']) : '';
+                    $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
+                    $signal->update();
 
                 } else {
+                    Log::getInstance()->info('insert_match_id-' . $data['id']);
+
                     AdminMatch::getInstance()->insert($insertData);
                 }
             }
@@ -331,22 +351,22 @@ class FootBallMatch extends FrontUserController
     }
 
     /**
-     * 每天一次
-     * @return bool
+     * one day / time 赛事列表
      */
     function competitionList()
     {
+        $max_updated_at = AdminCompetition::getInstance()->max('updated_at');
+        $url = sprintf($this->url . $this->uriCompetition, $this->user, $this->secret, $max_updated_at + 1);
 
-        $max = AdminCompetition::getInstance()->order('competition_id', 'DESC')->limit(1)->all()[0];
-        $maxId = $max['competition_id'];
-        $url = sprintf($this->url . $this->uriCompetition, $this->user, $this->secret, $maxId + 1);
         $res = Tool::getInstance()->postApi($url);
         $teams = json_decode($res, true);
-        if ($teams['query']['total'] == 0) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], '插入完成');
 
+        if (!$teams['results']) {
+            Log::getInstance()->info(date('Y-m-d H:i:s') . ' 更新赛季');
+            return;
         }
         $datas = $teams['results'];
+
         foreach ($datas as $data) {
             $insertData = [
                 'competition_id' => $data['id'],
@@ -360,47 +380,28 @@ class FootBallMatch extends FrontUserController
                 'cur_round' => $data['cur_round'],
                 'round_count' => $data['round_count'],
                 'logo' => $data['logo'],
-                'title_holder' => $data['title_holder'] ? json_encode($data['title_holder']) : null,
-                'most_titles' => $data['most_titles'] ? json_encode($data['most_titles']) : null,
-                'newcomers' => $data['newcomers'] ? json_encode($data['newcomers']) : null,
-                'divisions' => $data['divisions'] ? json_encode($data['divisions']) : null,
-                'host' => $data['host'] ? json_encode($data['host']) : null,
-                'primary_color' => $data['primary_color'],
-                'secondary_color' => $data['secondary_color'],
+                'title_holder' => isset($data['title_holder']) ? json_encode($data['title_holder']) : '',
+                'most_titles' => isset($data['most_titles']) ? json_encode($data['most_titles']) : '',
+                'newcomers' => isset($data['newcomers']) ? json_encode($data['newcomers']) : '',
+                'divisions' => isset($data['divisions']) ? json_encode($data['divisions']) : '',
+                'host' => isset($data['host']) ? json_encode($data['host']) : '',
+                'primary_color' => isset($data['primary_color']) ? $data['primary_color'] : '',
+                'secondary_color' => isset($data['secondary_color']) ? $data['secondary_color'] : '',
+                'updated_at' => $data['updated_at'],
             ];
-            $exist = AdminCompetition::getInstance()->where('competition_id', $data['id'])->all();
+            $exist = AdminCompetition::getInstance()->where('competition_id', $data['id'])->get();
             if ($exist) {
+                unset($insertData['competition_id']);
                 AdminCompetition::getInstance()->update($insertData, ['competition_id' => $data['id']]);
             } else {
                 AdminCompetition::getInstance()->insert($insertData);
             }
         }
-
-        Log::getInstance()->info(date('Y-m-d H:i:s') . ' 更新赛季');
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $teams);
-
     }
 
 
     /**
-     * 赛事阶段信息
-     */
-    public function stageList()
-    {
-//        $time = strtotime(date('Y-m-d',strtotime('-7 day')));
-
-        $url = sprintf($this->url . $this->uriStage, $this->user, $this->secret, time());
-
-        $res = Tool::getInstance()->postApi($url);
-        $stages = json_decode($res, true);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $stages);
-
-
-    }
-
-    /**
-     * 直播地址  每分钟一次
-     * @return bool
+     * 直播地址  10min/次
      */
     public function steamList()
     {
@@ -433,14 +434,14 @@ class FootBallMatch extends FrontUserController
 
     }
 
-    /**
-     * 阵容
-     */
-    public function getLineUp($maxId = 0)
-    {
 
-//        $maxid = $maxId ? $maxId : 0;
-        $url = sprintf($this->url . $this->uriLineUp, $this->user, $this->secret, 24834);
+    /**
+     * 阵容  one hour / time
+     */
+    public function getLineUp()
+    {
+        $time = AdminTeamLineUp::getInstance()->max('updated_at');
+        $url = sprintf($this->url . $this->uriLineUp, $this->user, $this->secret, $time);
         $res = Tool::getInstance()->postApi($url);
         $resp = json_decode($res, true);
         if (!$resp['results']) {
@@ -461,97 +462,99 @@ class FootBallMatch extends FrontUserController
             }
         }
 
-        self::getLineUp($resp['query']['max_id']);
-
-
     }
 
 
     /**
-     * 更新球员列表
+     * 更新球员列表  one day / time
      * @return bool
      */
     public function getPlayers()
     {
-        $time = strtotime(date("Y-m-d"),time());
-        $url = sprintf($this->url . $this->uriPlayer, $this->user, $this->secret, $time);
-        $res = Tool::getInstance()->postApi($url);
-        $resp = json_decode($res, true);
-        if (!$resp['query']['total']) {
-            return $this->writeJson(Status::CODE_OK, '更新完成');
+        while (true) {
+            $max_updated_at = AdminPlayer::getInstance()->max('updated_at');
 
-        }
-        foreach ($resp['results'] as $item) {
-            $inert = [
-                'player_id' => $item['id'],
-                'team_id' => $item['team_id'],
-                'birthday' => $item['birthday'],
-                'age' => $item['age'],
-                'weight' => $item['weight'],
-                'height' => $item['height'],
-                'nationality' => $item['nationality'],
-                'market_value' => $item['market_value'],
-                'market_value_currency' => $item['market_value_currency'],
-                'contract_until' => $item['contract_until'],
-                'position' => $item['position'],
-                'name_zh' => $item['name_zh'],
-                'name_en' => $item['name_en'],
-                'logo' => $item['logo'],
-                'country_id' => $item['country_id'],
-                'preferred_foot' => $item['preferred_foot'],
-                'updated_at' => $item['updated_at'],
-            ];
-            if (AdminPlayer::getInstance()->where('player_id', $item['id'])->get()) {
-//                continue;
-                AdminPlayer::getInstance()->update($inert, ['player_id' => $item['id']]);
+            $url = sprintf($this->url . $this->uriPlayer, $this->user, $this->secret, $max_updated_at + 1);
+            $res = Tool::getInstance()->postApi($url);
+            $resp = json_decode($res, true);
+
+            if ($resp['code'] == 0) {
+                if ($resp['query']['total'] == 0) {
+                    break;
+                } else {
+                    foreach ($resp['results'] as $item) {
+                        $inert = [
+                            'player_id' => $item['id'],
+                            'team_id' => $item['team_id'],
+                            'birthday' => $item['birthday'],
+                            'age' => $item['age'],
+                            'weight' => $item['weight'],
+                            'height' => $item['height'],
+                            'nationality' => $item['nationality'],
+                            'market_value' => $item['market_value'],
+                            'market_value_currency' => $item['market_value_currency'],
+                            'contract_until' => $item['contract_until'],
+                            'position' => $item['position'],
+                            'name_zh' => $item['name_zh'],
+                            'name_en' => $item['name_en'],
+                            'logo' => $item['logo'],
+                            'country_id' => $item['country_id'],
+                            'preferred_foot' => $item['preferred_foot'],
+                            'updated_at' => $item['updated_at'],
+                        ];
+                        if (AdminPlayer::getInstance()->where('player_id', $item['id'])->get()) {
+                            AdminPlayer::getInstance()->update($inert, ['player_id' => $item['id']]);
+                        } else {
+                            AdminPlayer::getInstance()->insert($inert);
+
+                        }
+                    }
+                }
             } else {
-                AdminPlayer::getInstance()->insert($inert);
-
+                break;
             }
+
         }
-        Log::getInstance()->info('球员更新完成');
+
 
     }
 
     /**
      * 每天凌晨十二点半一次
-     * @return bool
      */
     public function clashHistory()
     {
-        $date = strtotime(date('Y-m-d', time()));
-        $url = sprintf($this->url . $this->uriCompensation, $this->user, $this->secret, $date, $this->start_id + 1);
-        $res = json_decode(Tool::getInstance()->postApi($url), true);
-        if ($res['code'] == 0) {
-            if ($res['query']['total'] == 0) {
-                return $this->writeJson(Status::CODE_OK, '更新完成');
+        while (true) {
+            $timestamp = AdminClashHistory::getInstance()->max('updated_at');
+            $url = sprintf($this->url . $this->uriCompensation, $this->user, $this->secret, $timestamp + 1);
+            $res = json_decode(Tool::getInstance()->postApi($url), true);
+            if ($res['code'] == 0) {
+                if ($res['query']['total'] == 0) {
+                    return $this->writeJson(Status::CODE_OK, '更新完成');
+
+                } else {
+                    foreach ($res['results'] as $item) {
+                        $insert = [
+                            'match_id' => $item['id'],
+                            'history' => json_encode($item['history']),
+                            'recent' => json_encode($item['recent']),
+                            'similar' => json_encode($item['similar']),
+                            'updated_at' => $item['updated_at'],
+                        ];
+                        if (AdminClashHistory::getInstance()->where('match_id', $item['id'])->get()) {
+                            AdminClashHistory::getInstance()->update($insert, ['match_id' => $item['id']]);
+                        } else {
+                            AdminClashHistory::getInstance()->insert($insert);
+                        }
+                    }
+                }
 
             } else {
-                foreach ($res['results'] as $item) {
-                    $insert = [
-                        'match_id' => $item['id'],
-                        'history' => json_encode($item['history']),
-                        'recent' => json_encode($item['recent']),
-                        'similar' => json_encode($item['similar']),
-                        'updated_at' => $item['updated_at'],
-                    ];
-                    if (AdminClashHistory::getInstance()->where('match_id', $item['id'])->get()) {
-                        AdminClashHistory::getInstance()->update($insert, ['match_id' => $item['id']]);
-                    } else {
-                        AdminClashHistory::getInstance()->insert($insert);
-                    }
+                break;
 
-
-                }
-                $this->start_id = $res['query']['max_id'] + 1;
-                self::clashHistory();
             }
-
-
-        } else {
-            return $this->writeJson(Status::CODE_OK, '更新异常');
-
         }
+
 
     }
 
@@ -562,17 +565,13 @@ class FootBallMatch extends FrontUserController
      */
     public function noticeUserMatch()
     {
-
-//        $matches = AdminMatch::getInstance()->where('match_id', 3449756)->all();
         $matches = AdminMatch::getInstance()->where('match_time', time() + 60 * 15, '>')->where('match_time', time() + 60 * 16, '<=')->where('status_id', 1)->all();
-
         if ($matches) {
             foreach ($matches as $match) {
                 if (AdminNoticeMatch::getInstance()->where('match_id', $match->id)->where('is_notice', 1)->get()) {
                     continue;
                 }
-                $key = sprintf(UserRedis::USER_INTEREST_MATCH, $match->match_id);
-                if (!$prepareNoticeUserIds = UserRedis::getInstance()->smembers($key)) {
+                if (!$prepareNoticeUserIds = AppFunc::getUsersInterestMatch($match->match_id)) {
                     continue;
                 } else {
                     $users = AdminUser::getInstance()->where('id', $prepareNoticeUserIds, 'in')->field(['cid', 'id'])->all();
@@ -591,67 +590,62 @@ class FootBallMatch extends FrontUserController
                         return;
                     }
 
-
-                    $info = [
-                        'match_id' => $match->match_id,
-                        'home_name_zh' => $match->homeTeamName()->name_zh,
-                        'away_name_zh' => $match->awayTeamName()->name_zh,
-                        'competition_name' => $match->competitionName()->short_name_zh,
-                    ];
-                    $info['type'] = 1;  //开赛通知
-                    $info['title'] = '开赛通知';
-                    $info['content'] = sprintf('您关注的【%s联赛】%s-%s将于15分钟后开始比赛，不要忘了哦', $info['competition_name'], $info['home_name_zh'], $info['away_name_zh']);
+                    $title = '开赛通知';
+                    $content = sprintf('您关注的【%s联赛】%s-%s将于5分钟后开始比赛，不要忘了哦', $match->competitionName()->short_name_zh, $match->homeTeamName()->name_zh, $match->awayTeamName()->name_zh);;
                     $batchPush = new BatchSignalPush();
                     $insertData = [
                         'uids' => json_encode($uids),
                         'match_id' => $match->match_id,
-                        'type' => 1,
-                        'title' => $info['title'],
-                        'content' => $info['content']
+                        'type' => 10,
+                        'title' => $title,
+                        'content' => $content
                     ];
-                    if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->where('type', 1)->get()) {
-
-
+                    if (!$res = AdminNoticeMatch::getInstance()->where('match_id', $match->match_id)->where('type', 10)->get()) {
                         $rs = AdminNoticeMatch::getInstance()->insert($insertData);
                         $info['rs'] = $rs;  //开赛通知
+                        $pushInfo = [
+                            'title' => $title,
+                            'content' => $content,
+                            'payload' => ['item_id' => $match->match_id, 'type' => 1],
+                            'notice_id' => $rs,
 
-                        $batchPush->pushMessageToSingleBatch($cids, $info);
+                        ];
+                        $batchPush->pushMessageToList($cids, $pushInfo);
 
 
                     } else {
+                        //推送失败 直接就不推了
+                        return;
                         if ($res->is_notice == 1) {
                             return;
                         }
                         $info['rs'] = $res->id;
                         $batchPush = new BatchSignalPush();
 
-                        $batchPush->pushMessageToSingleBatch($cids, $info);
+                        $batchPush->pushMessageToList($cids, $info);
                     }
                 }
 
 
             }
-        } else {
-
         }
     }
 
     /**
-     * 取消或者删除的比赛
-     * @return bool
+     * 取消或者删除的比赛   5min/次
      */
     public function deleteMatch()
     {
         $url = sprintf($this->url . $this->uriDeleteMatch, $this->user, $this->secret);
         $res = Tool::getInstance()->postApi($url);
         $resp = json_decode($res, true);
+
         if ($resp['code'] == 0) {
             $dMatches = $resp['results']['match'];
             if ($dMatches) {
 
                 foreach ($dMatches as $dMatch) {
                     if ($match = AdminMatch::getInstance()->where('match_id', $dMatch)->get()) {
-
                         $match->is_delete = 1;
                         $match->update();
                     }
@@ -664,234 +658,150 @@ class FootBallMatch extends FrontUserController
 
     }
 
+    /**
+     * alpha match 更新直播地址，one minute/time
+     */
+    public function updateAlphaMatch()
+    {
+        $params = [
+            'matchType' => 'football',
+            'matchDate' => date('Ymd')
+        ];
+        $header = [
+            'xcode: ty019'
+        ];
+        $res = Tool::getInstance()->postApi('http://www.xsports-live.com:8086/live/sport/getLiveInfo', 'GET', $params, $header);
+        $decode = json_decode($res, true);
+        if ($decode['code'] == 200) {
+            $decode_data = $decode['data'];
+
+            foreach ($decode_data as $datum) {
+                $data['timeFormart'] = $datum['timeFormart'];
+                $data['ligaEn'] = $datum['ligaEn'];
+                $data['teams'] = $datum['teams'];
+                $data['liga'] = $datum['liga'];
+                $data['sportType'] = $datum['sportType'];
+                $data['teamsEn'] = $datum['teamsEn'];
+                $data['matchTime'] = $datum['matchTime'];
+                $data['liveUrl2'] = $datum['liveUrl2'];
+                $data['liveUrl3'] = $datum['liveUrl3'];
+                $data['liveUrl'] = $datum['liveUrl'];
+                $data['matchId'] = $datum['matchId'];
+                $data['liveStatus'] = $datum['liveStatus'];
+                $data['status'] = $datum['status'];
+
+                if ($signal = AdminAlphaMatch::getInstance()->where('matchId', $datum['matchId'])->get()) {
+                    $signal->matchTime = $datum['matchTime'];
+                    $signal->liveUrl2 = $datum['liveUrl2'];
+                    $signal->liveUrl3 = $datum['liveUrl3'];
+                    $signal->liveUrl = $datum['liveUrl'];
+                    $signal->liveStatus = $datum['liveStatus'];
+                    $signal->status = $datum['status'];
+                    $signal->update();
+                } else {
+                    AdminAlphaMatch::getInstance()->insert($data);
+                }
+
+            }
+        }
+    }
+
     public function test()
     {
-        $history = AdminPlayerChangeClub::getInstance()->where('player_id', 29651)->where('from_team_id', 0, '!=')->where('to_team_id', 0, '!=')->all();
+        $url = sprintf($this->uriM, $this->user, $this->secret, '20201126');
 
-//        $join_team_ids = AdminTeam::getInstance()->where('competition_id', 82)->field(['team_id'])->all();
+        $res = Tool::getInstance()->postApi($url);
+        $teams = json_decode($res, true);
 
-//$ids = array_column($join_team_ids, 'team_id');
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $history);
-
-        $match_id = 3449756;
-//        if (Cache::get('is_back_up_' . $match_id)) {
-//            return;
-//        }
-
-        $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
+        $decodeDatas = $teams['results'];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
 
 
-        return;
 
-        $url = 'https://open.sportnanoapi.com/api/sports/football/match/detail_live?user=%s&secret=%s';
-        $url = sprintf($url, $this->user, $this->secret);
+    }
+
+    public function fixMatch()
+    {
+        $match_id = 3393823;
+        $url = sprintf('https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s', $this->user, $this->secret, $match_id);
 
         $res = Tool::getInstance()->postApi($url);
         $decode = json_decode($res, true);
+        $decodeDatas = $decode['results'];
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
-
-
-    }
-
-
-    /**
-     * 实时比赛 1次/2s
-     */
-    public function matchTlive()
-    {
-//        return;
-        $res = Tool::getInstance()->postApi(sprintf($this->live_url, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96'));
-        if ($res) {
-            $resDecode = json_decode($res, true);
-            if (!$resDecode) {
-                return;
-            }
-            foreach ($resDecode as $item) {
-                if (Cache::get('is_back_up_' . $item['id'])) {
-                    continue;
-                }
-                $ins = [];
-                $isover = false;
-                if (isset($item['incidents'])) {
-
-                    foreach ($item['incidents'] as $incident) {
-
-                        if ($incident['type'] == 1) {//进球
-                            $ins[] = $incident;
-                        }
-
-                    }
-
-                }
-                if (isset($item['score'])) {
-                    if ($item['score'][1] == 8) {
-                        $isover = true;
-
-                    }
-                }
-                if ($isover) {
-                    TaskManager::getInstance()->async(new GameOverTask(['match_id' => $item['id'], 'item' => $item]));
-                    continue;
-                }
-                $goal_key = sprintf(MatchRedis::MATCH_GOAL_COUNT_KEY, $item['id']);
-
-                if (isset($item['score']) && $ins) {
-                    // [2783605,8,[1(主队常规), 0（主队半场）, 0, 0, -1（主队角球）, 0（主队加时）, 0（主队点球）],[1, 0, 0, 0, -1, 0, 0],0,""]
-                    if (!$item['score'][2][5] && !$item['score'][3][5]) {
-                        //当主客加时比分为0时，最终比分=常规赛比分+点球大战比分
-                        $homeScore = $item['score'][2][0] + $item['score'][2][6];
-                        $awayScore = $item['score'][3][0] + $item['score'][3][6];
-                    } else {
-                        //当主客加时比分不为0，最终比分=加时比分+点球大战比分
-                        $homeScore = $item['score'][2][5] + $item['score'][2][6];
-                        $awayScore = $item['score'][3][5] + $item['score'][3][6];
-                    }
-                    $value = ['homeScore' => $homeScore, 'awayScore' => $awayScore, 'position' => end($ins)['position'], 'time' => end($ins)['time']];
-                    if (!MatchRedis::getInstance()->get($goal_key)) {
-                        MatchRedis::getInstance()->setEx($goal_key, 60 * 240, json_encode($value));
-                    } else {
-                        MatchRedis::getInstance()->set($goal_key, json_encode($value));
-
-                    }
-
-                }
-                $goal_info_key = sprintf(MatchRedis::MATCH_GOAL_INFO_KEY, $item['id']);
-                //新进球总数
-                $newGoalInfo = count($ins);
-                //旧进球总数
-                $oldGoalInfo = MatchRedis::getInstance()->get($goal_info_key);
-                if (!$oldGoalInfo && $newGoalInfo) {
-                    MatchRedis::getInstance()->setEx($goal_info_key, 60 * 240, $newGoalInfo);
-
-                } else {
-                    if ($oldGoalInfo != $newGoalInfo) {
-                        //修改进球总数
-                        MatchRedis::getInstance()->set($goal_info_key, $newGoalInfo);
-
-                        //进球推送
-                        $goalScore = MatchRedis::getInstance()->get($goal_key);
-                        TaskManager::getInstance()->async(new GoalTask(['match_id' => $item['id'], 'incident' => json_decode($goalScore, true)]));
-
-                    }
-                }
-
-
-
-
-
-                if (isset($item['stats'])) {
-                    $matchStats = [];
-                    foreach ($item['stats'] as $ki => $vi) {
-                        //2 角球  4：红牌 3：黄牌 21：射正 22：射偏  23:进攻  24危险进攻 25：控球率
-                        if ($vi['type'] == 2 || $vi['type'] == 4 || $vi['type'] == 3 || $vi['type'] == 21 || $vi['type'] == 22 || $vi['type'] == 23 || $vi['type'] == 24 || $vi['type'] == 25) {
-                            $matchStats[] = $vi;
-                        }
-
-                    }
-
-                } else {
-                    $matchStats = [];
-                }
-                if (isset($item['tlive'])) {
-                    foreach ($item['tlive'] as $k => $v) {
-                        unset($item['tlive'][$k]['time']);
-                        unset($item['tlive'][$k]['main']);
-
-                    }
-                }
-                $tlive_key = sprintf(MatchRedis::MATCH_TLIVE_KEY, $item['id']);
-                $stats_key = sprintf(MatchRedis::MATCH_STATS_KEY, $item['id']);
-                $score_key = sprintf(MatchRedis::MATCH_SCORE_KEY, $item['id']);
-
-
-                if ((!$oldStats = MatchRedis::getInstance()->get($stats_key)) && $matchStats) {
-                    MatchRedis::getInstance()->setEx($stats_key, 60 * 240, json_encode($matchStats, JSON_UNESCAPED_SLASHES));
-                } else {
-                    MatchRedis::getInstance()->set($stats_key, json_encode($matchStats, JSON_UNESCAPED_SLASHES));
-                }
-
-                if ((!$oldScore = MatchRedis::getInstance()->get($score_key)) && $item['score']) {
-                    MatchRedis::getInstance()->setEx($score_key, 60 * 240, json_encode($item['score'], JSON_UNESCAPED_SLASHES));
-
-
-                } else {
-                    MatchRedis::getInstance()->set($score_key, json_encode($item['score'], JSON_UNESCAPED_SLASHES));
-
-                }
-
-                if ((!$oldTlive = MatchRedis::getInstance()->get($tlive_key)) && isset($item['tlive'])) {
-                    MatchRedis::getInstance()->setEx($tlive_key, 60 * 240, json_encode($item['tlive'], JSON_UNESCAPED_SLASHES));
-
-                } else {
-                    if (!isset($item['tlive'])) {
-                        continue;
-                    }
-                    $diff = array_slice($item['tlive'], count(json_decode($oldTlive, true)));
-
-
-                    if ($diff) {
-                        MatchRedis::getInstance()->set($tlive_key, json_encode($item['tlive']));
-
-                    }
-                    $this->pushContent($item['id'], $diff, $matchStats, $item['score']);
-
-
-                }
-
-            }
-
-
+        $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
+        $match->home_scores = json_encode($decodeDatas['score'][2]);
+        $match->away_scores = json_encode($decodeDatas['score'][3]);
+        $match->status_id = $decodeDatas['score'][1];
+        $match->update();
+        //比赛趋势
+        $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $match_id));
+        $match_trend = json_decode($match_res, true);
+        if ($match_trend['code'] != 0) {
+            $match_trend_info = [];
+        } else {
+            $match_trend_info = $match_trend['results'];
         }
-
-    }
-
-    function pushContent($match_id, $tlive, $stats, $score)
-    {
-        $tool = Tool::getInstance();
-        $server = ServerManager::getInstance()->getSwooleServer();
-        $users = Login::getInstance()->getUsersInRoom($match_id);
-        $returnData = [
-            'event' => 'match_tlive',
-            'contents' => ['tlive' => $tlive, 'stats' => $stats, 'score' => $score, 'match_id' => $match_id]
+        $match_tlive_data = [
+            'stats' => isset($decodeDatas['stats']) ? json_encode($decodeDatas['stats']) : '',
+            'score' => isset($decodeDatas['score']) ? json_encode($decodeDatas['score']) : '',
+            'incidents' => isset($decodeDatas['incidents']) ? json_encode($decodeDatas['incidents']) : '',
+            'tlive' => isset($decodeDatas['tlive']) ? json_encode($decodeDatas['tlive']) : '',
+            'match_id' => $decodeDatas['id'],
+            'match_trend' => json_encode($match_trend_info)
         ];
-
-
-        if ($users) {
-            foreach ($users as $user) {
-                $connection = $server->connection_info($user);
-
-                if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-                    $server->push($user, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $returnData));
-                }
-            }
+        if (!$res = AdminMatchTlive::getInstance()->where('match_id', $match_id)->get()) {
+            AdminMatchTlive::getInstance()->insert($match_tlive_data);
         }
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
     }
 
     /**
-     * 赛季
+     * 更新赛季 1hour/次
      */
     public function updateSeason()
     {
-        $i = 0;
-        do{
 
+        $max_updated_at = AdminSeason::getInstance()->max('updated_at');
 
-        $max = AdminSeason::getInstance()->max('season_id');
+        $url = sprintf($this->season_url, $this->user, $this->secret, $max_updated_at + 1);
 
-        $url = sprintf($this->season_url, $this->user, $this->secret, $max+1);
         $res = Tool::getInstance()->postApi($url);
         $resp = json_decode($res, true);
 
         if ($resp['code'] == 0) {
             if ($resp['query']['total'] == 0) {
-                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
+                return;
             }
             $decode = $resp['results'];
             if ($decode) {
-
                 foreach ($decode as $item) {
+                    //赛季球员球队统计详情
+                    $url = sprintf($this->all_stat, $this->user, $this->secret, $item['id']);
+                    $res = Tool::getInstance()->postApi($url);
+                    $decodeDatas = json_decode($res, true);
+                    if ($decodeDatas['code'] == 0) {
+                        if (!$table = SeasonTeamPlayer::getInstance()->where('season_id', $item->season_id)->get()) {
+                            $data = [
+                                'players_stats' => json_encode($decodeDatas['results']['players_stats']),
+                                'shooters' => json_encode($decodeDatas['results']['shooters']),
+                                'teams_stats' => json_encode($decodeDatas['results']['teams_stats']),
+                                'updated_at' => json_encode($decodeDatas['results']['updated_at']),
+                                'season_id' => $item->season_id,
+                            ];
+                            SeasonTeamPlayer::getInstance()->insert($data);
+                        } else {
+                            $table->players_stats = json_encode($decodeDatas['results']['players_stats']);
+                            $table->shooters = json_encode($decodeDatas['results']['shooters']);
+                            $table->teams_stats = json_encode($decodeDatas['results']['teams_stats']);
+                            $table->updated_at = json_encode($decodeDatas['results']['updated_at']);
+                            $table->update();
+                        }
+
+                    }
+
+
                     $data = [
                         'season_id' => $item['id'],
                         'competition_id' => $item['competition_id'],
@@ -906,30 +816,24 @@ class FootBallMatch extends FrontUserController
                         'is_current' => $item['is_current'],
                     ];
                     if (!$season = AdminSeason::getInstance()->where('season_id', $item['id'])->get()) {
-
                         AdminSeason::getInstance()->insert($data);
                     } else {
-                        AdminSeason::getInstance()->update($data, ['season_id', $item['id']]);
+                        AdminSeason::getInstance()->update($data, ['season_id' => $item['id']]);
+
                     }
                 }
             }
         }
-        } while($i<=10);
-        Log::getInstance()->info(date('Y-m-d H:i:s') . ' 赛季完成');
     }
 
     /**
-     * 获取球员能力技术列表
+     * 获取球员能力技术列表 1hour/次
      */
     public function updatePlayerStat()
     {
-        ini_set('max_execution_time', 600);
-        $i = 0;
+        while (true){
 
-        do{
-
-
-            $max = AdminPlayerStat::getInstance()->max('player_id');
+            $max = AdminPlayerStat::getInstance()->max('updated_at');
 
             $url = sprintf($this->player_stat, $this->user, $this->secret, $max+1);
             $res = Tool::getInstance()->postApi($url);
@@ -970,7 +874,6 @@ class FootBallMatch extends FrontUserController
                             'positions' => !isset($item['positions']) ? '' : json_encode($item['positions']),
                         ];
                         if (!$player = AdminPlayerStat::getInstance()->where('player_id', $item['id'])->get()) {
-//                            return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT], [$player, $item]);
 
                             AdminPlayerStat::getInstance()->insert($data);
                         } else {
@@ -978,24 +881,21 @@ class FootBallMatch extends FrontUserController
                         }
                     }
                 }
+            } else {
+                break;
             }
-        } while($i<=100);
+        }
     }
 
 
     /**
-     * 球员转会历史
+     * 球员转会历史  one day / time
      * @return bool
      */
     public function playerChangeClubHistory()
     {
-        ini_set('max_execution_time', 600);
-        $i = 0;
-
-        do{
-
-
-            $max = AdminPlayerChangeClub::getInstance()->max('id');
+        while(true){
+            $max = AdminPlayerChangeClub::getInstance()->max('updated_at');
 
             $url = sprintf($this->player_change_club_history, $this->user, $this->secret, $max+1);
             $res = Tool::getInstance()->postApi($url);
@@ -1033,22 +933,22 @@ class FootBallMatch extends FrontUserController
                         }
                     }
                 }
+            } else {
+                break;
             }
-        } while($i<=100);
-//        Log::getInstance()->info(date('Y-m-d H:i:s') . ' 赛季完成');
+        }
     }
 
     /**
-     * 球队荣誉
+     * 球队荣誉  one day / time
      * @return bool
      */
     public function teamHonor()
     {
-        ini_set('max_execution_time', 600);
-        $i = 0;
-        do{
 
-            $url = sprintf($this->team_honor, $this->user, $this->secret, $this->start_id+1);
+        while (true){
+            $max = AdminTeamHonor::getInstance()->max('updated_at');
+            $url = sprintf($this->team_honor, $this->user, $this->secret, $max + 1);
             $res = Tool::getInstance()->postApi($url);
             $resp = json_decode($res, true);
 
@@ -1070,27 +970,28 @@ class FootBallMatch extends FrontUserController
                     } else {
                         $team_id = $data['team_id'];
                         unset($data['team_id']);
-                        AdminTeamHonor::getInstance()->update($data, ['team_id', $team_id]);
+                        AdminTeamHonor::getInstance()->update($data, ['team_id'=> $team_id]);
                     }
                 }
                 $this->start_id = $resp['query']['max_id'];
+            } else {
+                break;
             }
-        }while($i <= 100);
+        }
 
     }
 
     /**
-     * 荣誉详情
+     * 荣誉详情  one day /time
      * @return bool
      */
     public function honorList()
     {
 
-        ini_set('max_execution_time', 600);
-        $i = 0;
-        do{
 
-            $url = sprintf($this->honor_list, $this->user, $this->secret, $this->start_id+1);
+        while (true){
+            $max = AdminHonorList::getInstance()->max('updated_at');
+            $url = sprintf($this->honor_list, $this->user, $this->secret, $max + 1);
             $res = Tool::getInstance()->postApi($url);
             $resp = json_decode($res, true);
 
@@ -1112,13 +1013,352 @@ class FootBallMatch extends FrontUserController
                     } else {
                         $id = $data['id'];
                         unset($data['id']);
-                        AdminHonorList::getInstance()->update($data, ['id', $id]);
+                        AdminHonorList::getInstance()->update($data, ['id' => $id]);
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+
+    }
+
+    /**
+     * 阶段列表  one day /time
+     */
+    public function stageList()
+    {
+
+        while (true){
+            $max = AdminStageList::getInstance()->max('updated_at');
+            $url = sprintf($this->stage_list, $this->user, $this->secret, $max + 1);
+            $res = Tool::getInstance()->postApi($url);
+            $resp = json_decode($res, true);
+
+            if ($resp['code'] == 0) {
+                if ($resp['query']['total'] == 0) {
+                    break;
+
+                }
+                $decode = $resp['results'];
+                foreach ($decode as $item) {
+                    $data = [
+                        'stage_id' => $item['id'],
+                        'season_id' => $item['season_id'],
+                        'name_zh' => $item['name_zh'],
+                        'name_zht' => $item['name_zht'],
+                        'name_en' => $item['name_en'],
+                        'mode' => $item['mode'],
+                        'group_count' => $item['group_count'],
+                        'round_count' => $item['round_count'],
+                        'order' => $item['order'],
+                        'updated_at' => $item['updated_at'],
+                    ];
+                    if (!AdminStageList::getInstance()->where('stage_id', $item['id'])->get()) {
+                        AdminStageList::getInstance()->insert($data);
+                    } else {
+
+                        AdminStageList::getInstance()->update($data, ['stage_id'=>$item['id']]);
                     }
                 }
                 $this->start_id = $resp['query']['max_id'];
+            } else {
+                break;
             }
-        }while($i <= 100);
+        }
 
+    }
+
+    /**
+     * 教练列表  one day /time
+     */
+    public function managerList()
+    {
+
+
+        while (true){
+            $manager_id = AdminManagerList::getInstance()->max('updated_at');
+
+            $url = sprintf($this->manager_list, $this->user, $this->secret, $manager_id);
+            $res = Tool::getInstance()->postApi($url);
+            $resp = json_decode($res, true);
+
+            if ($resp['code'] == 0) {
+                if ($resp['query']['total'] == 0) {
+                    break;
+                }
+                $decode = $resp['results'];
+                foreach ($decode as $item) {
+
+                    $data = [
+                        'manager_id' => $item['id'],
+                        'team_id' => $item['team_id'],
+                        'name_zh' => $item['name_zh'],
+                        'name_en' => $item['name_en'],
+                        'logo' => $item['logo'],
+                        'age' => $item['age'],
+                        'birthday' => $item['birthday'],
+                        'preferred_formation' => $item['preferred_formation'],
+                        'nationality' => $item['nationality'],
+                        'updated_at' => $item['updated_at'],
+                    ];
+                    if (!AdminManagerList::getInstance()->where('manager_id', $item['id'])->get()) {
+                        AdminManagerList::getInstance()->insert($data);
+                    } else {
+                        AdminManagerList::getInstance()->update($data, ['manager_id' => $item['id']]);
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+
+    }
+
+
+    /**
+     * 球员荣誉列表
+     */
+    public function playerHonorList()
+    {
+
+        while (true){
+            $max = AdminPlayerHonorList::getInstance()->max('updated_at');
+
+            $url = sprintf($this->player_honor_list, $this->user, $this->secret, $max + 1);
+            $res = Tool::getInstance()->postApi($url);
+            $resp = json_decode($res, true);
+
+            if ($resp['code'] == 0) {
+                if ($resp['query']['total'] == 0) {
+                    break;
+
+                }
+                $decode = $resp['results'];
+
+                foreach ($decode as $item) {
+
+                    $data = [
+                        'player_id' => $item['id'],
+                        'player' => json_encode($item['player']),
+                        'honors' => json_encode($item['honors']),
+                        'updated_at' => $item['updated_at'],
+                    ];
+                    if (!AdminPlayerHonorList::getInstance()->where('player_id', $item['id'])->get()) {
+                        AdminPlayerHonorList::getInstance()->insert($data);
+                    } else {
+
+                        AdminPlayerHonorList::getInstance()->update($data, ['player_id' => $item['id']]);
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
+    /**
+     * 赛制列表 one day /time
+     */
+    public function competitionRule()
+    {
+
+        while (true){
+            $start_id = AdminCompetitionRuleList::getInstance()->max('updated_at');
+
+            $url = sprintf($this->competition_rule, $this->user, $this->secret, $start_id + 1);
+            $res = Tool::getInstance()->postApi($url);
+            $resp = json_decode($res, true);
+
+            if ($resp['code'] == 0) {
+                if ($resp['query']['total'] == 0) {
+                    break;
+                }
+                $decode = $resp['results'];
+                foreach ($decode as $item) {
+
+                    $data = [
+                        'id' => $item['id'],
+                        'competition_id' => $item['competition_id'],
+                        'season_ids' => json_encode($item['season_ids']),
+                        'text' => $item['text'],
+                        'updated_at' => $item['updated_at'],
+                    ];
+                    if (!AdminCompetitionRuleList::getInstance()->where('id', $item['id'])->get()) {
+                        AdminCompetitionRuleList::getInstance()->insert($data);
+                    } else {
+
+                        AdminCompetitionRuleList::getInstance()->update($data, ['id' => $item['id']]);
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
+
+    public function matchTlive()
+    {
+        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
+        if ($decode = json_decode($res, true)) {
+            $match_info = [];
+            foreach ($decode as $item) {
+
+                //无效比赛 跳过
+                if (!$match = AdminMatch::getInstance()->where('match_id', $item['id'])->get()) {
+                    continue;
+                }
+
+                //比赛结束 跳过
+                if (AdminMatchTlive::getInstance()->where('match_id', $item['id'])->get()) {
+                    continue;
+                }
+                $status = $item['score'][1];
+                if (!in_array($status, [1, 2, 3, 4, 5, 7, 8])) { //上半场 / 下半场 / 中场 / 加时赛 / 点球决战 / 结束
+                    continue;
+                }
+                //比赛趋势
+                $match_res = Tool::getInstance()->postApi(sprintf($this->trend_detail, 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['id']));
+                $match_trend = json_decode($match_res, true);
+                if ($match_trend['code'] != 0) {
+                    $match_trend_info = [];
+                } else {
+                    $match_trend_info = $match_trend['results'];
+                }
+                //比赛结束通知
+                if ($item['score'][1] == 8) { //结束
+                    TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'],  'item' => $item,'score' => $item['score'],  'type'=>12, 'match_trend' => $match_trend_info]));
+                }
+
+                //不在热门赛事中  跳过
+                if (!AppFunc::isInHotCompetition($match->competition_id)) {
+                    continue;
+                }
+                //设置比赛进行时间
+                AppFunc::setPlayingTime($item['id'], $item['score']);
+                //比赛开始的通知
+                if ($item['score'][1] == 2 && !Cache::get('match_notice_start:' . $item['id'])) { //开始
+                    TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'score' => $item['score'],'item' => $item,  'type'=>10, 'match_trend' => $match_trend_info]));
+                    Cache::set('match_notice_start:' . $item['id'], 1, 60 * 240);
+                }
+                $matchStats = [];
+                if (isset($item['stats'])) {
+                    foreach ($item['stats'] as $ki => $vi) {
+                        // 21：射正 22：射偏  23:进攻  24危险进攻 25：控球率
+                        if ($vi['type'] == 21 || $vi['type'] == 22 || $vi['type'] == 23 || $vi['type'] == 24 || $vi['type'] == 25) {
+                            $matchStats[] = $vi;
+                        }
+
+                    }
+                    Cache::set('match_stats_' . $item['id'], json_encode($matchStats), 60 * 240);
+
+                }
+                $corner_count_tlive = [];
+                if (isset($item['tlive'])) {
+                    $corner_count_new = 0;
+                    foreach ($item['tlive'] as $signal_tlive) {
+                        if ($signal_tlive['type'] == 2) {
+                            $corner_count_new += 1;
+                            $format_signal_corner_tlive = ['time' => intval($signal_tlive['time']), 'type' => $signal_tlive['type'], 'position' => $signal_tlive['position']];
+                            $corner_count_tlive[] = $format_signal_corner_tlive;
+                        } else {
+                            continue;
+                        }
+                    }
+                    Cache::set('match_tlive_' . $item['id'], json_encode($item['tlive']), 60 * 240);
+
+                }
+                $last_goal_tlive = [];
+                $last_yellow_card_tlive = [];
+                $last_red_card_tlive = [];
+
+                $goal_count_new = 0;
+                $yellow_card_count_new = 0;
+                $red_card_count_new = 0;
+                $match_tlive_count_new = 0;
+
+                $goal_tlive_total = [];
+                $yellow_card_tlive_total = [];
+                $red_card_tlive_total = [];
+
+                if (isset($item['incidents'])) {
+
+                    $goal_count_old = Cache::get('goal_count_' . $item['id']);
+                    $yellow_card_count_old = Cache::get('yellow_card_count' . $item['id']);
+                    $red_card_count_old = Cache::get('red_card_count' . $item['id']);
+                    $match_tlive_count_old = Cache::get('match_tlive_count' . $item['id']);
+
+                    foreach ($item['incidents'] as $item_tlive) {
+                        $match_tlive_count_new += 1;
+                        $signal_incident = [
+                            'time' => intval($item_tlive['time']),
+                            'type' => $item_tlive['type'],
+                            'position' => $item_tlive['position'],
+                        ];
+                        if ($signal_incident['type'] == 1 || $signal_incident['type'] == 8) { //进球 /点球
+                            $last_goal_tlive = $signal_incident;
+                            $goal_count_new += 1;
+                            $goal_tlive_total[] = $signal_incident;
+                        } else if ($signal_incident['type'] == 3) { //黄牌
+                            $last_yellow_card_tlive = $signal_incident;
+                            $yellow_card_count_new += 1;
+                            $yellow_card_tlive_total[] = $signal_incident;
+                        }else if ($signal_incident['type'] == 4) { //红牌
+                            $last_red_card_tlive = $signal_incident;
+                            $red_card_count_new += 1;
+                            $red_card_tlive_total[] = $signal_incident;
+                        } else {
+                            continue;
+                        }
+
+                    }
+
+                    if ($goal_count_new > $goal_count_old) {//进球
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_goal_tlive, 'score' => $item['score'], 'type'=>1]));
+                        Cache::set('goal_count_' . $item['id'], $goal_count_new, 60 * 240);
+                    }
+
+                    if ($yellow_card_count_new > $yellow_card_count_old) {//黄牌
+
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_yellow_card_tlive, 'score' => $item['score'], 'type'=>3]));
+                        Cache::set('yellow_card_count' . $item['id'], $yellow_card_count_new, 60 * 240);
+
+                    }
+
+                    if ($red_card_count_new > $red_card_count_old) {//红牌
+
+                        TaskManager::getInstance()->async(new MatchNotice(['match_id' => $item['id'], 'last_incident' => $last_red_card_tlive, 'score' => $item['score'], 'type'=>4]));
+                        Cache::set('red_card_count' . $item['id'], $red_card_count_new, 60 * 240);
+
+                    }
+
+                    if ($match_tlive_count_new > $match_tlive_count_old) { //直播文字
+                        Cache::set('match_tlive_count' . $item['id'], $match_tlive_count_new, 60 * 240);
+                        $diff = array_slice($item['tlive'], $match_tlive_count_old);
+
+                        (new WebSocket())->contentPush($diff, $item['id']);
+                    }
+                }
+                $signal_match_info['signal_count'] = ['corner' => $corner_count_tlive, 'goal' => $goal_tlive_total, 'yellow' => $yellow_card_tlive_total, 'red' => $red_card_tlive_total];
+                $signal_match_info['match_trend'] = $match_trend_info;
+                $signal_match_info['match_id'] = $item['id'];
+                $signal_match_info['time'] = AppFunc::getPlayingTime($item['id']);
+                $signal_match_info['status'] = $status;
+                $signal_match_info['match_stats'] = $matchStats;
+                $signal_match_info['score'] = [
+                    'home' => $item['score'][2],
+                    'away' => $item['score'][3]
+                ];
+
+                $match_info[] = $signal_match_info;
+                Cache::set('match_data_info' .$item['id'], json_encode($signal_match_info), 60 * 240);
+                unset($signal_match_info);
+            }
+            TaskManager::getInstance()->async(new MatchUpdate(['match_info_list' => $match_info]));
+
+
+        }
     }
 
 }

@@ -10,7 +10,7 @@ use EasySwoole\Pool\Config;
 use EasySwoole\Pool\AbstractPool;
 use EasySwoole\Redis\Config\RedisConfig;
 use EasySwoole\Redis\Redis;
-
+use EasySwoole\Component\Singleton;
 use EasySwoole\Pool\Manager;
 
 class RedisPool extends AbstractPool
@@ -24,13 +24,9 @@ class RedisPool extends AbstractPool
      * @param RedisConfig $redisConfig
      * @throws \EasySwoole\Pool\Exception\Exception
      */
-    public function __construct()
+    public function __construct(Config $conf,RedisConfig $redisConfig)
     {
-        $config = new Config();
-        $redisConfig = new RedisConfig(\EasySwoole\EasySwoole\Config::getInstance()->getConf('REDIS'));
-        Manager::getInstance()->register(new RedisPool($config,$redisConfig),'redis');
-
-
+        parent::__construct($conf);
         $this->redisConfig = $redisConfig;
     }
 

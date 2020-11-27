@@ -2,11 +2,20 @@
 
 namespace App\Model;
 use App\Base\BaseModel;
+use App\Base\FatherModel;
+use EasySwoole\Mysqli\QueryBuilder;
 
 class AdminMatch  extends BaseModel
 {
     protected $tableName = "admin_match_list";
 
+
+    public function getLimit($page, $limit)
+    {
+        return $this->order('match_time', 'DESC')
+            ->limit(($page - 1) * $limit, $limit)
+            ->withTotalCount();
+    }
 
     /**
      * 获取主队名称
@@ -49,15 +58,7 @@ class AdminMatch  extends BaseModel
 
     }
 
-    /**
-     * 获取阵容
-     * @param $home_team_id
-     * @param $away_team_id
-     */
-    public function getLineUp($home_team_id, $away_team_id)
-    {
 
-    }
 
 
 }

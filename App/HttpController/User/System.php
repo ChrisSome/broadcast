@@ -7,6 +7,7 @@ use App\Model\AdminAdvertisement;
 use App\Model\AdminCategory;
 use App\Model\AdminMessage as MessageModel;
 use App\Base\FrontUserController;
+use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Model\AdminSystemAnnoucement;
 use App\Task\MessageTask;
@@ -34,7 +35,7 @@ class System extends FrontUserController
         $page = isset($params['page']) ? $params['page'] : 1;
         $limit = isset($params['offset']) ? $params['offset'] : 10;
         $data = $query->field('id, title, cate_name, status,created_at')->order('created_at', 'desc')->findAll($page, $limit);
-        $this->writeJson(Status::CODE_OK, 'ok', [
+        return $this->writeJson(Status::CODE_OK, 'ok', [
             'data' => $data,
             'count' => $count
         ]);
@@ -63,7 +64,7 @@ class System extends FrontUserController
             ]);
             $messageTask->execData();
         });
-        $this->writeJson(Status::CODE_OK, 'ok', $info);
+        return $this->writeJson(Status::CODE_OK, 'ok', $info);
     }
 
     function hotreload()
@@ -83,31 +84,36 @@ class System extends FrontUserController
                 $data['accoucement'] = $accountment;
                 $shield_live = AdminSysSettings::getInstance()->order('created_at', 'DESC')->where('sys_key', self::SYS_KEY_SHIELD_LIVE)->limit(1)->get();
                 $phoneType = $this->params['phone_type'];
-                $data['shield_live'] = json_decode($shield_live['sys_value'], true)[$phoneType] ?: 0;
+                $data['shield_live'] = isset(json_decode($shield_live['sys_value'], true)[$phoneType]) ?: 0;
                 if ($this->params['phone_type'] == 'test') {
                     $data['shield_live'] = 1;
                 }
 
             }
             $data['wgt_url'] = 'http://download.yemaoty.cn/WGT/__UNI__0AC1311.wgt';
-            $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
         } else {
-            $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
     }
 
     public function adImgs()
     {
-        $data = [
-            'img' => 'http://live-broadcast-system.oss-cn-hongkong.aliyuncs.com/e44e1023d520f507.jpg',
-            'url' => 'https://www.baidu.com',
-            'countDown' => 3,
-            'is_force' => false,
-            'is_open' => false,
-        ];
-        $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+        if ($res = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_OPEN_ADVER)->get()) {
+            $data = json_decode($res->sys_value, true);
+        } else {
+            $data = [
+                'img' => 'http://live-broadcast-system.oss-cn-hongkong.aliyuncs.com/e44e1023d520f507.jpg',
+                'url' => 'https://www.baidu.com',
+                'countDown' => 3,
+                'is_force' => false,
+                'is_open' => false,
+            ];
+        }
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
     }
 
@@ -122,7 +128,15 @@ class System extends FrontUserController
         }
 
         $ads = AdminAdvertisement::getInstance()->where('status', AdminAdvertisement::STATUS_NORMAL)->where('cat_id', $this->params['cat_id'])->all();
-        $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $ads);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $ads);
+
+    }
+
+
+    public function sensitiveWord()
+    {
+        $words = AdminSensitive::getInstance()->where('id', 0, '>')->field(['word'])->all();
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $words);
 
     }
 

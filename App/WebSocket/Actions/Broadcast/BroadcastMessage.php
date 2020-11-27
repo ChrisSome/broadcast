@@ -27,7 +27,6 @@ class BroadcastMessage extends ActionPayload
     protected $messageId;
     protected $matchId;
     protected $mid;
-    protected $roomId;
 
     /**
      * @param mixed $fromUserFd

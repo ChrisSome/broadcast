@@ -75,14 +75,5 @@ class Login extends RedisPool
         return $this->sMembers(sprintf(self::USERS_IN_ROOM, $roomId));
     }
 
-    /**
-     * 用户离开房间
-     * @param $roomId
-     * @param $uInfo
-     */
-    public function userOutRoom($roomId, $fd) {
-        return $this->sRem(sprintf(self::USERS_IN_ROOM, $roomId), $fd);
-
-    }
 
 }

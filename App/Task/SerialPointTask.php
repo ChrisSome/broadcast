@@ -10,7 +10,7 @@ use App\Utility\Pool\RedisPool;
 use easySwoole\Cache\Cache;
 use EasySwoole\Component\Singleton;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
-use App\lib\pool\Login;
+use App\Utility\Log\Log;
 
 class SerialPointTask implements TaskInterface
 {
@@ -38,7 +38,11 @@ class SerialPointTask implements TaskInterface
             //任务次数限制
             $done_times = AdminUserSerialPoint::getInstance()->where('user_id', $this->taskData['user_id'])
                 ->where('task_id', $this->taskData['task_id'])->where('created_at', date('Y-m-d'))->count();
-            $task_times = AdminUserSerialPoint::USER_TASK[$this->taskData['user_id']]['times_per_day'];
+            if (isset(AdminUserSerialPoint::USER_TASK[$this->taskData['task_id']]['times_per_day'])) {
+                $task_times = AdminUserSerialPoint::USER_TASK[$this->taskData['task_id']]['times_per_day'];
+            } else {
+                return;
+            }
             if ($done_times >= $task_times) {
                 return;
             }

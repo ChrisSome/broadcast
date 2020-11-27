@@ -5,24 +5,22 @@ namespace App\HttpController\User;
 
 
 use App\Base\FrontUserController;
+use App\Common\AppFunc;
 use App\lib\FrontService;
 use App\lib\PasswordTool;
-use App\lib\pool\User as UserRedis;
-use App\lib\Tool;
-use App\Model\AdminCompetition;
+use App\Model\AdminInformation;
+use App\Model\AdminInformationComment;
 use App\Model\AdminMessage;
 use App\Model\AdminPostComment;
-use App\Model\AdminPostOperate;
-use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
-use App\Model\AdminUserFeedBack;
 use App\Model\AdminUserInterestCompetition;
-use App\Model\AdminUserPhonecode;
+use App\Model\AdminUserOperate;
 use App\Model\AdminUserPost;
-use App\Model\AdminUserSetting;
+use App\Task\SerialPointTask;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use EasySwoole\EasySwoole\Task\TaskManager;
+use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Validate\Validate;
 use App\Task\UserTask;
 use easySwoole\Cache\Cache;
@@ -87,173 +85,26 @@ class User extends FrontUserController
     }
 
 
-
-
-    //用户帖子操作列表   用户点赞等操作的帖子或评论
-    public function userOperatePosts()
-    {
-
-        $params = $this->params;
-        $page = $params['page'] ?: 1;
-        $size = $params['size'] ?: 10;
-        $valitor = new Validate();
-
-        $valitor->addColumn('action_type')->required()->inArray(["1","2","3","4","5","6"], '参数错误');
-        $valitor->addColumn('type')->required()->inArray(["1","2"], '参数错误');
-        if (!$valitor->validate($params)) {
-            return $this->writeJson(Status::CODE_W_PARAM, $valitor->getError()->__toString());
-
-        }
-        $model = AdminPostOperate::create();
-        $query = $model->where('action_type', $params['action_type'])->where('user_id', $this->auth['id']);
-        if ($params['type'] == 1) {  //帖子
-            $query = $query->where('comment_id', 0);
-        } else {            //评论
-            $query = $query->where('post_id', 0);
-        }
-
-        $query = $query->findAll($page, $size)->withTotalCount();
-        //列表数据
-        $data = $query->all(null);
-        //总条数
-        $result = $query->lastQueryResult();
-
-        $count = $result->getTotalCount();
-//        $sql = $model->lastQuery()->getLastQuery();
-
-        foreach ($data as $item) {
-            $nickname = $item->userInfo()->nickname;
-            $photo = $item->userInfo()->photo;
-            if ($item['post_id']) {
-                $p_info['user_nickname']    = $nickname;
-                $p_info['user_photo']       = $photo;
-                $p_info['post_title']       = $item->postInfo()->title;
-                $p_info['post_content']     = mb_substr($item->postInfo()->content, 0, 30, 'utf-8');
-                $p_info['p_create_at']      = $item->postInfo()->created_at;
-                $p_info['created_at']       = $item->created_at;
-                $p_data[] = $p_info;
-                unset($r_info);
-            } else {
-                $c_info['user_nickname']    = $nickname;
-                $c_info['user_photo']       = $photo;
-                $c_info['content']          = mb_substr($item->commentInfo()->content, 0, 30, 'utf-8');
-                $c_info['c_created_at']     = $item->commentInfo()->created_at;
-                $c_info['created_at']       = $item->created_at;
-                $c_data[] = $c_info;
-                unset($c_info);
-            }
-        }
-        $returnData = ['count'=>$count, 'data'=>$p_data ?: $c_data];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
-
-    }
     /**
-     * 帖子相关操作
-     * @return bool
+     * 微信解绑
      */
-    public function cpOperate()
+    public function unBindWx()
     {
-
-
-        $key = $this->auth['id'] . $this->params['type'] . time();
-
-        if ($cache = Cache::get($key)) {
-            return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
-
-        }
-        //帖子id 与 评论id不可同时存在
-        if ($this->params['post_id'] && $this->params['comment_id']) {
+        if (!$user = AdminUser::getInstance()->where('id', $this->auth['id'])->get()) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
-        }
-        if ($this->params['post_id']) {
-            $id = $this->request()->getRequestParam('post_id');
-            $column = 'post_id';
-            $info = AdminUserPost::getInstance()->find($id);
-            if (!$info) {
-                return $this->writeJson(Status::CODE_ERR, '对应帖子不存在');
-            }
-
-            if ($info['status'] != AdminUserPost::STATUS_EXAMINE_SUCC) {
-                return $this->writeJson(Status::CODE_ERR, '帖子未通过审核，无法进行操作');
-            }
-        } else if ($this->params['comment_id']) {
-            $id = $this->request()->getRequestParam('comment_id');
-            $column = 'comment_id';
-            if (!$comment = AdminPostComment::getInstance()->find($id)) {
-                return $this->writeJson(Status::CODE_ERR, '对应评论不存在');
-            }
-        }
-
-        $validate = new Validate();
-        //1. 点赞   2收藏， 3， 举报，   4， 5， 6 对应取消
-        $validate->addColumn('type')->required();
-//        $validate->addColumn('author_id')->required();
-        $validate->addColumn('type')->inArray(["1", "2", "3", "4", "5" , "6"]);
-
-        if (!$validate->validate($this->params)) {
-            return $this->writeJson(Status::CODE_ERR, $validate->getError()->__toString());
-        }
-        if ($this->params['type'] > 3) {
-            list($maxType, $minType) = [$this->params['type'], $this->params['type'] - 3];
         } else {
-            list($maxType, $minType) = [$this->params['type'], $this->params['type'] + 3];
-
-        }
-        $whereActionType = '(action_type=' . $maxType . ' or action_type=' . $minType . ')';
-
-        $isExists = AdminPostOperate::getInstance()->where($column, $id)
-            ->where('user_id', $this->auth['id'])
-            ->where($whereActionType)
-            ->get();
-
-
-
-
-        $sql = AdminPostOperate::getInstance()->lastQuery()->getLastQuery();
-        Log::getInstance()->info('sql ' . $sql);
-        if ($isExists && ($isExists['action_type'] == $this->params['type'])) {
-            return $this->writeJson(Status::CODE_WRONG_RES, '请勿重复操作');
-
-        }
-
-        if (!$isExists && $this->params['type'] > 3) {
-            return $this->writeJson(Status::CODE_WRONG_RES, '操作错误');
-
-        }
-
-//        $sql = AdminPostOperate::getInstance()->lastQuery()->getLastQuery();
-        if ($this->params['type'] == 3) {
-            if (!isset($this->params['report_type']) || !isset($this->params['report_content'])) {
-                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-            }
-            $report['type'] = isset($this->params['report_type']) ? json_decode($this->params['report_type']) : [];
-            $report['content'] = isset($this->params['report_content']) ? $this->params['report_content'] : '';
-        }
-        $taskData = [
-            'action_type' => $this->params['type'],
-            'user_id' => $this->auth['id'],
-            'post_id' => $this->params['post_id'] ?: 0,
-            'content' => isset($report) ? json_encode($report) : '',
-            'basic' => $isExists ? 1 : 0,
-            'comment_id' => isset($this->params['comment_id']) ? $this->params['comment_id'] : 0,
-            'author_id' => $this->params['post_id'] ? $info->user_id : $comment->user_id,
-            'img' => '',
-            'op_id' => $isExists ? $isExists['id'] : 0,
-        ];
-
-//        TaskManager::getInstance()->async(new PostTask($taskData));
-        if (FrontService::execOperate($taskData)) {
-            Cache::set($key, 1, 2);
-
-            return $this->writeJson(Status::CODE_OK, '操作成功');
-
-        } else {
-            return $this->writeJson(Status::CODE_ERR, '操作失败');
+            $user->wx_photo = '';
+            $user->wx_name = '';
+            $user->third_wx_unionid = '';
+            $user->update();
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 
         }
     }
+
+
+
 
     //关注用户 / 取消关注
     public function userFollowings()
@@ -266,28 +117,52 @@ class User extends FrontUserController
         if (!$valitor->validate($params)) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
         }
-        $userRedis = new UserRedis();
+
         $uid = $this->auth['id'];
         $followUid = $params['follow_id'];
+        if ($uid == $followUid) {
+            return $this->writeJson(Status::CODE_WRONG_USER, Status::$msg[Status::CODE_WRONG_USER], 3);
+        }
         $user = AdminUser::getInstance()->field(['id', 'nickname', 'photo'])->get(['id'=>$followUid]);
-        if (!$user) {
-            return $this->writeJson(Status::CODE_WRONG_USER, Status::$msg[Status::CODE_WRONG_USER]);
+        if (!$user || !$uid) {
+            return $this->writeJson(Status::CODE_WRONG_USER, Status::$msg[Status::CODE_WRONG_USER], 3);
 
         }
-        $key = sprintf(UserRedis::USER_FOLLOWS, $uid);
 
-        //增加粉丝
-        $fanInfo = AdminUser::getInstance()->get(['id'=>$this->auth['id']]);
+
         if ($params['action_type'] == 'add') {
-            $bool = $userRedis->addUserFollows($key, $user->id);
-            $boolFan = $userRedis->addFans(sprintf(UserRedis::USER_FANS, $followUid), $fanInfo->id);
+            if (AppFunc::isFollow($uid, $followUid)) {
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+            }
+            $bool = AppFunc::addFollow($uid, $user->id);
+
+            if ($message = AdminMessage::getInstance()->where('user_id', $followUid)->where('item_id' , $followUid)->where('did_user_id', $this->auth['id'])->where('type', 4)->where('item_type', 5)->get()) {
+                $message->status = AdminMessage::STATUS_UNREAD;
+                $message->created_at = date('Y-m-d H:i:s');
+                $message->update();
+            } else {
+                //发送消息
+                $data = [
+                    'status' => AdminMessage::STATUS_UNREAD,
+                    'user_id' => $followUid,
+                    'type' => 4,
+                    'item_type' => 5,
+                    'item_id' => $followUid,
+                    'title' => '关注通知',
+                    'did_user_id' => $this->auth['id']
+                ];
+                AdminMessage::getInstance()->insert($data);
+            }
+
         } else {
-            $bool = $userRedis->delUserFollows($key, $user->id);
-            $boolFan = $userRedis->delFans(sprintf(UserRedis::USER_FANS, $followUid), $fanInfo->id);
+            $bool = AppFunc::delFollow($uid, $user->id);
+            //取关删除该条消息
+            if ($message = AdminMessage::getInstance()->where('user_id', $followUid)->where('item_id' , $followUid)->where('did_user_id', $this->auth['id'])->where('type', 4)->where('item_type', 5)->get()) {
+                $message->status = AdminMessage::STATUS_DEL;
+                $message->update();
+            }
         }
-
-
-        if ($bool && $boolFan) {
+        if ($bool) {
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
         } else {
             return $this->writeJson(Status::CODE_USER_FOLLOW, Status::$msg[Status::CODE_USER_FOLLOW]);
@@ -295,7 +170,139 @@ class User extends FrontUserController
 
     }
 
+    /**
+     * 用户点赞 收藏 举报    帖子 评论 资讯评论 用户
+     * @return bool
+     */
+    public function informationOperate()
+    {
+        if (!$this->auth['id']) {
+            return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
 
+        }
+
+        if (Cache::get('user_operate_information_' . $this->auth['id'] . '-type-' . $this->params['type'])) {
+            return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
+        }
+        $validate = new Validate();
+        //1. 点赞   2收藏， 3， 举报
+        $validate->addColumn('type')->required()->inArray([1, 2, 3]);
+        $validate->addColumn('item_type')->required()->inArray([1,2,3,4,5]); //1帖子 2帖子评论 3资讯 4资讯评论 5直播间发言
+        $validate->addColumn('item_id')->required();
+        $validate->addColumn('author_id')->required();
+        $validate->addColumn('is_cancel')->required();
+        if (!$validate->validate($this->params)) {
+            return $this->writeJson(Status::CODE_ERR, $validate->getError()->__toString());
+        }
+        $item_id = $this->params['item_id'];
+        $type = $this->params['type'];
+        $item_type = $this->params['item_type'];
+        if ($operate = AdminUserOperate::getInstance()->where('item_id', $this->params['item_id'])->where('item_type', $this->params['item_type'])->where('user_id', $this->auth['id'])->where('type', $this->params['type'])->get()) {
+            if ($this->params['is_cancel'] == $operate->is_cancel) {
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+            } else {
+                $operate->is_cancel = $this->params['is_cancel'];
+                $operate->update();
+            }
+
+        } else {
+            $data = [
+                'user_id' => $this->auth['id'],
+                'item_type' => $this->params['item_type'],
+                'type' => $this->params['type'],
+                'content' => !empty($this->params['content']) ? addslashes(htmlspecialchars(trim($this->params['content']))) : '',
+                'remark' => !empty($this->params['remark']) ? addslashes(htmlspecialchars(trim($this->params['remark']))) : '',
+                'item_id' => $this->params['item_id'] ?: 0,
+                'author_id' => $this->params['author_id'] ?: 0
+            ];
+            AdminUserOperate::getInstance()->insert($data);
+        }
+        $author_id = $this->params['author_id'];
+        $uid = $this->auth['id'];
+        $is_cancel = $this->params['is_cancel'];
+
+        TaskManager::getInstance()->async(function () use($item_type, $type, $item_id, $author_id, $uid, $is_cancel) {
+
+            if ($item_type == 1) {
+                $model = AdminUserPost::getInstance();
+                $status_report = AdminUserPost::NEW_STATUS_REPORTED;
+            } else if ($item_type == 2) {
+                $model = AdminPostComment::getInstance();
+                $status_report = AdminPostComment::STATUS_REPORTED;
+
+            } else if ($item_type == 3) {
+                $model = AdminInformation::getInstance();
+                $status_report = AdminInformation::STATUS_REPORTED;
+
+            } else if ($item_type == 4) {
+                $model = AdminInformationComment::getInstance();
+                $status_report = AdminInformationComment::STATUS_REPORTED;
+
+            } else if ($item_type == 5) {
+                $model = AdminUser::getInstance();
+                $status_report = AdminUser::STATUS_REPORTED;
+            } else {
+                return false;
+            }
+
+            switch ($type) {
+                case 1:
+                    if (!$is_cancel) {
+                        $model->update(['fabolus_number' => QueryBuilder::inc(1)], ['id' => $item_id]);
+                        $sql = $model->lastQuery()->getLastQuery();
+                        if ($author_id != $uid) {
+                            if ($message = AdminMessage::getInstance()->where('user_id',  $author_id)->where('type', 2)->where('item_type', $item_type)->where('item_id', $item_id)->where('did_user_id', $uid)->get()) {
+                                $message->status = AdminMessage::STATUS_UNREAD;
+                                $message->created_at = date('Y-m-d H:i:s');
+                                $message->update();
+                            } else {
+                                //发送消息
+                                $data = [
+                                    'status' => AdminMessage::STATUS_UNREAD,
+                                    'user_id' => $author_id,
+                                    'type' => 2,
+                                    'item_type' => $item_type,
+                                    'item_id' => $item_id,
+                                    'title' => '点赞通知',
+                                    'did_user_id' => $uid
+                                ];
+                                AdminMessage::getInstance()->insert($data);
+                            }
+
+                        }
+                    } else {
+                        $model->update(['fabolus_number' => QueryBuilder::dec(1)], ['id' => $item_id]);
+                        if ($author_id != $uid && $message = AdminMessage::getInstance()->where('user_id',  $author_id)->where('type', 2)->where('item_type', $item_type)->where('item_id', $item_id)->where('did_user_id', $uid)->get()) {
+                            $message->status = AdminMessage::STATUS_DEL;
+                            $message->update();
+                        }
+                    }
+
+
+
+                    break;
+                case 2:
+                    if (!$is_cancel) {
+                        $model->update(['collect_number' => QueryBuilder::inc(1)], ['id' => $item_id]);
+
+                    } else {
+                        $model->update(['collect_number' => QueryBuilder::dec(1)], ['id' => $item_id]);
+
+                    }
+
+                    break;
+                case 3:
+                    $model->update(['status', $status_report], ['id' => $item_id]);
+                    break;
+
+            }
+        });
+
+
+        Cache::set('user_operate_information_' . $this->auth['id'] . '-type-' . $this->params['type'], 1, 2);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+
+    }
 
 
     //回复我的列表  帖子和评论
@@ -398,85 +405,6 @@ class User extends FrontUserController
 
 
 
-
-
-
-
-
-    /**
-     * 用户反馈
-     */
-    public function userFeedBack()
-    {
-        $validator = new Validate();
-        $validator->addColumn('content')->required();
-        if (!$validator->validate($this->params)) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-        }
-        $data['content'] = addslashes(htmlspecialchars($this->params['content']));
-        $data['user_id'] = $this->auth['id'];
-        if (!$this->params['mobile']) {
-            $data['mobile'] = $this->auth['mobile'];
-        } else {
-            $data['mobile'] = $this->params['mobile'];
-
-        }
-        if (AdminUserFeedBack::getInstance()->insert($data)) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
-        } else {
-            return $this->writeJson(Status::CODE_ERR, '提交失败，请联系客服');
-
-        }
-
-    }
-
-    public function userSetting(){
-        $params = $this->params;
-        $validator = new Validate();
-        $validator->addColumn('goatNotice')->required()->inArray([0, 1]);
-        $validator->addColumn('goatPopup')->required()->inArray([0, 1]);
-        $validator->addColumn('redCardNotice')->required()->inArray([0, 1]);
-        $validator->addColumn('followUser')->required()->inArray([0, 1]);
-        $validator->addColumn('followMatch')->required()->inArray([0, 1]);
-        $validator->addColumn('nightModel')->required()->inArray([0, 1]);
-        if (!$validator->validate($params)) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-        }
-        AdminUserSetting::getInstance()->update(
-            [
-                'goatNotice'    => $params['goatNotice'],
-                'goatPopup'     => $params['goatPopup'],
-                'redCardNotice' => $params['redCardNotice'],
-                'followUser'    => $params['followUser'],
-                'followMatch'   => $params['followMatch'],
-                'nightModel'    => $params['nightModel'],
-            ],
-            ['user_id' => $this->auth['id']]
-        );
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
-
-    }
-
-
-
-    /**
-     * 用户消息总数
-     * @return bool
-     */
-    public function userMessTotal()
-    {
-        $typeTotal = UserRedis::getInstance()->userMessageCountInfo($this->auth['id']);
-        $data['total'] = array_sum($typeTotal);
-        $typesCount = UserRedis::getInstance()->userUnReadTypes($this->auth['id']);
-        $data['types'] = $typesCount;
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
-
-    }
-
     public function userInterestCompetition()
     {
         if (!isset($this->params['competition_id']) || !$this->params['competition_id']) {
@@ -510,6 +438,52 @@ class User extends FrontUserController
 
     }
 
+
+    /**
+     * 用户关注比赛
+     * @return bool
+     */
+    public function userInterestMatch()
+    {
+        if (!$this->auth['id']) {
+            return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
+
+        }
+
+        $validate = new Validate();
+        $validate->addColumn('match_id')->required();
+        $validate->addColumn('type')->required()->inArray(['add', 'del']);
+        if ($validate->validate($this->params))
+        {
+            $uid = $this->auth['id'];
+            $match_id = $this->params['match_id'];
+            if ($this->params['type'] == 'add')
+            {
+                $res = AppFunc::userDoInterestMatch($match_id, $uid);
+            } else if($this->params['type'] == 'del') {
+                $res = AppFunc::userDelInterestMatch($match_id, $uid);
+            } else {
+                return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+            }
+
+            if ($res) {
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+
+            } else {
+                return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+
+            }
+
+
+        } else {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+        }
+
+
+    }
+
     /**
      * 用户用户注册完的首次密码设定
      */
@@ -521,7 +495,7 @@ class User extends FrontUserController
 
         }
         $password = $this->params['password'];
-        $res = preg_match('/(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,16}/', $password);
+        $res = preg_match('/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,12}$/', $password);
         if (!$res) {
             return $this->writeJson(Status::CODE_W_FORMAT_PASS, Status::$msg[Status::CODE_W_FORMAT_PASS]);
         }
@@ -538,21 +512,117 @@ class User extends FrontUserController
     }
 
 
-
-
     /**
-     * 拉黑
+     * 发表帖子评论
+     * @return bool
+     * @throws \EasySwoole\Mysqli\Exception\Exception
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
      */
-    public function userBlackList()
+    public function doComment()
     {
-        $user = $this->params['user_id'];
-        if (!AdminUser::getInstance()->find($user)) {
-            return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
+
+
+        if ($this->auth['status'] == AdminUser::STATUS_FORBIDDEN) {
+            return $this->writeJson(Status::CODE_STATUS_FORBIDDEN, Status::$msg[Status::CODE_STATUS_FORBIDDEN]);
 
         }
-        UserRedis::getInstance()->sadd(sprintf(UserRedis::USER_BLACK_LIST, $this->auth['id']), $user);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
+        if (Cache::get('userCom' . $this->auth['id'])) {
+            return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
 
+        }
+        $id = $this->request()->getRequestParam('post_id');
+        $validate = new Validate();
+        $validate->addColumn('content')->required();
+
+        if (!$validate->validate($this->params)) {
+            return $this->writeJson(Status::CODE_W_PARAM, $validate->getError()->__toString());
+        }
+
+        $info = AdminUserPost::getInstance()->find($id);
+        if (!$info) {
+            return $this->writeJson(Status::CODE_WRONG_RES, '对应帖子不存在');
+        }
+
+        if ($info['status'] != AdminUserPost::NEW_STATUS_NORMAL) {
+            return $this->writeJson(Status::CODE_WRONG_RES, '该帖不可评论');
+        }
+
+        $parent_id = isset($this->params['parent_id']) ? $this->params['parent_id'] : 0;
+        $top_comment_id = isset($this->params['top_comment_id']) ? $this->params['top_comment_id'] : 0; //一级回复的id
+        if ($parent_id) {
+            $parentComment = AdminPostComment::getInstance()->get(['id'=>$parent_id]);
+            if (!$parentComment || $parentComment['status'] != AdminPostComment::STATUS_NORMAL) {
+                return $this->writeJson(Status::CODE_WRONG_RES, '原始评论参数不正确');
+            }
+        }
+
+        $taskData = [
+            'user_id' => $this->auth['id'],
+            'post_id' => $this->params['post_id'],
+            'content' => base64_encode(htmlspecialchars(addslashes($this->params['content']))),
+            'parent_id' => $parent_id,
+            't_u_id' => $parent_id ? $parentComment->user_id : $info->user_id,
+            'top_comment_id' => $top_comment_id,
+        ];
+
+        //插入一条评论
+        $insertId = AdminPostComment::getInstance()->insert($taskData);
+        $new_comment = AdminPostComment::getInstance()->where('id', $insertId)->get();
+        $format_comment = FrontService::handComments([$new_comment], $this->auth['id'])[0];
+
+        if ($top_comment_id) {
+
+            AdminPostComment::create()->update([
+                'respon_number' => QueryBuilder::inc(1)
+            ],[
+                'id' => $parent_id
+            ]);
+
+        }
+
+        if ($parent_id) {
+            $author_id = AdminPostComment::getInstance()->where('id', $parent_id)->get()->user_id;
+            $item_type = 2;
+            $item_id = $insertId;
+        } else {
+            $author_id = AdminUserPost::getInstance()->where('id', $this->params['post_id'])->get()->user_id;
+            $item_type = 1;
+            $item_id = $insertId;
+        }
+
+        AdminUserPost::create()->update([
+            'respon_number' => QueryBuilder::inc(1)
+        ],[
+            'id' => $this->params['post_id']
+        ]);
+
+        if ($author_id != $this->auth['id']) {
+            //发送消息
+            $data = [
+                'status' => AdminMessage::STATUS_UNREAD,
+                'user_id' => $author_id,
+                'type' => 3,
+                'item_type' => $item_type,
+                'item_id' => $item_id,
+                'title' => '帖子回复通知',
+                'did_user_id' => $this->auth['id']
+            ];
+            AdminMessage::getInstance()->insert($data);
+        }
+
+        //积分任务
+        $data['task_id'] = 3;
+        $data['user_id'] = $this->auth['id'];
+
+        TaskManager::getInstance()->async(new SerialPointTask($data));
+        Log::getInstance()->info('do-comment4');
+
+        Cache::set('userCom' . $this->auth['id'], 1, 5);
+        $info->last_respon_time = date('Y-m-d H:i:s');
+        $info->update();
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $format_comment);
     }
 
 

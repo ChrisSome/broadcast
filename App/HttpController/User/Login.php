@@ -5,9 +5,10 @@ namespace App\HttpController\User;
 
 
 use App\Base\FrontUserController;
-use App\lib\FrontService;
+use App\Common\AppFunc;
 use App\lib\PasswordTool;
 use App\lib\Tool;
+use App\Model\AdminSensitive;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
 use App\Model\AdminUser as UserModel;
@@ -22,9 +23,12 @@ use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\Http\Message\Status;
+use EasySwoole\Redis\Redis as Redis;
+use EasySwoole\RedisPool\Redis as RedisPool;
 use EasySwoole\Validate\Validate;
 use App\Utility\Message\Status as Statuses;
 use App\lib\pool\Login as LoginRedis;
+use Illuminate\Support\Facades\App;
 
 
 class Login extends FrontUserController
@@ -36,103 +40,97 @@ class Login extends FrontUserController
     {
         return $this->render('front.user.login');
     }
-
-    public function doLogin()
+    public function userLogin()
     {
-
-        Log::getInstance()->info('login param' . json_encode($this->params));
-
-        //参数验证
         $valitor = new Validate();
         $valitor->addColumn('mobile', '手机号码')->required('手机号不为空')
             ->regex('/^1\d{10}/', '手机号格式不正确');
-        $valitor->addColumn('code')->required('验证码不能为空');
-
+        $valitor->addColumn('type')->required();
         if (!$valitor->validate($this->params)) {
             return $this->writeJson(Status::CODE_BAD_REQUEST, $valitor->getError()->__toString());
         }
-        //数据库增加校验， 同一IP错误次数， 或者邮箱错误次数超出配置需要加入验证码逻辑
-        $sIp = $this->request()->getServerParams()['remote_addr'];
-        $sMobile = $this->params['mobile'];
-        $code = $this->params['code'];
-        $params = $this->params;
-        $isExists = UserModel::getInstance()->where('mobile', $sMobile)->get();
 
-        $phoneCodeIsExists = AdminUserPhonecode::getInstance()->where('mobile', $sMobile)->where('code', $code)->orderBy('created_at', 'desc')->get();
-
-        if (!$phoneCodeIsExists || $phoneCodeIsExists['status'] == 1 || $phoneCodeIsExists['code'] != $code) {
-//            return $this->writeJson(Statuses::CODE_ERR, '验证码不存在或者验证码错误');
+        if (!$type = $this->params['type']) {
+            return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
         }
+        $mobile = $this->params['mobile'];
+        if ($type == 1) {//手机号登录
+//            if (!$this->params['code'] || !$mobile_code = AdminUserPhonecode::getInstance()->getLastCodeByMobile($mobile)) {
+//                return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+//
+//            }
+//            if ($mobile_code['code'] != $this->params['code']) {
+//                return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+//            }
 
-        //var_dump($isExists, $sUserModel->Sql());
-        $isSuccess = FALSE;
-        $aUserData = [];
-        try {
-            if (!$isExists) {
-                //直接号码注册
-                $nickname = Tool::getInstance()->makeRandomString(6);
-                $userData = [
-                    'nickname' => $nickname,
-                    'password_hash' => PasswordTool::getInstance()->generatePassword('1234qwer'),
-                    'mobile' => $sMobile,
-                    'photo' => Gravatar::makeGravatar($nickname),
-                    'sign_at' => date('Y-m-d H:i:s'),
-                    'cid' => isset($params['cid']) ? $params['cid'] : '',
-                ];
-                $rs = AdminUser::getInstance()->insert($userData);
-                TaskManager::getInstance()->async(function () use($rs){
-                   $settingData = [
-                       'user_id'    => $rs,
-                   ];
-                   AdminUserSetting::getInstance()->insert($settingData);
+            if (!$user = AdminUser::getInstance()->where('mobile', $mobile)->get()) {
+                return $this->writeJson(Statuses::CODE_W_PHONE, Statuses::$msg[Statuses::CODE_W_PHONE]);
+            } else if ($user->status == AdminUser::STATUS_BAN) {
+                return $this->writeJson(Statuses::CODE_USER_STATUS_BAN, Statuses::$msg[Statuses::CODE_USER_STATUS_BAN]);
 
-                    $competitionIds = FrontService::getHotCompetitionIds();
-                    $insertCompetition = [
-                        'user_id' => $rs,
-                        'competition_ids' => json_encode($competitionIds),
-                    ];
-                    AdminUserInterestCompetition::getInstance()->insert($insertCompetition);
-                });
+            } else if ($user->status == AdminUser::STATUS_CANCEL) {
+                return $this->writeJson(Statuses::CODE_USER_STATUS_CANCLE, Statuses::$msg[Statuses::CODE_USER_STATUS_CANCLE]);
 
-                $isExists = AdminUser::getInstance()->find($rs);
             }
-            //修改cid
 
-            AdminUser::getInstance()->update(['cid'=>$params['cid']], ['id'=>$isExists['id']]);
-            $time = time();
-            $token = md5($isExists['id'] . Config::getInstance()->getConf('app.token') . $time);
-            $isExists['userSetting'] = $isExists->userSetting();
-            $aUserData = $isExists;
 
-            unset($aUserData['password_hash']);
-            $aUserData['token'] = $token;
-            $isSuccess = true;
-            $sUserKey = sprintf(UserModel::USER_TOKEN_KEY, $token);
-            if ($sOldToken = Cache::get($sUserKey)) {
-                LoginRedis::getInstance()->del(sprintf(UserModel::USER_TOKEN_KEY, $sOldToken));
+
+        } else if ($type == 2) { //账号密码登录
+            $password = $this->params['password'];
+
+            if (!$user = AdminUser::getInstance()->where('mobile', $mobile)->where('status', [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED, AdminUser::STATUS_FORBIDDEN], 'in')->get()) {
+                return $this->writeJson(Statuses::CODE_W_PHONE, Statuses::$msg[Statuses::CODE_W_PHONE]);
+            } else if (!PasswordTool::getInstance()->checkPassword($password, $user->password_hash)) {
+                return $this->writeJson(Statuses::CODE_W_PHONE, Statuses::$msg[Statuses::CODE_W_PHONE]);
             }
-            Cache::set($sUserKey, $token);
 
-            AdminUserPhonecode::getInstance()->update(['status' => 1], ['id' => $phoneCodeIsExists['id']]);
-            $tokenKey = sprintf(AdminUser::USER_TOKEN_KEY, $token);
-            LoginRedis::getInstance()->set($tokenKey,  $sMobile);
-        } catch (\Exception $e) {
-            //异步任务写入异常表
-            return $this->dataJson([
-                'code' => 409,
-                'message' => '登陆失败，请稍后重试'
-            ]);
-        }
-
-
-        if ($isSuccess) {
-            $this->response()->setCookie('front_id', $isExists['id']);
-            $this->response()->setCookie('front_time', $time);
-            $this->response()->setCookie('front_token', $token);
-            return $this->writeJson(Statuses::CODE_OK, 'OK', $aUserData);
         } else {
-            return $this->writeJson(Statuses::CODE_ERR, '用户不存在或密码错误');
+            return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+
         }
+        if ($cid = $this->params['cid']) {
+            $user->cid = $this->params['cid'];
+            $user->update();
+        }
+        $time = time();
+        $token = md5($user['id'] . Config::getInstance()->getConf('app.token') . $time);
+        $uid = $user->id;
+        RedisPool::invoke('redis', function(Redis $redis) use ($uid, $token) {
+           $redis->set(sprintf(UserModel::USER_TOKEN_KEY, $token), $uid);
+        });
+        //长链接绑定
+        $fd = $this->params['fd'];
+        $data = [
+            'fd' => $fd,
+            'nickname' => $user->nickname,
+            'user_id' => $user->id,
+            'last_heartbeat' => time(),
+            'match_id' => 0
+        ];
+        if (OnlineUser::getInstance()->get($fd)) {
+            OnlineUser::getInstance()->update($fd, $data);
+        } else {
+            OnlineUser::getInstance()->set($fd, $data);
+        }
+        $user_info = [
+            'id' => $user->id,
+            'nickname' => $user->nickname,
+            'photo' => $user->photo,
+            'point' => $user->point,
+            'level' => $user->level,
+            'is_offical' => $user->is_offical,
+            'mobile' => $user->mobile,
+            'notice_setting' => json_decode($user->userSetting()->notice, true),
+            'wx_name' => $user->wx_name,
+            'status' => $user->status
+
+        ];
+        $this->response()->setCookie('front_id', $user['id']);
+        $this->response()->setCookie('front_token', $token);
+        $this->response()->setCookie('front_time', $time);
+        return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK], $user_info);
+
+
     }
 
     /**
@@ -140,11 +138,12 @@ class Login extends FrontUserController
      */
     public function doLogout()
     {
-        $fd = $this->params['fd'];
-        $sUserKey = sprintf(UserModel::USER_TOKEN_KEY, $this->auth['front_token']);
-        OnlineUser::getInstance()->delete($fd);
 
-        LoginRedis::getInstance()->del(sprintf(UserModel::USER_TOKEN_KEY, Cache::get($sUserKey)));
+        $sUserKey = sprintf(UserModel::USER_TOKEN_KEY, $this->auth['front_token']);
+        $key = sprintf(UserModel::USER_TOKEN_KEY, Cache::get($sUserKey));
+        RedisPool::invoke('redis', function(Redis $redis) use ($key) {
+            $redis->del($key);
+        });
         $this->response()->setCookie('front_token', '');
         $this->response()->setCookie('front_id', '');
         $this->response()->setCookie('front_time', '');
@@ -155,36 +154,22 @@ class Login extends FrontUserController
     }
 
 
-    /**
-     * 获取手机验证码
-     * @return bool
-     */
+
     /**
      * 用户短信验证码
+     * 不需要type区分
      */
     public function userSendSmg()
     {
 
 
         $valitor = new Validate();
-        $valitor->addColumn('type')->required();  //1登录 2更改手机号
         $valitor->addColumn('mobile', '手机号码')->required('手机号不为空')
             ->regex('/^1[3456789]\d{9}$/', '手机号格式不正确');
 
-
         if ($valitor->validate($this->params)) {
 
-            if ($this->params['type'] == 1) {
-                $mobile = $this->params['mobile'];
-
-            } else if ($this->params['type'] == 2) {
-                if ($this->params['mobile'] != $this->auth['mobile']) {
-                    return $this->writeJson(Statuses::CODE_W_PHONE, Statuses::$msg[Statuses::CODE_W_PHONE]);
-
-                }
-                $mobile = $this->params['mobile'];
-
-            }
+            $mobile = $this->params['mobile'];
 
         } else {
             return $this->writeJson(Statuses::CODE_W_PARAM, $valitor->getError()->__toString());
@@ -212,7 +197,7 @@ class Login extends FrontUserController
      * 微信绑定接口
      * @return bool
      */
-    public function thirdLogin()
+    public function bindWx()
     {
         $params = $this->params;
         $valitor = new Validate();
@@ -235,13 +220,18 @@ class Login extends FrontUserController
         if (json_last_error()) {
             return $this->writeJson(Statuses::CODE_ERR, 'json parse error');
         }
-        if (isset($aWxInfo['errcode'])) {
+        if (!empty($aWxInfo['errcode'])) {
             return $this->writeJson(Statuses::CODE_ERR, $aWxInfo['errmsg']);
         } else {
+            if ($user = AdminUser::getInstance()->where('third_wx_unionid', base64_encode($aWxInfo['unionid']))->get()) {
+                return $this->writeJson(Statuses::CODE_BIND_WX, Statuses::$msg[Statuses::CODE_BIND_WX]);
+
+            }
             $wxInfo = [
                 'wx_photo' => $aWxInfo['headimgurl'],
                 'wx_name'  => $aWxInfo['nickname'],
-                'third_wx_unionid' => base64_encode($aWxInfo['unionid'])
+                'third_wx_unionid' => base64_encode($aWxInfo['unionid']),
+                'photo' => $aWxInfo['headimgurl']
             ];
             $bool = AdminUser::create()->update($wxInfo, ['id'=>$user['id']]);
             if (!$bool) {
@@ -253,10 +243,80 @@ class Login extends FrontUserController
 
 
         }
-        //wx_openid 是否绑定会员
-        //未绑定直接返回wx_用户信息
-        //绑定了，更新用户微信头像以及昵称， 设置用户登陆token，写入用户登陆日志等
 
+    }
+
+
+    public function wxLogin()
+    {
+        $params = $this->params;
+        //获取三方微信账户信息
+        $mThirdWxInfo = AdminUser::getInstance()->getWxUser($params['access_token'], $params['open_id']);
+        $aWxInfo = json_decode($mThirdWxInfo, true);
+        if (json_last_error()) {
+            return $this->writeJson(Statuses::CODE_ERR, 'json parse error');
+        }
+
+        if (!empty($aWxInfo['errcode'])) {
+            return $this->writeJson(Statuses::CODE_ERR, $aWxInfo['errmsg']);
+        } else {
+            $wxInfo = [
+                'wx_photo' => $aWxInfo['headimgurl'],
+                'wx_name'  => $aWxInfo['nickname'],
+                'third_wx_unionid' => base64_encode($aWxInfo['unionid']),
+            ];
+            if (!$user = AdminUser::getInstance()->where('third_wx_unionid', base64_encode($aWxInfo['unionid']))->get()) {
+                return $this->writeJson(Statuses::CODE_UNBIND_WX, Statuses::$msg[Statuses::CODE_UNBIND_WX], $wxInfo);
+            } else {
+                if ($cid = $this->params['cid']) {
+                    $user->cid = $this->params['cid'];
+                    $user->device_type = $this->params['device_type'];
+                    $user->update();
+                }
+                $time = time();
+                $token = md5($user['id'] . Config::getInstance()->getConf('app.token') . $time);
+                $uid = $user->id;
+                RedisPool::invoke('redis', function(Redis $redis) use ($uid, $token) {
+                    $redis->set(sprintf(UserModel::USER_TOKEN_KEY, $token), $uid);
+                });
+                //长链接绑定
+                $fd = $this->params['fd'];
+                $data = [
+                    'fd' => $fd,
+                    'nickname' => $user->nickname,
+                    'user_id' => $user->id,
+                    'last_heartbeat' => time(),
+                    'match_id' => 0
+                ];
+
+                if (OnlineUser::getInstance()->get($fd)) {
+                    OnlineUser::getInstance()->update($fd, $data);
+                } else {
+                    OnlineUser::getInstance()->set($fd, $data);
+                }
+
+                $user_info = [
+                    'id' => $user->id,
+                    'nickname' => $user->nickname,
+                    'photo' => $user->photo,
+                    'point' => $user->point,
+                    'level' => $user->level,
+                    'is_offical' => $user->is_offical,
+                    'mobile' => $user->mobile,
+                    'notice_setting' => json_decode($user->userSetting()->notice, true),
+                    'wx_name' => $user->wx_name,
+                    'status' => $user->status
+
+                ];
+                $this->response()->setCookie('front_id', $user['id']);
+                $this->response()->setCookie('front_token', $token);
+                $this->response()->setCookie('front_time', $time);
+                return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK], $user_info);
+
+            }
+
+
+        }
     }
 
     /**
@@ -266,66 +326,104 @@ class Login extends FrontUserController
      */
     public function logon()
     {
+
+
         $validator = new Validate();
         $validator->addColumn('nickname')->required();
         $validator->addColumn('mobile')->required();
         $validator->addColumn('password')->required();
-        $validator->addColumn('phone_code')->required();
         if (!$validator->validate($this->params)) {
             return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+        }
+
+
+        if ($sensitive = AdminSensitive::getInstance()->where('word', '%' . trim($this->params['nickname']) . '%', 'like')->get()) {
+            //敏感词
+            return $this->writeJson(Statuses::CODE_ADD_POST_SENSITIVE, sprintf(Statuses::$msg[Statuses::CODE_ADD_POST_SENSITIVE], $sensitive->word));
+        } else if (!AppFunc::is_utf8($this->params['nickname'])) {
+            //是否utf8编码
+            return $this->writeJson(Statuses::CODE_UNVALID_CODE, Statuses::$msg[Statuses::CODE_UNVALID_CODE], $sensitive->word);
+
+        }
+//        else if (!preg_match('/^[a-zA-Z0-9_\u4e00-\u9fa5]{2,16}$/', $this->params['nickname'])) {
+//            //昵称
+//            return $this->writeJson(Statuses::CODE_W_FORMAT_NICKNAME, Statuses::$msg[Statuses::CODE_W_FORMAT_NICKNAME]);
+//
+//        }
+        else if (AdminUser::getInstance()->where('nickname', $this->params['nickname'])->get()) {
+            //是否重复
+            return $this->writeJson(Statuses::CODE_USER_DATA_EXIST, Statuses::$msg[Statuses::CODE_USER_DATA_EXIST]);
 
         }
         if (AdminUser::getInstance()->where('mobile', $this->params['mobile'])->get()) {
             return $this->writeJson(Statuses::CODE_PHONE_EXIST, Statuses::$msg[Statuses::CODE_PHONE_EXIST]);
 
         }
-        if (!preg_match('/^[A-Za-z0-9_\x{4e00}-\x{9fa5}]+$/u',$this->params['nickname'])) {
-            return $this->writeJson(Statuses::CODE_W_FORMAT_NICKNAME, Statuses::$msg[Statuses::CODE_W_FORMAT_NICKNAME]);
-
-        } else if (AdminUser::getInstance()->where('nickname', $this->params['nickname'])->get()) {
-            return $this->writeJson(Statuses::CODE_USER_DATA_EXIST, Statuses::$msg[Statuses::CODE_USER_DATA_EXIST]);
-
-        }
-
         $password = $this->params['password'];
-        if (!preg_match('/(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,16}/', $password)) {
+        if (!preg_match('/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/', $password)) {
             return $this->writeJson(Statuses::CODE_W_FORMAT_PASS, Statuses::$msg[Statuses::CODE_W_FORMAT_PASS]);
         }
 
         $password_hash = PasswordTool::getInstance()->generatePassword($password);
-
-        $phoneCode = AdminUserPhonecode::getInstance()->where('phone', $this->params['phone'])->get();
-        if (!$phoneCode || $phoneCode->status != 0 || $phoneCode->code != $this->params['phone_code']) {
-
-            return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
-
-        }
         $logon = false;
         try{
+            $ip = $this->request()->getHeaders()['x-real-ip'][0];
+            $result = \Ritaswc\ZxIPAddress\IPv4Tool::query($ip);
+            if ($result['addr'][0]) {
+                $arr = explode('省', $result['addr'][0]);
+                $province = $arr[0];
+                $city = isset($arr[1]) ? $arr[1] : '';
+                list($provinceCode, $cityCode) = AppFunc::getProvinceAndCityCode($province, $city);
+            }
             $userData = [
                 'nickname' => $this->params['nickname'],
                 'password_hash' => $password_hash,
                 'mobile' => $this->params['mobile'],
-                'photo' => Gravatar::makeGravatar($this->params['nickname']),
+                'photo' => !empty($this->params['wx_photo']) ? $this->params['wx_photo'] : Gravatar::makeGravatar($this->params['nickname']),
                 'sign_at' => date('Y-m-d H:i:s'),
                 'cid' => isset($this->params['cid']) ? $this->params['cid'] : '',
+                'wx_photo' => !empty($this->params['wx_photo']) ? $this->params['wx_photo'] : '',
+                'wx_name' => !empty($this->params['wx_name']) ? $this->params['wx_name'] : '',
+                'third_wx_unionid' => !empty($this->params['third_wx_unionid']) ? $this->params['third_wx_unionid'] : '',
+                'city_code' => !empty($cityCode) ? $cityCode : 0,
+                'province_code' => !empty($provinceCode) ? $provinceCode : 0,
+                'device_type' => $this->params['device_type']
             ];
             $rs = AdminUser::getInstance()->insert($userData);
 
             $time = time();
             $token = md5($rs . Config::getInstance()->getConf('app.token') . $time);
             $sUserKey = sprintf(UserModel::USER_TOKEN_KEY, $token);
-            LoginRedis::getInstance()->set($sUserKey,  $this->params['mobile']);
+            $mobile = $this->params['mobile'];
+            RedisPool::invoke('redis', function(Redis $redis) use ($sUserKey, $mobile) {
+                $redis->set($sUserKey, $mobile);
+            });
             $logon = true;
-            TaskManager::getInstance()->async(function () use($rs){
-               //写用户设置
+            //写用户设置
+            $notice = [
+                'only_notice_my_interest' => 0,  //仅提示我关注的
+                'start' => 1, //比赛开始
+                'goal' => 1, //进球
+                'over' => 1, //结束
+                'read_card' => 1, //红牌
+                'yellow' => 1, //黄牌
+                'show_time_axis' => 1 //显示时间轴
+            ];
+            $push = ['start' => 1, 'goal' => 1, 'over' => 1,  'open_push' => 1, 'information' => 1];
+            $private = ['see_my_post' => 1, 'see_my_post_comment' => 1, 'see_my_information_comment' => 1];
+            TaskManager::getInstance()->async(function () use($rs, $notice, $push, $private){
+
                 $settingData = [
                     'user_id'    => $rs,
+                    'notice' => json_encode($notice),
+                    'push' => json_encode($push),
+                    'private' => json_encode($private)
                 ];
                 AdminUserSetting::getInstance()->insert($settingData);
                 //写用户关注赛事
+                $competitionIds = [];
                 if ($competitions = AdminSysSettings::getInstance()->where('sys_key', 'recommond_com')->get()) {
-                    foreach ($competitions as $item) {
+                    foreach (json_decode($competitions->sys_value, true) as $item) {
                         foreach ($item as $value) {
                             $competitionIds[] = $value['competition_id'];
                         }
@@ -342,12 +440,39 @@ class Login extends FrontUserController
             return $this->writeJson(Statuses::CODE_ERR, '用户不存在或密码错误');
 
         }
-        $user = AdminUser::getInstance()->find($rs);
+        $user = AdminUser::getInstance()->where('id', $rs)->get();
+
+        if ($fd = $this->params['fd']) {
+            $data = [
+                'fd' => $fd,
+                'nickname' => $user->nickname,
+                'user_id' => $user->id,
+                'last_heartbeat' => time(),
+                'match_id' => 0
+            ];
+
+            if (OnlineUser::getInstance()->get($fd)) {
+                OnlineUser::getInstance()->update($fd, $data);
+            } else {
+                OnlineUser::getInstance()->set($fd, $data);
+            }
+        }
+        $user_info = [
+            'id' => $user->id,
+            'nickname' => $user->nickname,
+            'photo' => $user->photo,
+            'point' => $user->point,
+            'level' => $user->level,
+            'is_offical' => $user->is_offical,
+            'mobile' => $user->mobile,
+            'notice_setting' => $notice,
+            'wx_name' => $user->wx_name
+        ];
         if ($logon) {
             $this->response()->setCookie('front_id', $rs);
             $this->response()->setCookie('front_time', $time);
             $this->response()->setCookie('front_token', $token);
-            return $this->writeJson(Statuses::CODE_OK, 'OK', $user);
+            return $this->writeJson(Statuses::CODE_OK, 'OK', $user_info);
         } else {
             return $this->writeJson(Statuses::CODE_ERR, '用户不存在或密码错误');
         }
@@ -355,14 +480,41 @@ class Login extends FrontUserController
 
     }
 
+    public function checkPhoneCode()
+    {
 
+        if (!$this->params['code'] || !$this->params['mobile']) {
+            return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+
+        } else {
+            $phoneCode = AdminUserPhonecode::getInstance()->getLastCodeByMobile($this->params['mobile']);
+            if (!$phoneCode || $phoneCode->status != 0 || $phoneCode->code != $this->params['code']) {
+                return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
+            }
+        }
+        if (empty($this->params['mobile'])) {
+            return $this->writeJson(Statuses::CODE_W_PARAM, Statuses::$msg[Statuses::CODE_W_PARAM]);
+
+        } else if (AdminUser::getInstance()->where('mobile', $this->params['mobile'])->get()) {
+            return $this->writeJson(Statuses::CODE_PHONE_EXIST, Statuses::$msg[Statuses::CODE_PHONE_EXIST]);
+        }
+        return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
+
+
+    }
+
+
+    /**
+     * 忘记密码
+     * @return bool
+     * @throws \Exception
+     */
     public function forgetPass()
     {
-        if ($user = AdminUser::getInstance()->where('mobile', $this->params['mobile'])->get()) {
+        if (!$user = AdminUser::getInstance()->where('mobile', $this->params['mobile'])->get()) {
             return $this->writeJson(Statuses::CODE_USER_NOT_EXIST, Statuses::$msg[Statuses::CODE_USER_NOT_EXIST]);
-
         }
-        $phoneCode = AdminUserPhonecode::getInstance()->where('phone', $this->params['phone'])->get();
+        $phoneCode = AdminUserPhonecode::getInstance()->getLastCodeByMobile($this->params['mobile']);
         if (!$phoneCode || $phoneCode->status != 0 || $phoneCode->code != $this->params['phone_code']) {
 
             return $this->writeJson(Statuses::CODE_W_PHONE_CODE, Statuses::$msg[Statuses::CODE_W_PHONE_CODE]);
@@ -370,7 +522,7 @@ class Login extends FrontUserController
         }
 
         $password = $this->params['password'];
-        if (!preg_match('/(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,16}/', $password)) {
+        if (!preg_match('/^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/', $password)) {
             return $this->writeJson(Statuses::CODE_W_FORMAT_PASS, Statuses::$msg[Statuses::CODE_W_FORMAT_PASS]);
         }
 
@@ -380,6 +532,10 @@ class Login extends FrontUserController
         return $this->writeJson(Statuses::CODE_OK, Statuses::$msg[Statuses::CODE_OK]);
 
     }
+
+
+
+
 
 
 

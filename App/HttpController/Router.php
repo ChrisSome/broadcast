@@ -28,152 +28,7 @@ class Router extends AbstractRouter
         });
 
         $routes->addGroup('/admin', function (RouteCollector $route) {
-            $route->get('/', '/Admin/Index');
-            $route->get('/index_context', '/Admin/Index/indexContext');
-            $route->get('/login', '/Admin/Login');
-            $route->get('/logout', '/Admin/Login/logout');
-            $route->post('/login', '/Admin/Login/login');
-            $route->get('/verify', '/Admin/Login/verify');
-            $route->post('/login_log', '/Admin/Index/loginLog');
-            $route->post('/upload', '/Admin/Upload');
-            $route->get('/version', '/Admin/Index/version');
 
-            // 管理员
-            $route->addGroup('/auth', function (RouteCollector $r) {
-                $r->get('', '/Admin/Auth/User');
-                $r->post('/get_all', '/Admin/Auth/User/getAll');
-                $r->get('/info', '/Admin/Auth/User/info');
-                $r->get('/add', '/Admin/Auth/User/add');
-                $r->post('/add', '/Admin/Auth/User/addData');
-
-                $r->get('/edit/{id:\d+}', '/Admin/Auth/User/edit');
-                $r->post('/edit/{id:\d+}', '/Admin/Auth/User/editData');
-
-                $r->get('/pwd','/Admin/Auth/User/editPwd');
-                $r->post('/pwd','/Admin/Auth/User/editPwdData');
-
-                // $r->get('/info','/Admin/Auth/User/info');
-                // $r->post('/info','/Admin/Auth/User/infoData');
-
-                $r->post('/set/{id:\d+}', '/Admin/Auth/User/set');
-                $r->post('/del/{id:\d+}', '/Admin/Auth/User/del');
-            });
-
-            // 角色
-            $route->addGroup('/role', function (RouteCollector $r) {
-                $r->get('', '/Admin/Auth/Role');
-                $r->post('/get_all', '/Admin/Auth/Role/getAll');
-
-                $r->get('/add', '/Admin/Auth/Role/add');
-                $r->post('/add', '/Admin/Auth/Role/addData');
-
-                $r->get('/edit/{id:\d+}', '/Admin/Auth/Role/edit');
-                $r->post('/edit/{id:\d+}', '/Admin/Auth/Role/editData');
-
-                $r->get('/edit_rule/{id:\d+}', '/Admin/Auth/Role/editRule');
-                $r->post('/edit_rule/{id:\d+}', '/Admin/Auth/Role/editRuleData');
-                $r->post('/set/{id:\d+}', '/Admin/Auth/Role/set');
-
-                $r->post('/del/{id:\d+}', '/Admin/Auth/Role/del');
-            });
-
-            // 权限
-            $route->addGroup('/rule', function (RouteCollector $r) {
-                $r->addRoute(['GET'], '', '/Admin/Auth/Rule');
-                $r->post('/get_all', '/Admin/Auth/Rule/getAll');
-
-                $r->get('/add', '/Admin/Auth/Rule/add');
-                $r->post('/add', '/Admin/Auth/Rule/addData');
-
-                // 添加子节点
-                $r->get('/add/{id:\d+}', '/Admin/Auth/Rule/addChild');
-                $r->post('/add/{id:\d+}', '/Admin/Auth/Rule/addChildData');
-
-                $r->get('/edit/{id:\d+}', '/Admin/Auth/Rule/edit');
-                $r->post('/edit/{id:\d+}', '/Admin/Auth/Rule/editData');
-                $r->post('/set/{id:\d+}', '/Admin/Auth/Rule/set');
-
-                $r->post('/del/{id:\d+}', '/Admin/Auth/Rule/del');
-            });
-
-            //直播源管理
-            $route->addGroup('/core', function (RouteCollector $r) {
-                $r->addRoute(['GET'], '/play', '/Admin/Core/Play');
-                $r->addRoute(['POST'], '/play/list', '/Admin/Core/play/getAll');
-
-                // 添加子节点
-                $r->get('/play/add', '/Admin/Core/Play/add');
-                $r->post('/play/add', '/Admin/Core/Play/addData');
-
-                $r->get('/competition/manage', '/Admin/Core/Competition/index');
-                $r->get('/competition/list', '/Admin/Core/Competition/list');
-                $r->get('/competition/info', '/Admin/Core/Competition/info');
-                $r->post('/competition/add', '/Admin/Core/Competition/add');
-                $r->post('/competition/del', '/Admin/Core/Competition/del');
-                $r->post('/competition/save', '/Admin/Core/Competition/save');
-
-                $r->get('/play/edit/{id:\d+}', '/Admin/Core/Play/edit');
-                $r->post('/play/edit/{id:\d+}', '/Admin/Core/Play/editData');
-                $r->post('/play/set/{id:\d+}', '/Admin/Core/Play/set');
-
-                $r->post('/play/del/{id:\d+}', '/Admin/Core/Play/del');
-            });
-            //用户管理
-            $route->addGroup('/user', function (RouteCollector $r) {
-                $r->addRoute(['GET'], '', '/Admin/User/User');
-                $r->addRoute(['POST'], '/list', '/Admin/User/User/getAll');
-
-                //用户信息审核
-                $r->get('/apply', 'Admin/User/User/apply');
-                $r->post('/apply', 'Admin/User/User/apply');
-                $r->post('/userApply/{id:\d+}/pre_status/{pre_status:\d+}', 'Admin/User/User/userApply');
-                // 添加子节点
-                $r->get('/add', '/Admin/User/User/add');
-                $r->post('/add', '/Admin/User/User/addData');
-
-                $r->get('/edit/{id:\d+}', '/Admin/User/User/edit');
-                $r->post('/edit/{id:\d+}', '/Admin/User/User/editData');
-                $r->post('/set/{id:\d+}', '/Admin/User/User/set');
-
-                $r->post('/del/{id:\d+}', '/Admin/User/User/del');
-                $r->post('/is_repeat', '/Admin/User/User/checkIsRepeat');
-
-
-                //帖子管理
-                $r->addRoute(['GET'], '/post', '/Admin/User/Post');
-                $r->addRoute(['POST'], '/post/list', '/Admin/User/Post/getAll');
-                //帖子举报
-
-                $r->addRoute(['GET'], '/post/accusation', '/Admin/User/Post/postAccusation');
-                $r->addRoute(['POST'], '/post/accusation', '/Admin/User/Post/getAll');
-                //帖子审核
-                $r->addRoute(['GET'], '/post/examine', '/Admin/User/Post/postExamine');
-                $r->addRoute(['POST'], '/post/examine', '/Admin/User/Post/getAll');
-
-                $r->get('/post/edit/{id:\d+}', '/Admin/User/Post/edit');
-                $r->get('/post/add', '/Admin/User/Post/add');
-                $r->post('/post/add/{type:\d+}', '/Admin/User/Post/add');
-                $r->post('/post/edit/{id:\d+}', '/Admin/User/Post/editData');
-                $r->post('/post/set/{id:\d+}', '/Admin/User/Post/set');
-                $r->post('/post/del/{id:\d+}', '/Admin/User/Post/del');
-                $r->post('/post/confirm/{id:\d+}', '/Admin/User/Post/confirm');
-                $r->post('/post/setTop/{id:\d+}', '/Admin/User/Post/setTop');
-                $r->post('/post/setFine/{id:\d+}', '/Admin/User/Post/setFine');
-                $r->get('/post/comment/{id:\d+}', '/Admin/User/Comment/index');
-                $r->post('/post/comment/list/{id:\d+}', '/Admin/User/Comment/getAll');
-                $r->post('/post/comment/del/{id:\d+}', '/Admin/User/Comment/del');
-
-                $r->get('/post/category', '/Admin/User/PostCategory/getAll');
-            });
-
-            //聊天管理
-            $route->addGroup('/content', function (RouteCollector $r) {
-                $r->addRoute(['GET'], '', '/Admin/Talking/Content');
-                $r->addRoute(['POST'], '/list', '/Admin/Talking/Content/getAll');
-//                $r->addRoute(['GET'], '', '/Admin/Talking/Content/getAll');
-
-
-            });
             //配置累类
             $route->addGroup('/setting', function (RouteCollector $r) {
                 $r->addRoute(['GET'], '/user/option', '/Admin/Setting/Option');
@@ -235,77 +90,55 @@ class Router extends AbstractRouter
                 $r->addRoute(['POST'], '/user/ossUpload', '/User/Upload/ossUpload');  //oss上传
                 $r->addRoute(['POST'], '/user/info', '/User/User/info');
                 $r->addRoute(['POST'], '/user/operate', '/User/User/operate');  //用户信息更改
-                $r->addRoute(['POST'], '/user/doLogin', '/User/Login/doLogin'); //登陆接口
-                $r->addRoute(['POST'], '/user/thirdLogin', '/User/Login/thirdLogin'); //三方微信登陆
-//                $r->addRoute(['POST'], '/user/get-phone-code', '/User/Login/getPhoneCode'); //获取验证码接口
-                $r->addRoute(['GET'], '/user/get-phone-code', '/User/Login/userSendSmg'); //获取验证码接口
+                $r->addRoute(['POST'], '/user/doLogin', '/User/Login/userLogin'); //登陆接口
+                $r->addRoute(['POST'], '/user/wxLogin', '/User/Login/wxLogin'); //微信登陆接口
+                $r->addRoute(['POST'], '/user/forgetPass', '/User/Login/forgetPass'); //忘记密码
+
+                $r->addRoute(['POST'], '/user/thirdLogin', '/User/Login/bindWx'); //绑定微信
+                $r->addRoute(['GET'], '/user/userSendSmg', '/User/Login/userSendSmg'); //获取验证码接口
+                $r->addRoute(['GET'], '/user/checkPhoneCode', '/User/Login/checkPhoneCode'); //检查验证码
+                $r->addRoute(['POST'], '/user/logon', '/User/Login/logon'); //注册
                 $r->addRoute(['GET'], '/user/logout', '/User/Login/doLogout'); //退出接口
-                $r->addRoute(['GET'], '/broad/list', '/User/Broad');
-                $r->addRoute(['POST'], '/user/option', '/User/Option/add'); //添加建议
                 $r->addRoute(['GET'], '/user/personal', '/User/Personal/index');
-                $r->addRoute(['GET'], '/system/message', '/User/System/index'); //公告列表
-                $r->addRoute(['GET'], '/system/message/detail/{id:\d+}', '/User/System/detail'); //公告详情
-                $r->addRoute(['GET'], '/user/post', '/User/Post/index'); //帖子页面
-                $r->addRoute(['POST'], '/user/post/list', '/User/Post/getList'); //帖子列表
-                $r->addRoute(['GET'], '/user/post/mine', '/User/Post/getList'); //我的帖子列表页面
-                $r->addRoute(['POST'], '/user/post/mineList', '/User/Post/getMineList'); //我的帖子列表
-                $r->addRoute(['POST'], '/user/post/add', '/User/Post/addPost'); //发布帖子
-                $r->addRoute(['POST'], '/user/post/detail', '/User/Community/detail'); //帖子详情
-                $r->addRoute(['POST'], '/user/post/comment', '/User/Post/comment'); //用户评论
-                $r->addRoute(['POST'], '/user/post/operate', '/User/User/cpOperate'); //操作行为
-                $r->addRoute(['POST'], '/user/comment/list/{id:\d+}', '/User/Post/detail'); //评论详情
-                $r->addRoute(['POST'], '/user/comment/getList', '/User/Post/commentList'); //用户发表的评论
-                $r->addRoute(['POST'], '/user/userOperate/posts', '/User/User/userOperatePosts'); //用户操作帖子列表
-                $r->addRoute(['POST'], '/user/setting/password', '/User/User/setPassword'); //用户注册完设定密码
 
-
-                $r->addRoute(['POST'], '/user/post/del', '/User/Post/del'); //用户删除帖子
-                $r->addRoute(['POST'], '/user/user/follow', '/User/User/userFollowings'); //关注用户
-                $r->addRoute(['POST'], '/user/user/replyComments', '/User/User/myReplys'); //回复给我的评论
 
                 $r->addRoute(['GET'], '/user/websocket', 'User/WebSocket');
 
 
-
-
-
-
-                $r->addRoute(['GET'], '/user/postCat', '/User/Community/postCat');   //分类帖子
-                $r->addRoute(['GET'], '/user/post/childComments', '/User/Community/getAllChildComments');   //二级评论列表
-                $r->addRoute(['POST'], '/user/post/reprint', '/User/Post/rePrint');   //用户转载评论
-                $r->addRoute(['GET'], '/user/myCenter', '/User/Community/myCenter');   //用户个人中心
-                $r->addRoute(['GET'], '/user/messageList', '/User/User/userMessageList');   //用户消息列表
-                $r->addRoute(['GET'], '/user/messInfo', '/User/User/userMessageInfo');   //用户消息列表
-                $r->addRoute(['GET'], '/user/drafts', '/User/Post/drafts');   //帖子草稿
-                $r->addRoute(['GET'], '/user/messageCount', '/User/User/userMessTotal');   //消息数量
-                $r->addRoute(['GET'], '/user/userBlackList', '/User/User/userBlackList');   //消息数量
-
-                $r->addRoute(['GET'], '/user/commentInfo', '/User/Community/commentInfo');   //评论详情
-                $r->addRoute(['POST'], '/user/userFeedBack', '/User/User/userFeedBack');   //用户反馈
                 $r->addRoute(['GET'], '/system/hotreload', '/User/System/hotreload');   //
                 $r->addRoute(['GET'], '/system/adImgs', '/User/System/adImgs');   //  启动页后的广告页
                 $r->addRoute(['GET'], '/system/advertisement', '/User/System/advertisement');   //  启动页后的广告页
+
+
+                //用户动作
+                $r->addRoute(['POST'], '/user/userFollow', '/User/User/userFollowings'); //关注用户
+                $r->addRoute(['POST'], '/information/informationOperate', '/User/User/informationOperate');   //帖子 评论操作
+                $r->addRoute(['POST'], '/community/doComment', '/User/User/doComment'); //用户评论
+                $r->addRoute(['POST'], '/user/userInterestMatch', '/User/User/userInterestMatch');   //用户关注比赛
                 $r->addRoute(['POST'], '/user/interestCompetition', '/User/User/userInterestCompetition');   //  用户关注赛事
+                $r->addRoute(['GET'], '/user/unBindWx', '/User/User/unBindWx');   //  用户解绑微信
+                $r->addRoute(['GET'], '/system/sensitiveWord', '/User/system/sensitiveWord');   //  敏感词
 
 
                 //社区部分
-                $r->addRoute(['GET'], '/community/pList', '/User/Community/pLists');
                 $r->addRoute(['GET'], '/community/mess', '/User/Community/messAndRefinePosts');
                 $r->addRoute(['GET'], '/community/getContent', '/User/Community/getContent');
                 $r->addRoute(['GET'], '/community/getContentByKeyWord', '/User/Community/getContentByKeyWord');//搜索
                 $r->addRoute(['GET'], '/community/myFollowUserPosts', '/User/Community/myFollowUserPosts');   //我关注的人的帖子列表
-                //积分中心
-                $r->addRoute(['GET'], '/user/getAvailableTask', '/User/Point/getAvailableTask');   // 获取每日任务
-                $r->addRoute(['GET'], '/user/sign', '/User/Point/userSign');   // 签到
-                $r->addRoute(['GET'], '/user/getPointList', '/User/Point/getPointList');   // 积分列表
+                $r->addRoute(['POST'], '/community/postAdd', '/User/Community/postAdd');   //发帖
+                $r->addRoute(['GET'], '/community/hotSearch', '/User/Community/hotSearch');   //热搜榜
+                $r->addRoute(['GET'], '/community/detail', '/User/Community/detail'); //帖子详情
+                $r->addRoute(['GET'], '/community/getAllChildComments', '/User/Community/getAllChildComments');   //二级评论列表
+                $r->addRoute(['GET'], '/community/userFirstPage', '/User/Community/userFirstPage');   //用户详情页
+                $r->addRoute(['GET'], '/user/myFollowings', '/User/Community/myFollowings');   //用户关注列表
+                $r->addRoute(['GET'], '/community/userInfo', '/User/Community/userInfo');   //用户基本信息
+                $r->addRoute(['GET'], '/community/normalProblemList', '/User/Community/normalProblemList');   //常见问题
 
-                //比赛
-                $r->addRoute(['POST'], '/footBall/match/interest', '/Match/FootballApi/userInterestMatch');   //用户关注比赛
+                //数据脚本
                 $r->addRoute(['GET'], '/footBall/getTeamList', '/Match/FootballMatch/teamList');   //球队列表
-                $r->addRoute(['GET'], '/footBall/getTodayMatches', '/Match/FootballMatch/todayMatchList');   //今日比赛
+                $r->addRoute(['GET'], '/footBall/getTodayMatches', '/Match/FootballMatch/getTodayMatches');   //今日比赛
                 $r->addRoute(['GET'], '/footBall/getWeekMatches', '/Match/FootballMatch/getWeekMatches');   //未来一周比赛
                 $r->addRoute(['GET'], '/footBall/getCompetitiones', '/Match/FootballMatch/competitionList');   //赛事列表
-                $r->addRoute(['GET'], '/footBall/getStages', '/Match/FootballMatch/stageList');   //赛事阶段列表
                 $r->addRoute(['GET'], '/footBall/getSteam', '/Match/FootballMatch/steamList');   //直播源
                 $r->addRoute(['GET'], '/footBall/players', '/Match/FootballMatch/getPlayers');   //球员列表
                 $r->addRoute(['GET'], '/footBall/clashHistory', '/Match/FootballMatch/clashHistory');   //获取比赛历史同赔统计数据列表
@@ -314,60 +147,91 @@ class Router extends AbstractRouter
                 $r->addRoute(['GET'], '/footBall/updateYesMatch', '/Match/FootballMatch/updateYesMatch');   //更新昨天比赛
                 $r->addRoute(['GET'], '/footBall/matchTlive', '/Match/FootballMatch/matchTlive');   //推送
 
+                $r->addRoute(['GET'], '/footBall/updateSeason', '/Match/FootballMatch/updateSeason');   //更新赛季
+                $r->addRoute(['GET'], '/footBall/updatePlayerStat', '/Match/FootballMatch/updatePlayerStat');   //更新赛季排行
+                $r->addRoute(['GET'], '/footBall/playerChangeClubHistory', '/Match/FootballMatch/playerChangeClubHistory');   //转会记录
+                $r->addRoute(['GET'], '/footBall/teamHonor', '/Match/FootballMatch/teamHonor');   //球队荣誉
+                $r->addRoute(['GET'], '/footBall/honorList', '/Match/FootballMatch/honorList');   //更新赛季
+                $r->addRoute(['GET'], '/footBall/allStat', '/Match/FootballMatch/allStat');   //更新赛季
+                $r->addRoute(['GET'], '/footBall/stageList', '/Match/FootballMatch/stageList');   //更新阶段列表
+                $r->addRoute(['GET'], '/footBall/managerList', '/Match/FootballMatch/managerList');   //更新教练列表
+                $r->addRoute(['GET'], '/footBall/getLineUp', '/Match/FootballMatch/getLineUp');   //阵容列表
+                $r->addRoute(['GET'], '/footBall/playerHonorList', '/Match/FootballMatch/playerHonorList');   //阵容列表
+                $r->addRoute(['GET'], '/footBall/matchBroadcast', '/Match/FootballMatch/matchBroadcast');   //比赛直播
+                $r->addRoute(['GET'], '/footBall/competitionRule', '/Match/FootballMatch/competitionRule');   //赛事赛制
+                $r->addRoute(['GET'], '/footBall/updateAlphaMatch', '/Match/FootballMatch/updateAlphaMatch');
+                $r->addRoute(['GET'], '/footBall/seasonAllStatDetail', '/Match/FootballMatch/seasonAllStatDetail');
+
+
+
                 //数据中心
                 $r->addRoute(['GET'], '/footBall/formatValue', '/Match/DataApi/formatValue');   //推送
                 $r->addRoute(['GET'], '/footBall/CategoryCountry', '/Match/DataApi/CategoryCountry');   //国家分类
                 $r->addRoute(['GET'], '/footBall/competitionByCid', '/Match/DataApi/competitionByCid');   //获取赛事
                 $r->addRoute(['GET'], '/footBall/FIFAMaleRank', '/Match/DataApi/FIFAMaleRank');   //FIFA男子排名
-                $r->addRoute(['GET'], '/footBall/competitionInfo', '/Match/DataApi/competitionInfo');   //FIFA男子排名
-                $r->addRoute(['GET'], '/footBall/getHotCompetition', '/Match/DataApi/getHotCompetition');   //FIFA男子排名
+                $r->addRoute(['GET'], '/footBall/competitionInfo', '/Match/DataApi/competitionInfo');   //赛事信息
+                $r->addRoute(['GET'], '/footBall/getHotCompetition', '/Match/DataApi/getHotCompetition');   //热门赛事
                 $r->addRoute(['GET'], '/footBall/getPlayerInfo', '/Match/DataApi/getPlayerInfo');   //球员信息
                 $r->addRoute(['GET'], '/footBall/teamInfo', '/Match/DataApi/teamInfo');   //球员信息
+                $r->addRoute(['GET'], '/footBall/contentByKeyWord', '/Match/DataApi/contentByKeyWord');   //搜索
+                $r->addRoute(['GET'], '/footBall/teamChangeClubHistory', '/Match/DataApi/teamChangeClubHistory');   //转会记录
+                $r->addRoute(['GET'], '/footBall/hotSearchCompetition', '/Match/DataApi/hotSearchCompetition');   //热搜赛事
+                $r->addRoute(['GET'], '/footBall/getCompetitionByCountry', '/Match/DataApi/getCompetitionByCountry');   //
+                $r->addRoute(['GET'], '/footBall/getContinentCompetition', '/Match/DataApi/getContinentCompetition');   //
 
                 //资讯中心
                 $r->addRoute(['GET'], '/information/titleBar', '/Match/InformationApi/titleBar');   //顶部
-                $r->addRoute(['GET'], '/information/titleContent', '/Match/InformationApi/titleContent');   //头条内容
                 $r->addRoute(['GET'], '/information/competitionContent', '/Match/InformationApi/competitionContent');   //头条内容
-                $r->addRoute(['GET'], '/information/informationInfo', '/Match/InformationApi/informationInfo');   //头条内容
-                $r->addRoute(['GET'], '/information/informationOperate', '/Match/InformationApi/informationOperate');   //帖子 评论操作
-                $r->addRoute(['GET'], '/information/reportOperate', '/Match/InformationApi/reportOperate');   //操作get
-                $r->addRoute(['GET'], '/information/informationComment', '/Match/InformationApi/informationComment');   //发表评论
+                $r->addRoute(['GET'], '/information/informationInfo', '/Match/InformationApi/informationInfo');   //资讯内容
+                $r->addRoute(['POST'], '/information/informationComment', '/Match/InformationApi/informationComment');   //发表评论
                 $r->addRoute(['GET'], '/information/informationChildComment', '/Match/InformationApi/informationChildComment');   //二级评论列表
+                $r->addRoute(['GET'], '/information/getCategoryInformation', '/Match/InformationApi/getCategoryInformation');   //二级评论列表
 
 
                 //个人中心
-                $r->addRoute(['GET'], '/user/UserCenter', '/User/UserCenter/userInfo');   //二级评论列表
+                $r->addRoute(['GET'], '/user/UserCenter', '/User/UserCenter/UserCenter');   //个人中心
                 $r->addRoute(['GET'], '/user/userBookMark', '/User/UserCenter/userBookMark');   //收藏夹
-                $r->addRoute(['POST'], '/user/edit-user', '/User/UserCenter/editUser'); //用户编辑资料
+                $r->addRoute(['POST'], '/user/editUser', '/User/UserCenter/editUser'); //用户编辑资料
                 $r->addRoute(['GET'], '/user/messageCenter', '/User/UserCenter/messageCenter');   //消息中心
-                $r->addRoute(['GET'], '/user/followings', '/User/UserCenter/myFollowings');   //我的关注列表
+                $r->addRoute(['GET'], '/user/readMessage', '/User/UserCenter/readMessage');   //读消息
                 $r->addRoute(['GET'], '/user/userSetting', '/User/UserCenter/userSetting');   //用户设置
                 $r->addRoute(['POST'], '/user/userSetting', '/User/UserCenter/userSetting');   //用户设置
                 $r->addRoute(['POST'], '/user/changePassword', '/User/UserCenter/changePassword');   //用户设置
                 $r->addRoute(['GET'], '/user/myFabolusInfo', '/User/UserCenter/myFabolusInfo'); //用户被点赞的帖子及评论列表
+                $r->addRoute(['GET'], '/user/foulCenter', '/User/UserCenter/foulCenter'); //违规中心
+                $r->addRoute(['GET'], '/user/foulCenterOne', '/User/UserCenter/foulCenterOne'); //违规中心
+                $r->addRoute(['GET'], '/user/foulItemInfo', '/User/UserCenter/foulItemInfo'); //违规中心
+                $r->addRoute(['GET'], '/user/myMessageCenter', '/User/UserCenter/myMessageCenter'); //消息中心
+                $r->addRoute(['GET'], '/user/myBlackList', '/User/UserCenter/myBlackList'); //黑名单
+                $r->addRoute(['GET'], '/user/addInBlackList', '/User/UserCenter/addInBlackList'); //黑名单
+                $r->addRoute(['GET'], '/user/drafts', '/User/UserCenter/drafts'); //草稿箱
+                $r->addRoute(['POST'], '/user/delItem', '/User/UserCenter/delItem'); //删除
+                $r->addRoute(['GET'], '/user/getAvailableTask', '/User/UserCenter/getAvailableTask');   // 获取每日任务
+                $r->addRoute(['POST'], '/user/userDoTask', '/User/UserCenter/userDoTask');   // 签到与分享
+                $r->addRoute(['GET'], '/user/getPointList', '/User/UserCenter/getPointList');   // 积分列表
+                $r->addRoute(['POST'], '/user/userFeedBack', '/User/UserCenter/userFeedBack');   // 用户反馈
 
 
 
-
+                //赛事
                 $r->addRoute(['GET'], '/footBall/competitionList', '/Match/FootballApi/getCompetition');   //赛事列表
                 $r->addRoute(['GET'], '/footBall/matchList', '/Match/FootballApi/frontMatchList');   //比赛列表
-                $r->addRoute(['GET'], '/footBall/matchListPlaying', '/Match/FootballApi/playingMatches');   //正在进行中比赛列表
+                $r->addRoute(['GET'], '/footBall/matchListPlaying', '/Match/FootballApi/matchListPlaying');   //正在进行中比赛列表
                 $r->addRoute(['GET'], '/footBall/userInterestMatchList', '/Match/FootballApi/userInterestMatchList');   //用户关注的比赛列表
                 $r->addRoute(['GET'], '/footBall/matchSchedule', '/Match/FootballApi/matchSchedule');   //赛程列表
                 $r->addRoute(['GET'], '/footBall/matchResult', '/Match/FootballApi/matchResult');   //赛果列表
                 $r->addRoute(['GET'], '/footBall/lineUpDetail', '/Match/FootballApi/lineUpDetail');   //阵容详情
-                $r->addRoute(['GET'], '/footBall/getClashHistory', '/Match/FootballApi/clashHistory');   //历史交锋
-                $r->addRoute(['GET'], '/footBall/noticeInMatch', '/Match/FootballApi/noticeMatch');   //历史交锋
+                $r->addRoute(['GET'], '/footBall/getClashHistory', '/Match/FootballApi/getClashHistory');   //历史交锋
+                $r->addRoute(['GET'], '/footBall/noticeInMatch', '/Match/FootballApi/noticeInMatch');   //直播间公告
                 $r->addRoute(['GET'], '/footBall/matchInfo', '/Match/FootballApi/getMatchInfo');   //比赛信息
+
+                $r->addRoute(['GET'], '/footBall/tlive', '/Match/FootballMatch/tlive');   //更新赛季
                 $r->addRoute(['GET'], '/footBall/test', '/Match/FootballMatch/test');   //历史交锋
-                $r->addRoute(['GET'], '/footBall/updateSeason', '/Match/FootballMatch/updateSeason');   //更新赛季
-                $r->addRoute(['GET'], '/footBall/updatePlayerStat', '/Match/FootballMatch/updatePlayerStat');   //更新赛季
-                $r->addRoute(['GET'], '/footBall/playerChangeClubHistory', '/Match/FootballMatch/playerChangeClubHistory');   //更新赛季
-                $r->addRoute(['GET'], '/footBall/teamHonor', '/Match/FootballMatch/teamHonor');   //更新赛季
-                $r->addRoute(['GET'], '/footBall/honorList', '/Match/FootballMatch/honorList');   //更新赛季
-                $r->addRoute(['GET'], '/footBall/allStat', '/Match/FootballMatch/allStat');   //更新赛季
 
 
+
+
+                $r->addRoute(['GET'], '/footBall/fixMatch', '/Match/FootballMatch/fixMatch');   //比赛查询
 
 
 
