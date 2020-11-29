@@ -56,7 +56,7 @@ class  FrontService {
                 $data['title'] = $item->title;
                 $data['status'] = $item->status;
                 $data['content'] = $item->content;
-                $data['img'] = $item->img;
+//                $data['img'] = $item->img;
                 $data['imgs'] = $item->imgs ? json_decode($item->imgs, true) : [];
                 $data['created_at'] = $item->created_at;
                 $data['hit'] = $item->hit;

@@ -66,7 +66,7 @@ class Community extends FrontUserController
         $count = $model->lastQueryResult()->getTotalCount();
         $return['data'] = $list;
         $return['count'] = $count;
-        $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
     }
 
     /**
@@ -248,16 +248,7 @@ class Community extends FrontUserController
 
         $format_banner = [];
         $title = AdminUserPostsCategory::getInstance()->field(['id', 'name'])->where('status', AdminUserPostsCategory::STATUS_NORMAL)->all();
-        if ($banner = AdminUserPostsCategory::getInstance()->field(['id', 'dispose'])->where('id', $cat_id)->get()) {
 
-            foreach ($banner->dispose as $item) {
-
-                if (Time::isBetween($item['start_time'], $item['end_time'])) {
-
-                    $format_banner[] = $item;
-                }
-            }
-        }
 
 
         if ($cat_id == 2) {//关注的人 帖子列表
@@ -310,7 +301,16 @@ class Community extends FrontUserController
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
         }
+        if ($banner = AdminUserPostsCategory::getInstance()->field(['id', 'dispose'])->where('id', $cat_id)->get()) {
 
+            foreach ($banner->dispose as $item) {
+
+                if (Time::isBetween($item['start_time'], $item['end_time'])) {
+
+                    $format_banner[] = $item;
+                }
+            }
+        }
 
 
         //置顶帖子
@@ -504,7 +504,7 @@ class Community extends FrontUserController
         }
 
 
-        $model = AdminUserPost::getInstance()->where('status', AdminUserPost::STATUS_EXAMINE_SUCC)->where('user_id', $followUids, 'in')->field(['id', 'cat_id', 'user_id',  'title', 'img', 'imgs', 'created_at', 'hit', 'fabolus_number', 'content', 'respon_number', 'collect_number'])->getLimit($page, $size);
+        $model = AdminUserPost::getInstance()->where('status', AdminUserPost::STATUS_EXAMINE_SUCC)->where('user_id', $followUids, 'in')->field(['id', 'cat_id', 'user_id',  'title', 'imgs', 'created_at', 'hit', 'fabolus_number', 'content', 'respon_number', 'collect_number'])->getLimit($page, $size);
 
         $list = $model->all(null);
         $total = $model->lastQueryResult()->getTotalCount();
@@ -538,7 +538,7 @@ class Community extends FrontUserController
         $validate->addColumn('content')->required()->lengthMin(1);
         if (!$validate->validate($data)) {
             return $this->writeJson(Status::CODE_W_PARAM, $validate->getError()->__toString());
-        } else if (!AppFunc::is_utf8($this->params['title'])) {
+        } else if (AppFunc::have_special_char($this->params['title'])) {
             return $this->writeJson(Status::CODE_UNVALID_CODE, Status::$msg[Status::CODE_UNVALID_CODE]);
 
         }
@@ -565,7 +565,7 @@ class Community extends FrontUserController
 
             if ($sensitiveWords) {
                 foreach ($sensitiveWords as $sword) {
-
+                    if (!$sword['word']) continue;
                     if (strstr($this->params['content'], $sword['word']) || strstr($this->params['title'], $sword['word'])) {
                         if ($this->params['pid']) {
                             return $this->writeJson(Status::CODE_ADD_POST_SENSITIVE, sprintf(Status::$msg[Status::CODE_ADD_POST_SENSITIVE], $sword['word']));

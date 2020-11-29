@@ -340,7 +340,7 @@ class Login extends FrontUserController
         if ($sensitive = AdminSensitive::getInstance()->where('word', '%' . trim($this->params['nickname']) . '%', 'like')->get()) {
             //敏感词
             return $this->writeJson(Statuses::CODE_ADD_POST_SENSITIVE, sprintf(Statuses::$msg[Statuses::CODE_ADD_POST_SENSITIVE], $sensitive->word));
-        } else if (!AppFunc::is_utf8($this->params['nickname'])) {
+        } else if (AppFunc::have_special_char($this->params['nickname'])) {
             //是否utf8编码
             return $this->writeJson(Statuses::CODE_UNVALID_CODE, Statuses::$msg[Statuses::CODE_UNVALID_CODE], $sensitive->word);
 

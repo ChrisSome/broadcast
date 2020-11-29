@@ -12,6 +12,7 @@ namespace EasySwoole\EasySwoole;
 use App\Process\Consumer;
 use App\Process\NamiPushTask;
 use App\Storage\OnlineUser;
+use App\Utility\Log\Log;
 use App\WebSocket\event\OnWorkStart;
 use App\WebSocket\WebSocketEvents;
 use App\WebSocket\WebSocketParser;
@@ -45,6 +46,7 @@ class EasySwooleEvent implements Event
         $redisConf = Config::getInstance()->getConf('database')['REDIS'];
         $redisPoolConfig = new  \EasySwoole\Redis\Config\RedisConfig();
         $redisPoolConfig->setHost($redisConf['host']);
+        $redisPoolConfig->setPort($redisConf['port']);
         $redisPoolConfig = \EasySwoole\RedisPool\Redis::getInstance()->register('redis',$redisPoolConfig);
         //配置连接池连接数
         $redisPoolConfig->setMinObjectNum(5);

@@ -182,7 +182,6 @@ class User extends FrontUserController
         }
 
         if (Cache::get('user_operate_information_' . $this->auth['id'] . '-type-' . $this->params['type'])) {
-            return $this->writeJson(Status::CODE_WRONG_LIMIT, Status::$msg[Status::CODE_WRONG_LIMIT]);
         }
         $validate = new Validate();
         //1. 点赞   2收藏， 3， 举报
@@ -193,6 +192,11 @@ class User extends FrontUserController
         $validate->addColumn('is_cancel')->required();
         if (!$validate->validate($this->params)) {
             return $this->writeJson(Status::CODE_ERR, $validate->getError()->__toString());
+        }
+        if (!empty($this->params['remark']) && AppFunc::have_special_char($this->params['remark'])) {
+            return $this->writeJson(Status::CODE_UNVALID_CODE, Status::$msg[Status::CODE_UNVALID_CODE]);
+
+
         }
         $item_id = $this->params['item_id'];
         $type = $this->params['type'];

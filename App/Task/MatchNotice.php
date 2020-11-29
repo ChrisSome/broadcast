@@ -29,7 +29,6 @@ class MatchNotice  implements TaskInterface
     const TYPE_START = 2;
     public function __construct($taskData)
     {
-        Log::getInstance()->info('match-notice-1-' . $taskData['type']);
         $this->taskData = $taskData;
     }
 
@@ -53,7 +52,6 @@ class MatchNotice  implements TaskInterface
         $match->home_scores = json_encode($score[2]);
         $match->away_scores = json_encode($score[3]);
         $match->status_id = $score[1];
-        Log::getInstance()->info('match-notice-score-' . $type . '-match_id-' . $match_id);
         $match->update();
 
         if ($type == 1) { //进球(包含点球)
@@ -119,7 +117,6 @@ class MatchNotice  implements TaskInterface
      */
     public function userNotice($type, $match_id, $home, $away, $position = 0, $time = 0)
     {
-        Log::getInstance()->info('match-notice-score-2-' . $type . '-match_id-' . $match_id);
 
         $tool = Tool::getInstance();
         $server = ServerManager::getInstance()->getSwooleServer();
@@ -151,7 +148,6 @@ class MatchNotice  implements TaskInterface
                     continue;
                 } else {
                     if (!AppFunc::isNotice($user['user_id'], $match_id, $type)) {
-                        Log::getInstance()->info('match-notice-score-3-' . $type . '-match_id-' . $match_id);
 
                     }
                     if (!$user['user_id']) { //未登录

@@ -52,7 +52,7 @@ class DataApi extends FrontUserController{
     {
         $hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
         $sys_value = json_decode($hot_competition['sys_value'], true);
-        $competition_id = $sys_value['title_competition'][0];
+        $competition_id = $sys_value[0];
 
         $cid = $this->params['competition_id'] ? $this->params['competition_id'] : $competition_id;
         $type = $this->params['type']; //0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队
@@ -476,8 +476,7 @@ class DataApi extends FrontUserController{
     public function getHotCompetition()
     {
         $hot_competition = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::SETTING_DATA_COMPETITION)->get();
-        $sys_value = json_decode($hot_competition['sys_value'], true);
-        $competitionIds = array_merge($sys_value['title_competition'], $sys_value['normal_competition']);
+        $competitionIds = json_decode($hot_competition['sys_value'], true);
         $return = [];
         foreach ($competitionIds as $k => $competitionId) {
             if (!$competition = AdminCompetition::getInstance()->where('competition_id', $competitionId)->get()) {
@@ -802,11 +801,17 @@ class DataApi extends FrontUserController{
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
 
         }
+
         //积分  只取该球队默认的赛事
         $select_season_id = !empty($this->params['select_season_id']) ? $this->params['select_season_id'] : $team->getCompetition()->cur_season_id;
         $type = !empty($this->params['type']) ? $this->params['type'] : 1;
         //赛季  当前赛季
-        $season = $team->getCompetition()->getSeason();
+        $competition = $team->getCompetition();
+        if ($competition) {
+            $season = $competition->getSeason();
+        } else {
+            $season = [];
+        }
         $current_season_id = $team->getCompetition()->cur_season_id;
         if ($type == 1) {
             //球队基本资料

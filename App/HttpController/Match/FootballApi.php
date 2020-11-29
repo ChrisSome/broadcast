@@ -37,7 +37,9 @@ class FootballApi extends FrontUserController
     const STATUS_NO_START = 1;
 
     const hotCompetition = [
-        'hot' => [['competition_id' => 45, 'short_name_zh' => '欧洲杯'], ['competition_id'=>47, 'short_name_zh' =>'欧联杯'], ['competition_id'=>542, 'short_name_zh' =>'中超']],
+        'hot' => [['competition_id' => 45, 'short_name_zh' => '欧洲杯'],
+            ['competition_id'=>47, 'short_name_zh' =>'欧联杯'],
+            ['competition_id'=>542, 'short_name_zh' =>'中超']],
         'A' => [
             ['competition_id' => 1961, 'short_name_zh' => '澳黄后备'],
             ['competition_id' => 3109, 'short_name_zh' => '澳昆后备'],
@@ -102,8 +104,7 @@ class FootballApi extends FrontUserController
             ['competition_id' => 24, 'short_name_zh' => '球会友谊'],
         ],
         'R' => [
-            ['competition_id' => 185, 'short_name_zh' => '瑞典超甲'],
-            ['competition_id' => 226, 'short_name_zh' => '瑞士甲'],
+            ['competition_id' => 568, 'short_name_zh' => '日职乙'],
             ['competition_id' => 569, 'short_name_zh' => '日足联'],
             ['competition_id' => 572, 'short_name_zh' => '日职丙'],
             ['competition_id' => 567, 'short_name_zh' => '日职联'],
@@ -115,6 +116,7 @@ class FootballApi extends FrontUserController
         ],
         'T' => [
             ['competition_id' => 1842, 'short_name_zh' => '泰乙'],
+            ['competition_id' => 317, 'short_name_zh' => '土乙红'],
             ['competition_id' => 318, 'short_name_zh' => '土丙C'],
         ],
         'W' => [
@@ -123,8 +125,8 @@ class FootballApi extends FrontUserController
             ['competition_id' => 1736, 'short_name_zh' => '乌拉乙'],
         ],
         'X' => [
-            ['competition_id' => 120, 'short_name_zh' => '西甲'],
-            ['competition_id' => 126, 'short_name_zh' => '西超杯'],
+            ['competition_id' => 547, 'short_name_zh' => '香港甲'],
+            ['competition_id' => 1732, 'short_name_zh' => '香港乙'],
         ],
         'Y' => [
             ['competition_id' => 1978, 'short_name_zh' => '越南乙'],

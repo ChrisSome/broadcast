@@ -29,59 +29,7 @@ class Router extends AbstractRouter
 
         $routes->addGroup('/admin', function (RouteCollector $route) {
 
-            //配置累类
-            $route->addGroup('/setting', function (RouteCollector $r) {
-                $r->addRoute(['GET'], '/user/option', '/Admin/Setting/Option');
-                $r->addRoute(['GET'], '/option/list', '/Admin/Setting/Option/getList');
-                $r->get('/option/edit/{id:\d+}', '/Admin/Setting/Option/edit');
-                $r->post('/option/edit/{id:\d+}', '/Admin/Setting/Option/editData');
-                $r->post('/option/set/{id:\d+}', '/Admin/Setting/Option/set');
-                $r->post('/option/del/{id:\d+}', '/Admin/Setting/Option/del');
-                //消息类型
-                $r->addRoute(['GET'], '/category', '/Admin/Setting/Category');
-                $r->addRoute(['POST'], '/cate/list', '/Admin/Setting/Category/getAll');
-                $r->addRoute(['GET'], '/cate/add', '/Admin/Setting/Category/add');
-                $r->addRoute(['POST'], '/cate/add', '/Admin/Setting/Category/addData');
-                // 添加子节点
-                $r->get('/cate/add/{id:\d+}', '/Admin/Setting/Category/addChild');
-                $r->post('/cate/add/{id:\d+}', '/Admin/Setting/Category/addChildData');
-                $r->get('/cate/edit/{id:\d+}', '/Admin/Setting/Category/edit');
-                $r->post('/cate/edit/{id:\d+}', '/Admin/Setting/Category/editData');
-                $r->post('/cate/set/{id:\d+}', '/Admin/Setting/Category/set');
-                $r->post('/cate/del/{id:\d+}', '/Admin/Setting/Category/del');
 
-                //乱七八糟
-                $r->get('/privacy', 'Admin/Setting/System/privacy');
-                $r->post('/privacy', 'Admin/Setting/System/privacy');
-                $r->get('/problem', 'Admin/Setting/System/problem');
-                $r->post('/problem', 'Admin/Setting/System/problem');
-                $r->get('/notice', 'Admin/Setting/System/notice');
-                $r->post('/notice', 'Admin/Setting/System/notice');
-                $r->get('/sensitive', 'Admin/Setting/System/sensitive');
-                $r->post('/sensitive', 'Admin/Setting/System/sensitive');
-                //消息列表
-                $r->addRoute(['GET'], '/message', '/Admin/Setting/Message');
-                $r->addRoute(['POST'], '/message/list', '/Admin/Setting/Message/getAll');
-                $r->addRoute(['GET'], '/message/add', '/Admin/Setting/Message/add');
-                $r->addRoute(['POST'], '/message/add', '/Admin/Setting/Message/addData');
-                $r->get('/message/edit/{id:\d+}', '/Admin/Setting/Message/edit');
-                $r->post('/message/edit/{id:\d+}', '/Admin/Setting/Message/editData');
-                $r->post('/message/set/{id:\d+}', '/Admin/Setting/Message/set');
-                $r->post('/message/del/{id:\d+}', '/Admin/Setting/Message/del');
-
-                // 短信列表
-                $r->get('/phonecode', 'Admin/Setting/Phonecode');
-                $r->post('/phonecode', 'Admin/Setting/Phonecode');
-
-                //系统配置项
-                $r->get('/sys', 'Admin/Setting/System');
-                $r->post('/sys/list', 'Admin/Setting/System/getAll');
-                $r->get('/sys/add', 'Admin/Setting/System/add');
-                $r->post('/sys/add', 'Admin/Setting/System/addData');
-                $r->get('/sys/edit/{id:\d+}', 'Admin/Setting/System/edit');
-                $r->post('/sys/edit/{id:\d+}', '/Admin/Setting/System/editData');
-                $r->post('/sys/del/{id:\d+}', '/Admin/Setting/System/del');
-            });
             //前台接口
             $route->addGroup('/api', function (RouteCollector $r) {
                 $r->addRoute(['GET'], '/user/login', '/User/Login');

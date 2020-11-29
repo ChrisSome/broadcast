@@ -911,6 +911,20 @@ class AppFunc
         return mb_detect_encoding($string, 'UTF-8') === 'UTF-8';
     }
 
+    static function have_special_char($str)
+    {
+        $length = mb_strlen($str);
+        $array = [];
+        for ($i=0; $i<$length; $i++) {
+            $array[] = mb_substr($str, $i, 1, 'utf-8');
+            if( strlen($array[$i]) >= 4 ){
+                return true;
+
+            }
+        }
+        return false;
+    }
+
 
     public static function redisSetStr($key, $value)
     {

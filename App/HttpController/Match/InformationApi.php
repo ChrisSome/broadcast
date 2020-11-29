@@ -54,11 +54,10 @@ class InformationApi extends FrontUserController
 
         }
 
-        $title_competition_id = $data_competitions_info['title_competition'];
 
-        $title_competition = AdminCompetition::getInstance()->where('competition_id', $title_competition_id, 'in')->get();
+
         $head = [
-            'competition_id' => $title_competition->competition_id,
+            'competition_id' => 0,
             'short_name_zh' => '头条',
             'type' => 1
         ];
@@ -70,7 +69,7 @@ class InformationApi extends FrontUserController
         ];
         $return[] = $changeClub;
 
-        $normal_competition = $data_competitions_info['normal_competition'];
+        $normal_competition = $data_competitions_info;
         foreach ($normal_competition as $item) {
 
             if ($competition = AdminCompetition::getInstance()->where('competition_id', $item)->get()) {
