@@ -112,7 +112,7 @@ class FootballApi extends FrontUserController
         'S' => [
             ['competition_id' => 3121, 'short_name_zh' => '斯里总统杯'],
             ['competition_id' => 277, 'short_name_zh' => '斯伐杯'],
-            ['competition_id' => 3129, 'short_name_zh' => '所罗岛联'],
+            ['competition_id' => 3127, 'short_name_zh' => '所罗门群岛S联赛'],
         ],
         'T' => [
             ['competition_id' => 1842, 'short_name_zh' => '泰乙'],

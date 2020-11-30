@@ -28,6 +28,7 @@ use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
 use App\Model\SeasonTeamPlayer;
 use App\Task\MatchNotice;
+use App\Task\MatchUpdate;
 use App\Utility\Log\Log;
 use App\lib\Tool;
 use App\Utility\Message\Status;
@@ -1372,6 +1373,9 @@ class FootBallMatch extends FrontUserController
 //            }
 
             if (isset($match_info)) {
+                if (empty($match_info)) {
+                    return;
+                }
                 $tool = Tool::getInstance();
                 $server = ServerManager::getInstance()->getSwooleServer();
                 $start_fd = 0;
