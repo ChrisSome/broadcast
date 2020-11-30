@@ -137,6 +137,7 @@ class FootBallMatch extends FrontUserController
      */
     function teamList()
     {
+
         while (true) {
             $time_stamp = AdminTeam::getInstance()->max('updated_at');
             $url = sprintf($this->url . $this->uriTeamList, $this->user, $this->secret, $time_stamp+1);
@@ -698,6 +699,8 @@ class FootBallMatch extends FrontUserController
     {
 
 
+        $count = AppFunc::getUserFans(41);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $count);
 
         $count = Cache::get('match_tlive_count' . 3481822);
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));

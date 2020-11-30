@@ -337,6 +337,8 @@ class FootballApi extends FrontUserController
         $awayFirstPlayers = [];
         $awayAlternatePlayers = [];
         if ($decode['code'] == 0) {
+            $homeFormation = $decode['results']['home_formation'];
+            $awayFormation = $decode['results']['away_formation'];
             $home = $decode['results']['home'];
             $away = $decode['results']['away'];
             if ($home) {
@@ -391,11 +393,16 @@ class FootballApi extends FrontUserController
             $homeTeamInfo['alternatePlayers'] = $homeAlternatePlayers;
             $homeTeamInfo['teamName'] = $matchInfo->homeTeamName()['name_zh'];
             $homeTeamInfo['teamLogo'] = $matchInfo->homeTeamName()['logo'];
+            $homeTeamInfo['homeManagerName'] = $matchInfo->homeTeamName()->getManager()->name_zh;
+            $homeTeamInfo['homeFormation'] = $homeFormation;
 
             $awayTeamInfo['firstPlayers'] = $awayFirstPlayers;
             $awayTeamInfo['alternatePlayers'] = $awayAlternatePlayers;
             $awayTeamInfo['teamName'] = $matchInfo->awayTeamName()['name_zh'];
             $awayTeamInfo['teamLogo'] = $matchInfo->awayTeamName()['logo'];
+            $awayTeamInfo['awayManagerName'] = $matchInfo->awayTeamName()->getManager()->name_zh;
+            $awayTeamInfo['awayFormation'] = $awayFormation;
+
             $data = [
                 'home' => $homeTeamInfo,
                 'away' => $awayTeamInfo,

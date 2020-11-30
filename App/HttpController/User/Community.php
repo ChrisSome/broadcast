@@ -423,7 +423,7 @@ class Community extends FrontUserController
 
 
         //用户
-        $users = AdminUser::getInstance()->where('nickname',  '%' . $key_word . '%', 'like')->where('status', AdminUser::STATUS_NORMAL)->getLimit($page, $size);
+        $users = AdminUser::getInstance()->where('nickname',  '%' . $key_word . '%', 'like')->where('status', [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED, AdminUser::STATUS_FORBIDDEN], 'in')->getLimit($page, $size);
         if (!$users) {
             $format_users = [];
             $user_count = 0;

@@ -43,26 +43,25 @@ class Base extends Controller
         if (!$info) {
             $message = '用户已下线';
             $bool = false;
+
         } else {
             //判断是否他人窃取
             if($info['fd'] != $fd) {
                 $bool = false;
                 $message = '禁止获取他人用户信息';
+
             }
 
-            $message = $info;
-            $user = AdminUser::getInstance()->where('id', $info['user_id'])->limit(1)->get();
+            $user = AdminUser::getInstance()->where('id', $info['user_id'])->get();
             if (isset($user['status']) && !in_array($user['status'], [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
                 $bool = false;
                 $message = '违反直播间规定，详情请联系客服';
+
             }
 
         }
-        if (!$bool) {
-            $server = ServerManager::getInstance()->getSwooleServer();
-            $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_OPERATE_UNUSUAL, $message));
+        return $bool;
 
-        }
 
     }
 

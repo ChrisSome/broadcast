@@ -506,7 +506,7 @@ class  FrontService {
             $data['is_offical'] = $user['is_offical'];
             $data['level'] = $user['level'];
             $data['photo'] = $user['photo'];
-            $data['fans_count'] = count(AppFunc::getUserFans($uid));
+            $data['fans_count'] = count(AppFunc::getUserFans($user->id));
             $data['is_follow'] = AppFunc::isFollow($uid, $user['id']);
             $format_users[] = $data;
             unset($data);

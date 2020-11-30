@@ -728,16 +728,17 @@ class AppFunc
      * 用户退出房间
      * @param $match_id
      * @param $fd
-     * @return array
+     * @return bool
      */
     public static function userOutRoom($match_id, $fd)
     {
         if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
-            return [];
+            return false;
         } else {
             RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd) {
                 $redis->sRem(sprintf(self::USERS_IN_ROOM, $match_id), $fd);
             });
+            return true;
         }
     }
 

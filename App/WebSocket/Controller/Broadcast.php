@@ -45,7 +45,11 @@ class Broadcast extends Base
             $server = ServerManager::getInstance()->getSwooleServer();
             $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
         }
-        $this->checkUserRight($client->getFd());
+//        $fd, $args, $message
+        if (!$bool = $this->checkUserRight($client->getFd(), $broadcastPayload, $message)) {
+            $this->response()->setMessage(Tool::getInstance()->writeJson(406, $message));
+            return  ;
+        }
         if (!empty($broadcastPayload) && isset($broadcastPayload['content']) && isset($broadcastPayload['match_id'])) {
 
             $message = new BroadcastMessage;

@@ -186,11 +186,11 @@ class Match extends Base
             return  ;
         }
 
-        if (!$this->checkUserRight($fd, $args, $message)) {
-            $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, $message));
-
-            return  ;
-        }
+//        if (!$this->checkUserRight($fd, $args, $message)) {
+//            $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, $message));
+//
+//            return  ;
+//        }
 
         if ($onlineInfo = OnlineUser::getInstance()->get($fd)) {
             if ($onlineInfo['match_id'] == 0) {
