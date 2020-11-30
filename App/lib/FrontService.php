@@ -466,9 +466,10 @@ class  FrontService {
         foreach ($informations as $item)
         {
             if ($item->created_at > date('Y-m-d H:i:s')) continue;
+            $user = AdminUser::getInstance()->where('id', $item['user_id'])->get();
+            if (!$user) continue;
             $operate = AdminUserOperate::getInstance()->where('user_id', $uid)->where('item_id', $item['id'])->where('item_type', 3)->where('type', 1)->where('is_cancel', 0)->get();
             $competition = $item->getCompetition();
-            $user = AdminUser::getInstance()->where('id', $item['user_id'])->get();
             $data['id'] = $item['id'];
             $data['title'] = $item['title'];
             $data['img'] = $item['img'];

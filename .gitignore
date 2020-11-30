@@ -9,3 +9,5 @@ composer.lock
 App/Config/Database.php
 /mysql/data
 /.idea
+/.metadata
+/RemoteSystemsTempFiles

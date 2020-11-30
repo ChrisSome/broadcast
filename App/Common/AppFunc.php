@@ -767,7 +767,7 @@ class AppFunc
         } else {
             $time = 0;
         }
-        $bool = Cache::set('match_time_' . $match_id, $time, 60 * 240);
+        Cache::set('match_time_' . $match_id, $time, 60 * 240);
 
         return $time;
     }
