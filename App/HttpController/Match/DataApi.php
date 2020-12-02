@@ -103,7 +103,6 @@ class DataApi extends FrontUserController{
                             }
                         }
                     }
-//                    Cache::delete('unique_team_ids_' . $current_season_id);
 
                     if ($value = Cache::get('unique_team_ids_' . $current_season_id)) {
 
@@ -145,10 +144,6 @@ class DataApi extends FrontUserController{
 
                     }
 
-
-
-
-
                     //基本信息
                     $returnData = [
                         'last_match' => $formatLastMatch,
@@ -181,16 +176,13 @@ class DataApi extends FrontUserController{
                     $decodeDatas = $teams['results'];
 
                     $dataT = [];
-
-                    if (!empty($decodeDatas['tables'][0]['rows'])) {
+                    if ($decodeDatas['promotions']) {
                         foreach ($decodeDatas['tables'][0]['rows'] as $row) {
                             $promotion_name_zh = '';
                             foreach ($decodeDatas['promotions'] as $promotion) {
                                 if ($row['promotion_id'] == $promotion['id']) {
                                     $promotion_name_zh = $promotion['name_zh'];
                                 }
-
-
                             }
                             $team = AdminTeam::getInstance()->where('team_id', $row['team_id'])->get();
                             $data['total'] = $row['total'];
@@ -210,10 +202,39 @@ class DataApi extends FrontUserController{
 
                             unset($data);
                         }
+                        $promotion = 1;
+                    } else {
+                        $promotion = 0;
+                        $dataT = [];
+                        foreach ($decodeDatas['tables'] as $item_table) {
+                            $data = [];
+                            foreach ($item_table['rows'] as $item_row) {
+                                $team = AdminTeam::getInstance()->where('team_id', $item_row['team_id'])->get();
+                                $row_info['team_id'] = $team->team_id;
+                                $row_info['name_zh'] = $team->name_zh;
+                                $row_info['logo'] = $team->logo;
+                                $row_info['total'] = $item_row['total'];
+                                $row_info['won'] = $item_row['won'];
+                                $row_info['draw'] = $item_row['draw'];
+                                $row_info['loss'] = $item_row['loss'];
+                                $row_info['goals'] = $item_row['goals'];
+                                $row_info['goals_against'] = $item_row['goals_against'];
+                                $row_info['points'] = $item_row['points'];
+                                $data[] = $row_info;
+                                unset($row_info);
+                            }
+                            $table_group['group'] = $item_table['group'];
+                            $table_group['list'] = $data;
+                            $dataT[] = $table_group;
+                            unset($table_group);
+
+                        }
                     }
 
 
+
                     $returnData['data'] = $dataT;
+                    $returnData['promotion'] = $promotion;
                     $returnData['competition_describe'] = $competition_describe;
 
 

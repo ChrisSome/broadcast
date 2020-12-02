@@ -26,6 +26,7 @@ class WebSocketStatus
         self::STATUS_ROOM_NOT_FOUND => '未找到该房间',
         self::STATUS_USER_NOT_FOUND => '用户不存在',
         self::STATUS_LOGIN_ERROR => '系统错误，请重新登录',
+        self::STATUS_W_USER_RIGHT => '权限错误，请重试',
 
         self::STATUS_LEAVE_ROOM => '退出房间失败',
         self::STATUS_NOT_IN_ROOM => '用户不再当前直播间',

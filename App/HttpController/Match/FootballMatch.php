@@ -699,18 +699,20 @@ class FootBallMatch extends FrontUserController
     {
 
 
-        $count = AppFunc::getUserFans(41);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $count);
+        $matchSeason = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s', 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', 9662));
+        $teams = json_decode($matchSeason, true);
+        $decodeDatas = $teams['results'];
+        $table = $decodeDatas['tables'];
+        $list = [];
+        if ($table['promotions']) {
+            $t = 1;
+        } else {
+            $t = 2;
+        }
 
-        $count = Cache::get('match_tlive_count' . 3481822);
-        $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
-        $decode = json_decode($res, true);
-        $tlive = $decode[0]['tlive'];
-        $tlive_count = count($tlive);
 
-        $time = Cache::get('match_time_' . 3481822);
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $list);
 
     }
 

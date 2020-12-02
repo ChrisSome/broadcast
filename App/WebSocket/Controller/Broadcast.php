@@ -41,15 +41,17 @@ class Broadcast extends Base
             $type = 1;
         }
         $sender_user_id = $broadcastPayload['sender_user_id'] ?: 0;
+        $server = ServerManager::getInstance()->getSwooleServer();
+
         if (!$sender_user_id) {
-            $server = ServerManager::getInstance()->getSwooleServer();
-            $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
+            return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
         }
-//        $fd, $args, $message
+
         if (!$bool = $this->checkUserRight($client->getFd(), $broadcastPayload, $message)) {
-            $this->response()->setMessage(Tool::getInstance()->writeJson(406, $message));
-            return  ;
+            return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
+
         }
+
         if (!empty($broadcastPayload) && isset($broadcastPayload['content']) && isset($broadcastPayload['match_id'])) {
 
             $message = new BroadcastMessage;
