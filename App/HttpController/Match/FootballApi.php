@@ -129,8 +129,8 @@ class FootballApi extends FrontUserController
             ['competition_id' => 1732, 'short_name_zh' => '香港乙'],
         ],
         'Y' => [
-            ['competition_id' => 1978, 'short_name_zh' => '越南乙'],
-            ['competition_id' => 625, 'short_name_zh' => '伊朗甲'],
+            ['competition_id' => 2912, 'short_name_zh' => '越青锦U21'],
+            ['competition_id' => 370, 'short_name_zh' => '亚美超'],
         ],
         'Z' => [
             ['competition_id' => 543, 'short_name_zh' => '中甲'],

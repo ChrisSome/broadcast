@@ -423,7 +423,7 @@ class UserCenter   extends FrontUserController{
                     $data['item_type'] = $item['item_type'];
                     $data['parent_comment_info'] = $post_comment->getParentContent();
                     $data['post_comment_info'] = $post_comment ? ['id' => $post_comment->id, 'content' => $post_comment->content] : [];
-                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title] : [];
+                    $data['post_info'] = $post ? ['id' => $post->id, 'title' => $post->title, 'content' => mb_substr($post->content, 0, 30)] : [];
                     $data['user_info'] = $post_comment->uInfo();
                     $data['status'] = $item['status'];
 
