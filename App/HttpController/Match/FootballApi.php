@@ -269,9 +269,9 @@ class FootballApi extends FrontUserController
             ->order('match_time', 'ASC')->all();
 //        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
 
-//        $formatMatch = FrontService::handMatch($matches, $this->auth['id'], false, true);
+        $formatMatch = FrontService::formatMatch($matches, $this->auth['id']);
 
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $matches);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMatch);
 
     }
 
