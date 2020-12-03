@@ -250,6 +250,7 @@ class FootballApi extends FrontUserController
      */
     public function matchSchedule()
     {
+        $time = time();
         if (!isset($this->params['time'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
@@ -263,9 +264,16 @@ class FootballApi extends FrontUserController
 
         $end = $start + 60 * 60 * 24;
 
-        $matches = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')->where('is_delete', 0)->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')->order('match_time', 'ASC')->all();
+        $matches = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
+            ->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')
+            ->where('is_delete', 0)
+            ->order('match_time', 'ASC')->all();
+//        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
 
         $formatMatch = FrontService::handMatch($matches, $this->auth['id'], false, true);
+        $time = time()-$time;
+        Cache::inc('time', $time);
+        Cache::inc('count', 1);
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMatch);
 
     }
@@ -519,13 +527,9 @@ class FootballApi extends FrontUserController
 
     public function test()
     {
-//        go(function () {
-//            $redis_client = Manager::getInstance()->get('redisClient')->getObj();
-//            $redis_client->set('test_redis', 2);
-//
-//        });
-//        $a = UserRedis::getInstance()->get('test_redis');
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 2);
+        $time = Cache::get('time');
+        $count = Cache::get('count');
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], [$time, $count]);
 
 
     }

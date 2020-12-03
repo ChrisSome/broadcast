@@ -697,10 +697,9 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        $matchSeason = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s', 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $select_season_id));
-        $teams = json_decode($matchSeason, true);
-        $decodeDatas = $teams['results'];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $this->auth['id']);
+        Cache::inc('testabc', 1);
+        $res = Cache::get('testabc');
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
 
     }
 
