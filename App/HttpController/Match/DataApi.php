@@ -812,8 +812,6 @@ class DataApi extends FrontUserController{
 
 
 
-
-
     public function teamInfo()
     {
 

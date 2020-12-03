@@ -210,6 +210,7 @@ class  FrontService {
 
 
             foreach ($matches as $match) {
+
                 $match_data_info = Cache::get('match_data_info' . $match->match_id);
                 $home_team = isset($match->home_team_id) ? $match->homeTeamName() : '';
                 $away_team = isset($match->away_team_id) ? $match->awayTeamName() : '';

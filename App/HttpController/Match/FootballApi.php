@@ -250,7 +250,6 @@ class FootballApi extends FrontUserController
      */
     public function matchSchedule()
     {
-        $time = time();
         if (!isset($this->params['time'])) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
@@ -270,11 +269,9 @@ class FootballApi extends FrontUserController
             ->order('match_time', 'ASC')->all();
 //        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
 
-        $formatMatch = FrontService::handMatch($matches, $this->auth['id'], false, true);
-        $time = time()-$time;
-        Cache::inc('time', $time);
-        Cache::inc('count', 1);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMatch);
+//        $formatMatch = FrontService::handMatch($matches, $this->auth['id'], false, true);
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $matches);
 
     }
 
