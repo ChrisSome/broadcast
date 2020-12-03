@@ -48,7 +48,7 @@ class FootballApi extends FrontUserController
             ['competition_id' => 1850, 'short_name_zh' => '澳南后备'],
         ],
         'B' => [
-            ['competition_id' => 447, 'short_name_zh' => '巴波联'],
+            ['competition_id' => 3007, 'short_name_zh' => '巴基挑杯'],
             ['competition_id' => 282, 'short_name_zh' => '冰岛乙'],
             ['competition_id' => 284, 'short_name_zh' => '冰岛杯'],
             ['competition_id' => 436, 'short_name_zh' => '巴西乙'],
@@ -130,7 +130,7 @@ class FootballApi extends FrontUserController
         ],
         'Y' => [
             ['competition_id' => 2912, 'short_name_zh' => '越青锦U21'],
-            ['competition_id' => 370, 'short_name_zh' => '亚美超'],
+            ['competition_id' => 682, 'short_name_zh' => '伊拉联'],
         ],
         'Z' => [
             ['competition_id' => 543, 'short_name_zh' => '中甲'],

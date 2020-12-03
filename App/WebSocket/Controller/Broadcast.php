@@ -51,7 +51,6 @@ class Broadcast extends Base
             return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
 
         }
-
         if (!empty($broadcastPayload) && isset($broadcastPayload['content']) && isset($broadcastPayload['match_id'])) {
 
             $message = new BroadcastMessage;
@@ -62,7 +61,8 @@ class Broadcast extends Base
             $message->setSendTime(date('Y-m-d H:i:s'));
             $message->setMatchId($broadcastPayload['match_id']);
             $message->setAtUserId($broadcastPayload['at_user_id']);
-            TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $client->getFd()]));
+            $task_id = TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $client->getFd()]));
+            Log::getInstance()->info('task failed-' . $task_id);
         }
         $this->response()->setStatus($this->response()::STATUS_OK);
     }

@@ -407,13 +407,13 @@ class Community extends FrontUserController
                 $team_ids_str = AppFunc::changeArrToStr($team_ids);
                 $matches = AdminMatch::getInstance()->where('home_team_id in ' . $team_ids_str . ' or away_team_id in ' . $team_ids_str)->getLimit($page, $size);
                 $match_list = $matches->all(null);
-//                $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
+
 
             } else {
                 $match_list = [];
 
             }
-            $format_match = FrontService::handMatch($match_list, 0, true);
+            $format_match = FrontService::handMatch($match_list, 0, true, false, true);
             $match_count = count($format_match);
 
         } else {

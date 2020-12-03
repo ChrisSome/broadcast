@@ -187,14 +187,15 @@ class  FrontService {
     }
 
     /**
-     * 格式化比赛
+     * 比赛格式化
      * @param $matches
      * @param $uid
-     * @param $showWhenUserNotInterestCompetition
-     * @param $isLiving
+     * @param bool $showWhenUserNotInterestCompetition
+     * @param bool $isLiving
+     * @param bool $is_show  强制显示
      * @return array
      */
-    static function handMatch($matches, $uid, $showWhenUserNotInterestCompetition = false, $isLiving = false)
+    static function handMatch($matches, $uid, $showWhenUserNotInterestCompetition = false, $isLiving = false, $is_show = false)
     {
 
         if (!$matches) {
@@ -230,14 +231,16 @@ class  FrontService {
 
                 }
 
-                if ($uid && !$showWhenUserNotInterestCompetition) {
-                    if (!in_array($match->competition_id, $userInterestCompetitiones)) {
+                if (!$is_show) {
+                    if ($uid && !$showWhenUserNotInterestCompetition && !in_array($match->competition_id, $userInterestCompetitiones)) {
+                        continue;
+
+                    }
+                    if (!AppFunc::isInHotCompetition($match->competition_id)) {
                         continue;
                     }
                 }
-                if (!AppFunc::isInHotCompetition($match->competition_id)) {
-                    continue;
-                }
+
 
 
                 $is_start = false;
