@@ -264,8 +264,8 @@ class  FrontService {
                 $item['home_team_logo'] = $home_team['logo'];
                 $item['away_team_name'] = $away_team['name_zh'];
                 $item['away_team_logo'] = $away_team['logo'];
-//                $item['group_num'] = json_decode($match->round, true)['group_num']; //第几组
-//                $item['round_num'] = json_decode($match->round, true)['round_num']; //第几轮
+                $item['group_num'] = json_decode($match->round, true)['group_num']; //第几组
+                $item['round_num'] = json_decode($match->round, true)['round_num']; //第几轮
 //                $item['competition_type'] = $match->competitionName['type'];
                 $item['competition_name'] = $competition['short_name_zh'];
                 $item['competition_color'] = $competition['primary_color'];
@@ -290,8 +290,6 @@ class  FrontService {
                 $item['has_living'] = $has_living;
                 $item['living_url'] = $living_url;
 
-
-
                 $data[] = $item;
 
                 unset($item);
@@ -308,23 +306,16 @@ class  FrontService {
         if (!$matches) return [];
         $data = [];
         foreach ($matches as $match) {
-            $home_team = $match->homeTeamName();
-            $away_team = $match->awayTeamName();
-            $competition = $match->competitionName();
-            if (!$home_team || !$away_team || !$competition) {
-                continue;
-            }
             if (!AppFunc::isInHotCompetition($match->competition_id)) {
                 continue;
             }
-            $match_data_info = Cache::get('match_data_info' . $match->match_id);
+
 
             //用户关注赛事
             $userInterestCompetitiones = [];
             if ($competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
                 $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
             }
-//            $userInterestCompetitiones = $competitiones ? json_decode($competitiones['competition_ids'], true) : [];
             //用户关注比赛
             $userInterestMatchIds = [];
 
@@ -333,6 +324,12 @@ class  FrontService {
             }
 
             if ($uid && !in_array($match->competition_id, $userInterestCompetitiones)) {
+                continue;
+            }
+            $home_team = $match->homeTeamName();
+            $away_team = $match->awayTeamName();
+            $competition = $match->competitionName();
+            if (!$home_team || !$away_team || !$competition) {
                 continue;
             }
 
@@ -357,6 +354,8 @@ class  FrontService {
 //                }
 //
 //            }
+            $match_data_info = Cache::get('match_data_info' . $match->match_id);
+
             $item['home_team_name'] = $home_team['name_zh'];
             $item['home_team_logo'] = $home_team['logo'];
             $item['away_team_name'] = $away_team['name_zh'];
