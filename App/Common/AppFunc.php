@@ -591,6 +591,7 @@ class AppFunc
     public static function isInHotCompetition($competitionId)
     {
         $item = FootballApi::hotCompetition;
+        $competition_ids = [];
         foreach ($item as $value) {
             foreach ($value as $ival) {
                 $competition_ids[] = $ival;
