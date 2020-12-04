@@ -291,7 +291,7 @@ class FootballApi extends FrontUserController
 
         $matches = AdminMatch::getInstance()->where('status_id', self::STATUS_RESULT, 'in')->where('is_delete', 0)->where('match_time', $start, '>=')->where('match_time', $end, '<')->order('match_time', 'DESC')->all();
 
-        $formatMatch = FrontService::handMatch($matches, $this->auth['id'], false, true);
+        $formatMatch = FrontService::formatMatch($matches, $this->auth['id']);
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMatch);
     }
 
@@ -314,7 +314,7 @@ class FootballApi extends FrontUserController
                 $data = [];
             } else {
                 $matches = AdminMatch::getInstance()->where('match_id', $matchIds, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-                $data = FrontService::handMatch($matches, $this->auth['id']);
+                $data = FrontService::formatMatch($matches, $this->auth['id']);
 
 
             }
