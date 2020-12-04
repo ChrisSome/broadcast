@@ -341,19 +341,19 @@ class  FrontService {
             } else if (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
                 $is_start = false;
             }
-//            $has_living = 0;
-//            $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
-//            if ($isLiving && $living_match = AppFunc::getAlphaLiving(isset($home_team->name_en) ? $home_team->name_en : '', isset($away_team->name_en) ? $away_team->name_en : '')) {
-//                $has_living = $living_match['liveStatus'];
-//                if ($living_match['liveUrl'] || $living_match['liveUrl2'] || $living_match['liveUrl3']) {
-//                    $living_url = [
-//                        'liveUrl' => $living_match['liveUrl'],
-//                        'liveUrl2' => $living_match['liveUrl2'],
-//                        'liveUrl3' => $living_match['liveUrl3']
-//                    ];
-//                }
-//
-//            }
+            $has_living = 0;
+            $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
+            if ($living_match = AppFunc::getAlphaLiving(isset($home_team->name_en) ? $home_team->name_en : '', isset($away_team->name_en) ? $away_team->name_en : '')) {
+                $has_living = $living_match['liveStatus'];
+                if ($living_match['liveUrl'] || $living_match['liveUrl2'] || $living_match['liveUrl3']) {
+                    $living_url = [
+                        'liveUrl' => $living_match['liveUrl'],
+                        'liveUrl2' => $living_match['liveUrl2'],
+                        'liveUrl3' => $living_match['liveUrl3']
+                    ];
+                }
+
+            }
             $match_data_info = Cache::get('match_data_info' . $match->match_id);
 
             $item['home_team_name'] = $home_team['name_zh'];
@@ -372,8 +372,8 @@ class  FrontService {
             $item['neutral'] = $match->neutral;  //1中立 0否
             $item['matching_time'] = AppFunc::getPlayingTime($match->match_id);  //比赛进行时间
             $item['matching_info'] = json_decode($match_data_info, true);
-            $item['has_living'] = 0;
-            $item['living_url'] = [];
+            $item['has_living'] = $has_living;
+            $item['living_url'] = $living_url;
 
 
 

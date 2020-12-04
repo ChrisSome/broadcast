@@ -41,9 +41,9 @@ class FootballApi extends FrontUserController
             ['competition_id'=>47, 'short_name_zh' =>'欧联杯'],
             ['competition_id'=>542, 'short_name_zh' =>'中超']],
         'A' => [
-            ['competition_id' => 1961, 'short_name_zh' => '澳黄后备'],
-            ['competition_id' => 3109, 'short_name_zh' => '澳昆后备'],
-            ['competition_id' => 598, 'short_name_zh' => '澳昆超'],
+            ['competition_id' => 595, 'short_name_zh' => '澳南超'],
+            ['competition_id' => 600, 'short_name_zh' => '澳南甲'],
+            ['competition_id' => 1689, 'short_name_zh' => '阿尔U21'],
             ['competition_id' => 1858, 'short_name_zh' => '澳昆U20'],
             ['competition_id' => 1850, 'short_name_zh' => '澳南后备'],
         ],
@@ -89,7 +89,7 @@ class FootballApi extends FrontUserController
             ['competition_id' => 2979, 'short_name_zh' => '老挝超'],
         ],
         'M' => [
-            ['competition_id' => 457, 'short_name_zh' => '美职业'],
+            ['competition_id' => 465, 'short_name_zh' => '墨西超'],
             ['competition_id' => 466, 'short_name_zh' => '墨西乙'],
             ['competition_id' => 2115, 'short_name_zh' => '墨女超'],
         ],
@@ -110,9 +110,9 @@ class FootballApi extends FrontUserController
             ['competition_id' => 567, 'short_name_zh' => '日职联'],
         ],
         'S' => [
-            ['competition_id' => 3121, 'short_name_zh' => '斯里总统杯'],
-            ['competition_id' => 277, 'short_name_zh' => '斯伐杯'],
-            ['competition_id' => 3127, 'short_name_zh' => '所罗门群岛S联赛'],
+            ['competition_id' => 616, 'short_name_zh' => '沙特乙'],
+            ['competition_id' => 615, 'short_name_zh' => '沙特甲'],
+            ['competition_id' => 3164, 'short_name_zh' => '所罗岛杯'],
         ],
         'T' => [
             ['competition_id' => 1842, 'short_name_zh' => '泰乙'],
@@ -129,8 +129,8 @@ class FootballApi extends FrontUserController
             ['competition_id' => 1732, 'short_name_zh' => '香港乙'],
         ],
         'Y' => [
-            ['competition_id' => 2912, 'short_name_zh' => '越青锦U21'],
-            ['competition_id' => 682, 'short_name_zh' => '伊拉联'],
+            ['competition_id' => 349, 'short_name_zh' => '以乙北'],
+            ['competition_id' => 491, 'short_name_zh' => '亚冠杯'],
         ],
         'Z' => [
             ['competition_id' => 543, 'short_name_zh' => '中甲'],
@@ -221,7 +221,7 @@ class FootballApi extends FrontUserController
             ->where('competition_id', $hotCompetition, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
 
 
-        $formatMatch = FrontService::handMatch($playMatch, $this->auth['id'], false, true);
+        $formatMatch = FrontService::formatMatch($playMatch, $this->auth['id']);
         if (isset($this->auth['id'])) {
             if ($userInterestMatch = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->get()) {
                 $match = json_decode($userInterestMatch->match_ids);

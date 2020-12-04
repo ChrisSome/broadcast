@@ -192,7 +192,7 @@ class FootBallMatch extends FrontUserController
     function getTodayMatches($isUpdateYes = 0)
     {
 
-        if (!isset($isUpdateYes)) {
+        if ($isUpdateYes) {
             $time = date("Ymd", strtotime("-1 day"));
         } else {
             $time = date('Ymd');
@@ -203,11 +203,13 @@ class FootBallMatch extends FrontUserController
         $teams = json_decode($res, true);
 
         $decodeDatas = $teams['results'];
+//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
 
         if (!$decodeDatas) {
             Log::getInstance()->info(date('Y-d-d H:i:s') . ' 更新无数据');
             return;
         }
+
         foreach ($decodeDatas as $data) {
 
             $insertData = [
@@ -697,22 +699,25 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        Cache::inc('testabc', 1);
-        $res = Cache::get('testabc');
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
+        $url = sprintf($this->uriM, $this->user, $this->secret, '20201203');
+
+        $res = Tool::getInstance()->postApi($url);
+        $teams = json_decode($res, true);
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $teams);
 
     }
 
     public function fixMatch()
     {
-//        $match_id = 3481822;
+
         $match_id = $this->params['match_id'];
         $url = sprintf('https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s', $this->user, $this->secret, $match_id);
 
         $res = Tool::getInstance()->postApi($url);
         $decode = json_decode($res, true);
         $decodeDatas = $decode['results'];
-
+        if (!$decodeDatas) return;
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
         $match->home_scores = json_encode($decodeDatas['score'][2]);
         $match->away_scores = json_encode($decodeDatas['score'][3]);
