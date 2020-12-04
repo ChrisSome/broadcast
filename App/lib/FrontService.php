@@ -507,15 +507,12 @@ class  FrontService {
         if (!$matches) return [];
         $data = [];
         foreach ($matches as $match) {
-            if (!AppFunc::isInHotCompetition($match->competition_id)) {
+            if (!AppFunc::newIsInHotCompetition($match->competition_id)) {
                 continue;
             }
 
 
             //用户关注赛事
-
-
-
             if ($competitiones = Cache::get('user_interest_competition')) {
                 $userInterestCompetitiones = json_decode($competitiones, true);
                 if ($uid && !in_array($match->competition_id, $userInterestCompetitiones)) {

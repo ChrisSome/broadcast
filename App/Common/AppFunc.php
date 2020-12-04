@@ -9,6 +9,7 @@ use App\Model\AdminAlphaMatch;
 use App\Model\AdminInterestMatches;
 use App\Model\AdminMatch;
 use App\Model\AdminSeason;
+use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
 use App\Model\AdminZoneList;
@@ -600,6 +601,20 @@ class AppFunc
         $competition_ids = array_column($competition_ids, 'competition_id');
         if (in_array($competitionId, $competition_ids)) {
             return true;
+        } else {
+            return false;
+        }
+
+    }
+    public static function newIsInHotCompetition($competitionId)
+    {
+        if ($setting = AdminSysSettings::getInstance()->where('sys_key', 'array_competition')->get()) {
+            $competition_arr = json_decode($setting->sys_value, true);
+            if (in_array($competitionId, $competition_arr)) {
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return false;
         }

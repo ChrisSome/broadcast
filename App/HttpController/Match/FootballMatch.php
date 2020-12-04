@@ -21,6 +21,7 @@ use App\Model\AdminPlayerStat;
 use App\Model\AdminSeason;
 use App\Model\AdminStageList;
 use App\Model\AdminSteam;
+use App\Model\AdminSysSettings;
 use App\Model\AdminTeam;
 use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
@@ -699,11 +700,11 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        $com = [45,47,542,595,600,1689,1858,1850,3007,282,284,436,1821,1675,132,238,241,240,195,1940,3053,1932,486,385,386,356,357,2984,1785,2979,465,466,2115,716,203,53,24,568,569,572,567,616,615,3164,1842,317,318,674,675,1736,547,1732,349,491,543,544];
-        Cache::set('user_interest_competition', json_encode($com));
-        Cache::set('user_interest_match', json_encode([3483970]));
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+//        $com = [45,47,542,595,600,1689,1858,1850,3007,282,284,436,1821,1675,132,238,241,240,195,1940,3053,1932,486,385,386,356,357,2984,1785,2979,465,466,2115,716,203,53,24,568,569,572,567,616,615,3164,1842,317,318,674,675,1736,547,1732,349,491,543,544];
+//        Cache::set('user_interest_competition', json_encode($com));
+//        Cache::set('user_interest_match', json_encode([3483970]));
+        $bool = AppFunc::newIsInHotCompetition(1689);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $bool);
 
     }
 
@@ -716,7 +717,7 @@ class FootBallMatch extends FrontUserController
         $res = Tool::getInstance()->postApi($url);
         $decode = json_decode($res, true);
         $decodeDatas = $decode['results'];
-        if (!$decodeDatas) return;
+        if (!$decodeDatas) return false;
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
         $match->home_scores = json_encode($decodeDatas['score'][2]);
         $match->away_scores = json_encode($decodeDatas['score'][3]);
