@@ -343,17 +343,17 @@ class  FrontService {
             }
             $has_living = 0;
             $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
-            if ($living_match = AppFunc::getAlphaLiving(isset($home_team->name_en) ? $home_team->name_en : '', isset($away_team->name_en) ? $away_team->name_en : '')) {
-                $has_living = $living_match['liveStatus'];
-                if ($living_match['liveUrl'] || $living_match['liveUrl2'] || $living_match['liveUrl3']) {
-                    $living_url = [
-                        'liveUrl' => $living_match['liveUrl'],
-                        'liveUrl2' => $living_match['liveUrl2'],
-                        'liveUrl3' => $living_match['liveUrl3']
-                    ];
-                }
-
-            }
+//            if ($living_match = AppFunc::getAlphaLiving(isset($home_team->name_en) ? $home_team->name_en : '', isset($away_team->name_en) ? $away_team->name_en : '')) {
+//                $has_living = $living_match['liveStatus'];
+//                if ($living_match['liveUrl'] || $living_match['liveUrl2'] || $living_match['liveUrl3']) {
+//                    $living_url = [
+//                        'liveUrl' => $living_match['liveUrl'],
+//                        'liveUrl2' => $living_match['liveUrl2'],
+//                        'liveUrl3' => $living_match['liveUrl3']
+//                    ];
+//                }
+//
+//            }
             $match_data_info = Cache::get('match_data_info' . $match->match_id);
 
             $item['home_team_name'] = $home_team['name_zh'];
