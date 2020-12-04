@@ -374,6 +374,12 @@ class  FrontService {
             $item['matching_info'] = json_decode($match_data_info, true);
             $item['has_living'] = $has_living;
             $item['living_url'] = $living_url;
+            $item['note'] = $match->note;  //备注   欧青连八分之一决赛
+            $item['home_scores'] = $match->home_scores;  //主队比分
+            $item['away_scores'] = $match->away_scores;  //主队比分
+            $item['steamLink'] = !empty($match->steamLink()['mobile_link']) ? $match->steamLink()['mobile_link'] : '' ;  //直播地址
+            $item['line_up'] = json_decode($match->coverage, true)['lineup'] ? true : false;  //阵容
+            $item['mlive'] = json_decode($match->coverage, true)['mlive'] ? true : false;  //动画
 
 
 
