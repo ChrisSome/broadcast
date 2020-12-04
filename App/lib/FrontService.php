@@ -507,7 +507,7 @@ class  FrontService {
         if (!$matches) return [];
         $data = [];
         foreach ($matches as $match) {
-            if (!AppFunc::newIsInHotCompetition($match->competition_id)) {
+            if (!AppFunc::isInHotCompetition($match->competition_id)) {
                 continue;
             }
 
@@ -529,7 +529,6 @@ class  FrontService {
                 if ($uid && in_array($match->match_id, $userInterestMatchIds)) {
                     $is_interest = true;
                 }
-
             }
 
 
