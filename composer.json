@@ -23,6 +23,7 @@
         "topthink/think-orm": "^2.0",
         "joshcam/mysqli-database-class": "dev-master",
         "easyswoole/kafka": "^1.0",
-        "easyswoole/orm": "^1.4"
+        "easyswoole/orm": "^1.4",
+        "ext-json": "*"
     }
 }

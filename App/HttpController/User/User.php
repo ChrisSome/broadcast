@@ -423,13 +423,15 @@ class User extends FrontUserController
         if ($uComs) {
 
             $bool = AdminUserInterestCompetition::getInstance()->update(['competition_ids' => $this->params['competition_id']],['id' => $uComs['id']]);
-
+            Cache::set('user_interest_competition_' . $this->auth['id'], $this->params['competition_id']);
         } else {
             $data = [
                 'competition_ids' => $this->params['competition_id'],
                 'user_id' => $this->auth['id']
             ];
             $bool = AdminUserInterestCompetition::getInstance()->insert($data);
+            Cache::set('user_interest_competition_' . $this->auth['id'], $this->params['competition_id']);
+
         }
 
         if (!$bool) {
@@ -470,7 +472,6 @@ class User extends FrontUserController
                 return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
             }
-
             if ($res) {
                 return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK]);
 

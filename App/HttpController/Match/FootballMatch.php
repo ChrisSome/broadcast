@@ -213,28 +213,6 @@ class FootBallMatch extends FrontUserController
 
         foreach ($decodeDatas as $data) {
 
-            $insertData = [
-                'match_id' => $data['id'],
-                'competition_id' => $data['competition_id'],
-                'home_team_id' => $data['home_team_id'],
-                'away_team_id' => $data['away_team_id'],
-                'match_time' => $data['match_time'],
-                'neutral' => $data['neutral'],
-                'note' => $data['note'],
-                'season_id' => $data['season_id'],
-                'home_scores' => json_encode($data['home_scores']),
-                'away_scores' => json_encode($data['away_scores']),
-                'home_position' => $data['home_position'],
-                'away_position' => $data['away_position'],
-                'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
-                'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
-                'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
-                'round' => isset($data['round']) ? json_encode($data['round']) : '',
-                'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
-                'status_id' => $data['status_id'],
-                'updated_at' => $data['updated_at'],
-            ];
-
             if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
                 $signal->home_scores = json_encode($data['home_scores']);
                 $signal->away_scores = json_encode($data['away_scores']);
@@ -251,8 +229,7 @@ class FootBallMatch extends FrontUserController
                 $signal->update();
 
             } else {
-                Log::getInstance()->info('insert_match_id-t-' . $data['id']);
-                AdminMatch::getInstance()->insert($insertData);
+                continue;
             }
         }
         if ($isUpdateYes) {
@@ -285,7 +262,6 @@ class FootBallMatch extends FrontUserController
         $weeks = FrontService::getWeek();
         foreach ($weeks as $week) {
             $url = sprintf($this->uriM, $this->user, $this->secret, $week);
-
             $res = Tool::getInstance()->postApi($url);
             $teams = json_decode($res, true);
             $decodeDatas = $teams['results'];
@@ -293,28 +269,6 @@ class FootBallMatch extends FrontUserController
                 return;
             }
             foreach ($decodeDatas as $data) {
-
-                $insertData = [
-                    'match_id' => $data['id'],
-                    'competition_id' => $data['competition_id'],
-                    'home_team_id' => $data['home_team_id'],
-                    'away_team_id' => $data['away_team_id'],
-                    'match_time' => $data['match_time'],
-                    'neutral' => $data['neutral'],
-                    'note' => $data['note'],
-                    'season_id' => $data['season_id'],
-                    'home_scores' => json_encode($data['home_scores']),
-                    'away_scores' => json_encode($data['away_scores']),
-                    'home_position' => $data['home_position'],
-                    'away_position' => $data['away_position'],
-                    'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
-                    'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
-                    'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
-                    'round' => isset($data['round']) ? json_encode($data['round']) : '',
-                    'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
-                    'status_id' => $data['status_id'],
-                    'updated_at' => $data['updated_at'],
-                ];
 
                 if ($signal = AdminMatch::getInstance()->where('match_id', $data['id'])->get()) {
                     $signal->home_scores = json_encode($data['home_scores']);
@@ -332,7 +286,38 @@ class FootBallMatch extends FrontUserController
                     $signal->update();
 
                 } else {
-                    Log::getInstance()->info('insert_match_id-' . $data['id']);
+                    $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+                    $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                    $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+                    $insertData = [
+                        'match_id' => $data['id'],
+                        'competition_id' => $data['competition_id'],
+                        'home_team_id' => $data['home_team_id'],
+                        'away_team_id' => $data['away_team_id'],
+                        'match_time' => $data['match_time'],
+                        'neutral' => $data['neutral'],
+                        'note' => $data['note'],
+                        'season_id' => $data['season_id'],
+                        'home_scores' => json_encode($data['home_scores']),
+                        'away_scores' => json_encode($data['away_scores']),
+                        'home_position' => $data['home_position'],
+                        'away_position' => $data['away_position'],
+                        'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                        'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                        'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                        'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                        'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                        'status_id' => $data['status_id'],
+                        'updated_at' => $data['updated_at'],
+                        'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                        'home_team_logo' => $home_team->logo,
+                        'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                        'away_team_logo' => $away_team->logo,
+                        'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
+                        'competition_color' => $competition->primary_color
+                    ];
+
+                    Log::getInstance()->info('insert_match_id-1-' . $data['id']);
 
                     AdminMatch::getInstance()->insert($insertData);
                 }
@@ -700,11 +685,28 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-//        $com = [45,47,542,595,600,1689,1858,1850,3007,282,284,436,1821,1675,132,238,241,240,195,1940,3053,1932,486,385,386,356,357,2984,1785,2979,465,466,2115,716,203,53,24,568,569,572,567,616,615,3164,1842,317,318,674,675,1736,547,1732,349,491,543,544];
-//        Cache::set('user_interest_competition', json_encode($com));
-//        Cache::set('user_interest_match', json_encode([3483970]));
-        $bool = AppFunc::newIsInHotCompetition(1689);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $bool);
+
+//        $bool = AppFunc::newIsInHotCompetition(1689);
+        $match_id = Cache::get('hand_match_id');
+        $match = AdminMatch::getInstance()->where('match_id', $match_id ? $match_id : 0, '>')->limit(5000)->all();
+        if (!$match) {
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 2);
+        }
+
+        foreach ($match as $item) {
+            $home_team = $item->homeTeamName();
+            $away_team = $item->awayTeamName();
+            $competition = $item->competitionName();
+            $item->competition_name = $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh;
+            $item->competition_color = $competition->primary_color;
+            $item->home_team_name = $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_en;
+            $item->home_team_logo = $home_team->logo;
+            $item->away_team_name = $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh;
+            $item->away_team_logo = $away_team->logo;
+            $item->update();
+            Cache::set('hand_match_id', $item->match_id);
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
 
     }
 
@@ -717,6 +719,7 @@ class FootBallMatch extends FrontUserController
         $res = Tool::getInstance()->postApi($url);
         $decode = json_decode($res, true);
         $decodeDatas = $decode['results'];
+
         if (!$decodeDatas) return false;
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();
         $match->home_scores = json_encode($decodeDatas['score'][2]);

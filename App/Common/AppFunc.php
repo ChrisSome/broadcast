@@ -599,6 +599,7 @@ class AppFunc
             }
         }
         $competition_ids = array_column($competition_ids, 'competition_id');
+
         if (in_array($competitionId, $competition_ids)) {
             return true;
         } else {
@@ -608,13 +609,9 @@ class AppFunc
     }
     public static function newIsInHotCompetition($competitionId)
     {
-        if ($setting = AdminSysSettings::getInstance()->where('sys_key', 'array_competition')->get()) {
-            $competition_arr = json_decode($setting->sys_value, true);
-            if (in_array($competitionId, $competition_arr)) {
-                return true;
-            } else {
-                return false;
-            }
+        $competition_ids = FootballApi::RET_COMPETITION;
+        if (in_array($competitionId, $competition_ids)) {
+            return true;
         } else {
             return false;
         }
@@ -805,16 +802,17 @@ class AppFunc
                     return true;
                 }
                 array_push($match_ids, $match_id);
-                $matchRes->match_ids = json_encode($match_ids);
+                $update_match = json_encode($match_ids);
             } else {
-                $matchRes->match_ids = json_encode([$match_id]);
+                $update_match = json_encode([$match_id]);
 
             }
-
+            $matchRes->match_ids = $update_match;
             RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $uid) {
                 $redis->sAdd(sprintf(self::USER_INTEREST_MATCH, $match_id), $uid);
             });
             if ($matchRes->update()) {
+                Cache::set('user_interest_match_' . $uid, $update_match);
                 return true;
             } else {
                 return false;
@@ -822,6 +820,8 @@ class AppFunc
         } else {
             $insert = ['uid' => $uid, 'match_ids' => json_encode([$match_id])];
             if (AdminInterestMatches::getInstance()->insert($insert)) {
+                Cache::set('user_interest_match_' . $uid, json_encode([$match_id]));
+
                 return true;
             } else {
                 return false;
@@ -853,6 +853,7 @@ class AppFunc
                 $redis->sRem(sprintf(self::USER_INTEREST_MATCH, $match_id), $uid);
             });
             if ($match->update()) {
+                Cache::set('user_interest_match_' . $uid, json_encode($data));
                 return true;
             } else {
                 return false;

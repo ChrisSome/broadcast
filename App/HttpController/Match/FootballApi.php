@@ -35,7 +35,7 @@ class FootballApi extends FrontUserController
     const STATUS_RESULT= [8, 9, 10, 11, 12, 13];
 
     const STATUS_NO_START = 1;
-
+    const RET_COMPETITION = [45,47,542,595,600,1689,1858,1850,3007,282,284,436,1821,1675,132,238,241,240,195,1940,3053,1932,486,385,386,356,357,2984,1785,2979,465,466,2115,716,203,53,24,568,569,572,567,616,615,3164,1842,317,318,674,675,1736,547,1732,349,491,543,544];
     const hotCompetition = [
         'hot' => [['competition_id' => 45, 'short_name_zh' => '欧洲杯'],
             ['competition_id'=>47, 'short_name_zh' =>'欧联杯'],
@@ -268,9 +268,7 @@ class FootballApi extends FrontUserController
             ->where('is_delete', 0)
             ->order('match_time', 'ASC')->all();
 //        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
-
         $formatMatch = FrontService::formatMatchTwo($matches, $this->auth['id']);
-
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $formatMatch);
 
     }
