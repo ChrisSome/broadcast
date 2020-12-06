@@ -19,8 +19,8 @@ class AdminSysSettings extends BaseModel
     const SETTING_HOT_SEARCH_COMPETITION = 'hot_search_competition';  //热搜赛事
     const SETTING_MATCH_NOTICEMENT = 'match_noticement';  //热搜赛事
     const SETTING_OPEN_ADVER = 'open_adver';  //开屏广告页
-    const COMPETITION_ARR = 'array_competition';  //开屏广告页
-
+    const COMPETITION_ARR = 'array_competition';  //左上角的赛事列表数组
+    const RECOMMEND_COM = 'recommond_com'; //左上角的赛事列表
     public function findAll($page, $limit)
     {
         return $this

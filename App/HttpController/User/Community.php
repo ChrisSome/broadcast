@@ -247,7 +247,7 @@ class Community extends FrontUserController
         $cat_id = !empty($this->params['category_id']) ? $this->params['category_id'] : 1;
 
         $format_banner = [];
-        $title = AdminUserPostsCategory::getInstance()->field(['id', 'name'])->where('status', AdminUserPostsCategory::STATUS_NORMAL)->all();
+        $title = AdminUserPostsCategory::getInstance()->field(['id', 'name', 'icon'])->where('status', AdminUserPostsCategory::STATUS_NORMAL)->all();
 
 
 

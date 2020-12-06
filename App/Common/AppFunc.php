@@ -591,32 +591,19 @@ class AppFunc
      */
     public static function isInHotCompetition($competitionId)
     {
-        $item = FootballApi::hotCompetition;
-        $competition_ids = [];
-        foreach ($item as $value) {
-            foreach ($value as $ival) {
-                $competition_ids[] = $ival;
+        if ($setting = AdminSysSettings::getInstance()->where('sys_key', AdminSysSettings::COMPETITION_ARR)->get()) {
+            $com_arr = json_decode($setting->sys_value, true);
+            if (in_array($competitionId, $com_arr)) {
+                return true;
+            } else {
+                return false;
             }
-        }
-        $competition_ids = array_column($competition_ids, 'competition_id');
-
-        if (in_array($competitionId, $competition_ids)) {
-            return true;
         } else {
             return false;
         }
 
     }
-    public static function newIsInHotCompetition($competitionId)
-    {
-        $competition_ids = FootballApi::RET_COMPETITION;
-        if (in_array($competitionId, $competition_ids)) {
-            return true;
-        } else {
-            return false;
-        }
 
-    }
 
     /**
      * 是否该提示
