@@ -210,6 +210,7 @@ class DataApi extends FrontUserController{
                             $data = [];
                             foreach ($item_table['rows'] as $item_row) {
                                 $team = AdminTeam::getInstance()->where('team_id', $item_row['team_id'])->get();
+                                if (!$team) continue;
                                 $row_info['team_id'] = $team->team_id;
                                 $row_info['name_zh'] = $team->name_zh;
                                 $row_info['logo'] = $team->logo;
@@ -506,7 +507,7 @@ class DataApi extends FrontUserController{
                 $data['competition_id'] = $competition['competition_id'];
                 $data['logo'] = $competition['logo'];
                 $data['short_name_zh'] = $competition['short_name_zh'];
-                $data['seasons'] = $competition->getSeason();
+//                $data['seasons'] = $competition->getSeason();
                 $return[] = $data;
                 unset($data);
             }
@@ -814,7 +815,7 @@ class DataApi extends FrontUserController{
 
     public function teamInfo()
     {
-
+        Log::getInstance()->info('team-' . json_encode($this->params));
         $team_id = $this->params['team_id'];
         if (!$team_id || !$team = AdminTeam::getInstance()->where('team_id', $team_id)->get()) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);

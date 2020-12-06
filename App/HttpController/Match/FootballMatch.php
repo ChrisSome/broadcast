@@ -22,7 +22,6 @@ use App\Model\AdminPlayerStat;
 use App\Model\AdminSeason;
 use App\Model\AdminStageList;
 use App\Model\AdminSteam;
-use App\Model\AdminSysSettings;
 use App\Model\AdminTeam;
 use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
@@ -30,7 +29,6 @@ use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
 use App\Model\SeasonTeamPlayer;
 use App\Task\MatchNotice;
-use App\Task\MatchUpdate;
 use App\Utility\Log\Log;
 use App\lib\Tool;
 use App\Utility\Message\Status;
@@ -687,27 +685,14 @@ class FootBallMatch extends FrontUserController
     public function test()
     {
 
-//        $bool = AppFunc::newIsInHotCompetition(1689);
-        $match_id = Cache::get('hand_match_id');
-        $match = AdminMatch::getInstance()->where('match_id', $match_id ? $match_id : 0, '>')->limit(5000)->all();
-        if (!$match) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 2);
-        }
+        $matchSeason = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s', 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', 9688));
+        $teams = json_decode($matchSeason, true);
+        $decodeDatas = $teams['results'];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
 
-        foreach ($match as $item) {
-            $home_team = $item->homeTeamName();
-            $away_team = $item->awayTeamName();
-            $competition = $item->competitionName();
-            $item->competition_name = $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh;
-            $item->competition_color = $competition->primary_color;
-            $item->home_team_name = $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh;
-            $item->home_team_logo = $home_team->logo;
-            $item->away_team_name = $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh;
-            $item->away_team_logo = $away_team->logo;
-            $item->update();
-            Cache::set('hand_match_id', $item->match_id);
-        }
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+        $res = SeasonTeamPlayer::getInstance()->where('season_id', 9688)->get();
+        $decode = json_decode($res->teams_stats, true);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
 
     }
 
@@ -771,16 +756,39 @@ class FootBallMatch extends FrontUserController
 
             if ($decode) {
                 foreach ($decode as $item) {
+                    $data = [
+                        'season_id' => $item['id'],
+                        'competition_id' => $item['competition_id'],
+                        'year' => $item['year'],
+                        'updated_at' => $item['updated_at'],
+                        'start_time' => $item['start_time'],
+                        'end_time' => $item['end_time'],
+                        'competition_rule_id' => $item['competition_rule_id'],
+                        'has_player_stats' => $item['has_player_stats'],
+                        'has_team_stats' => $item['has_team_stats'],
+                        'has_table' => $item['has_table'],
+                        'is_current' => $item['is_current'],
+                    ];
+                    if (!$season = AdminSeason::getInstance()->where('season_id', $item['id'])->get()) {
+                        AdminSeason::getInstance()->insert($data);
+                    } else {
+                        AdminSeason::getInstance()->update($data, ['season_id' => $item['id']]);
+
+                    }
+
+
+
+
 
                     //赛季球员球队统计详情
                     $url = sprintf($this->all_stat, $this->user, $this->secret, $item['id']);
                     $res = Tool::getInstance()->postApi($url);
                     $decodeDatas = json_decode($res, true);
-
+                    if (!$decodeDatas['results']['updated_at']) {
+                        continue;
+                    }
                     if ($decodeDatas['code'] == 0) {
                         $table = SeasonTeamPlayer::getInstance()->where('season_id', $item['id'])->get();
-
-
                         if (!$table) {
                             $data = [
                                 'players_stats' => json_encode($decodeDatas['results']['players_stats']),
@@ -802,25 +810,7 @@ class FootBallMatch extends FrontUserController
                     }
 
 
-                    $data = [
-                        'season_id' => $item['id'],
-                        'competition_id' => $item['competition_id'],
-                        'year' => $item['year'],
-                        'updated_at' => $item['updated_at'],
-                        'start_time' => $item['start_time'],
-                        'end_time' => $item['end_time'],
-                        'competition_rule_id' => $item['competition_rule_id'],
-                        'has_player_stats' => $item['has_player_stats'],
-                        'has_team_stats' => $item['has_team_stats'],
-                        'has_table' => $item['has_table'],
-                        'is_current' => $item['is_current'],
-                    ];
-                    if (!$season = AdminSeason::getInstance()->where('season_id', $item['id'])->get()) {
-                        AdminSeason::getInstance()->insert($data);
-                    } else {
-                        AdminSeason::getInstance()->update($data, ['season_id' => $item['id']]);
 
-                    }
                 }
             }
         }
@@ -1200,7 +1190,6 @@ class FootBallMatch extends FrontUserController
 
     public function matchTlive()
     {
-        Log::getInstance()->info('22222222');
 
         $res = Tool::getInstance()->postApi(sprintf($this->live_url, $this->user, $this->secret));
 

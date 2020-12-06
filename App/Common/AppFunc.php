@@ -799,7 +799,6 @@ class AppFunc
                 $redis->sAdd(sprintf(self::USER_INTEREST_MATCH, $match_id), $uid);
             });
             if ($matchRes->update()) {
-                Cache::set('user_interest_match_' . $uid, $update_match);
                 return true;
             } else {
                 return false;
@@ -807,7 +806,6 @@ class AppFunc
         } else {
             $insert = ['uid' => $uid, 'match_ids' => json_encode([$match_id])];
             if (AdminInterestMatches::getInstance()->insert($insert)) {
-                Cache::set('user_interest_match_' . $uid, json_encode([$match_id]));
 
                 return true;
             } else {
@@ -840,7 +838,6 @@ class AppFunc
                 $redis->sRem(sprintf(self::USER_INTEREST_MATCH, $match_id), $uid);
             });
             if ($match->update()) {
-                Cache::set('user_interest_match_' . $uid, json_encode($data));
                 return true;
             } else {
                 return false;
