@@ -228,7 +228,40 @@ class FootBallMatch extends FrontUserController
                 $signal->update();
 
             } else {
-                continue;
+                $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+                $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+                $insertData = [
+                    'match_id' => $data['id'],
+                    'competition_id' => $data['competition_id'],
+                    'home_team_id' => $data['home_team_id'],
+                    'away_team_id' => $data['away_team_id'],
+                    'match_time' => $data['match_time'],
+                    'neutral' => $data['neutral'],
+                    'note' => $data['note'],
+                    'season_id' => $data['season_id'],
+                    'home_scores' => json_encode($data['home_scores']),
+                    'away_scores' => json_encode($data['away_scores']),
+                    'home_position' => $data['home_position'],
+                    'away_position' => $data['away_position'],
+                    'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                    'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                    'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                    'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                    'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                    'status_id' => $data['status_id'],
+                    'updated_at' => $data['updated_at'],
+                    'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                    'home_team_logo' => $home_team->logo,
+                    'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                    'away_team_logo' => $away_team->logo,
+                    'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
+                    'competition_color' => $competition->primary_color
+                ];
+
+                Log::getInstance()->info('insert_match_id-1-' . $data['id']);
+
+                AdminMatch::getInstance()->insert($insertData);
             }
         }
         if ($isUpdateYes) {

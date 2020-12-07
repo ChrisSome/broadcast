@@ -189,7 +189,6 @@ class FootballApi extends FrontUserController
             'today' => $today,
             'tomorrow' => $tomorrow
         ];
-        Cache::set('today_match_list', json_encode($resp), 60);
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $resp);
 
     }
@@ -229,6 +228,8 @@ class FootballApi extends FrontUserController
             ->limit(($page - 1) * $size, $size)
             ->withTotalCount();
         $list = $playMatch->all(null);
+
+
         $playingCount = $playMatch->lastQueryResult()->getTotalCount();
 
         $formatMatch = FrontService::formatMatchTwo($list, $this->auth['id']);
