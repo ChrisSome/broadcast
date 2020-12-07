@@ -122,7 +122,7 @@ class DataApi extends FrontUserController{
 
                         }
 
-                        $unique_team_ids = array_unique($team_ids);
+                        $unique_team_ids = array_values(array_unique($team_ids));
                         if ($unique_team_ids) {
                             Cache::set('unique_team_ids_' . $current_season_id, json_encode($unique_team_ids), 60*60*24*7);
                         }

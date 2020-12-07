@@ -192,7 +192,7 @@ class FootBallMatch extends FrontUserController
     function getTodayMatches($isUpdateYes = 0)
     {
 
-        if ($isUpdateYes) {
+        if (!empty($isUpdateYes)) {
             $time = date("Ymd", strtotime("-1 day"));
         } else {
             $time = date('Ymd');
@@ -718,14 +718,29 @@ class FootBallMatch extends FrontUserController
     public function test()
     {
 
-        $matchSeason = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s', 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', 9688));
-        $teams = json_decode($matchSeason, true);
-        $decodeDatas = $teams['results'];
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
+        if (!isset($this->params['time'])) {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
-        $res = SeasonTeamPlayer::getInstance()->where('season_id', 9688)->get();
-        $decode = json_decode($res->teams_stats, true);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decode);
+        }
+        $page = $this->params['page'] ?: 1;
+        $limit = $this->params['size'] ?: 20;
+        if ($this->params['time'] == date('Y-m-d')) {
+            $is_today = true;
+        } else {
+            $is_today = false;
+        }
+        $start = strtotime($this->params['time']);
+
+        $end = $start + 60 * 60 * 24;
+
+
+        $model = AdminMatch::getInstance()->where('status_id', FootballApi::STATUS_SCHEDULE, 'in')
+            ->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')
+            ->where('is_delete', 0)
+            ->order('match_time', 'ASC')->limit(($page - 1) * $limit, $limit)->all();
+        $competition = array_column($model, 'competition_id');
+        $res = array_values(array_unique($competition));
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
 
     }
 
