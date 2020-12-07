@@ -753,61 +753,70 @@ class FootBallMatch extends FrontUserController
                 return;
             }
             $decode = $resp['results'];
-
             if ($decode) {
                 foreach ($decode as $item) {
-                    $data = [
-                        'season_id' => $item['id'],
-                        'competition_id' => $item['competition_id'],
-                        'year' => $item['year'],
-                        'updated_at' => $item['updated_at'],
-                        'start_time' => $item['start_time'],
-                        'end_time' => $item['end_time'],
-                        'competition_rule_id' => $item['competition_rule_id'],
-                        'has_player_stats' => $item['has_player_stats'],
-                        'has_team_stats' => $item['has_team_stats'],
-                        'has_table' => $item['has_table'],
-                        'is_current' => $item['is_current'],
-                    ];
+
+
                     if (!$season = AdminSeason::getInstance()->where('season_id', $item['id'])->get()) {
+                        $data = [
+                            'season_id' => $item['id'],
+                            'competition_id' => $item['competition_id'],
+                            'year' => $item['year'],
+                            'updated_at' => $item['updated_at'],
+                            'start_time' => $item['start_time'],
+                            'end_time' => $item['end_time'],
+                            'competition_rule_id' => $item['competition_rule_id'],
+                            'has_player_stats' => $item['has_player_stats'],
+                            'has_team_stats' => $item['has_team_stats'],
+                            'has_table' => $item['has_table'],
+                            'is_current' => $item['is_current'],
+                        ];
                         AdminSeason::getInstance()->insert($data);
                     } else {
-                        AdminSeason::getInstance()->update($data, ['season_id' => $item['id']]);
+                        $season->competition_id = $item['competition_id'];
+                        $season->year = $item['year'];
+                        $season->updated_at = $item['updated_at'];
+                        $season->start_time = $item['start_time'];
+                        $season->end_time = $item['end_time'];
+                        $season->competition_rule_id = $item['competition_rule_id'];
+                        $season->has_player_stats = $item['has_player_stats'];
+                        $season->has_team_stats = $item['has_team_stats'];
+                        $season->has_player_stats = $item['has_player_stats'];
+                        $season->has_table = $item['has_table'];
+                        $season->is_current = $item['is_current'];
+                        $season->update();
+
 
                     }
-
-
-
-
-
-                    //赛季球员球队统计详情
-                    $url = sprintf($this->all_stat, $this->user, $this->secret, $item['id']);
-                    $res = Tool::getInstance()->postApi($url);
-                    $decodeDatas = json_decode($res, true);
-                    if (!$decodeDatas['results']['updated_at']) {
-                        continue;
-                    }
-                    if ($decodeDatas['code'] == 0) {
-                        $table = SeasonTeamPlayer::getInstance()->where('season_id', $item['id'])->get();
-                        if (!$table) {
-                            $data = [
-                                'players_stats' => json_encode($decodeDatas['results']['players_stats']),
-                                'shooters' => json_encode($decodeDatas['results']['shooters']),
-                                'teams_stats' => json_encode($decodeDatas['results']['teams_stats']),
-                                'updated_at' => json_encode($decodeDatas['results']['updated_at']),
-                                'season_id' => $item['id'],
-                            ];
-
-                            SeasonTeamPlayer::getInstance()->insert($data);
-                        } else {
-                            $table->players_stats = json_encode($decodeDatas['results']['players_stats']);
-                            $table->shooters = json_encode($decodeDatas['results']['shooters']);
-                            $table->teams_stats = json_encode($decodeDatas['results']['teams_stats']);
-                            $table->updated_at = json_encode($decodeDatas['results']['updated_at']);
-                            $table->update();
-                        }
-
-                    }
+//
+//                    //赛季球员球队统计详情
+//                    $url = sprintf($this->all_stat, $this->user, $this->secret, $item['id']);
+//                    $res = Tool::getInstance()->postApi($url);
+//                    $decodeDatas = json_decode($res, true);
+//                    if (!$decodeDatas['results']['updated_at']) {
+//                        continue;
+//                    }
+//                    if ($decodeDatas['code'] == 0) {
+//                        $table = SeasonTeamPlayer::getInstance()->where('season_id', $item['id'])->get();
+//                        if (!$table) {
+//                            $data = [
+//                                'players_stats' => json_encode($decodeDatas['results']['players_stats']),
+//                                'shooters' => json_encode($decodeDatas['results']['shooters']),
+//                                'teams_stats' => json_encode($decodeDatas['results']['teams_stats']),
+//                                'updated_at' => json_encode($decodeDatas['results']['updated_at']),
+//                                'season_id' => $item['id'],
+//                            ];
+//
+//                            SeasonTeamPlayer::getInstance()->insert($data);
+//                        } else {
+//                            $table->players_stats = json_encode($decodeDatas['results']['players_stats']);
+//                            $table->shooters = json_encode($decodeDatas['results']['shooters']);
+//                            $table->teams_stats = json_encode($decodeDatas['results']['teams_stats']);
+//                            $table->updated_at = json_encode($decodeDatas['results']['updated_at']);
+//                            $table->update();
+//                        }
+//
+//                    }
 
 
 

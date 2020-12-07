@@ -348,6 +348,7 @@ class  FrontService {
             } else if (in_array($match->status_id, FootballApi::STATUS_RESULT)) {
                 $is_start = false;
             }
+            $round = json_decode($match->round, true);
             $has_living = 0;
             $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
             $match_data_info = Cache::get('match_data_info' . $match->match_id);
@@ -358,6 +359,9 @@ class  FrontService {
             $item['away_team_logo'] = $away_team['logo'];
             $item['competition_name'] = $competition['short_name_zh'];
             $item['competition_color'] = $competition['primary_color'];
+            $item['competition_type'] = $competition['type'];
+            $item['group_num'] = $round['group_num']; //第几组
+            $item['round_num'] = $round['round_num']; //第几轮
             $item['match_time'] = date('H:i', $match['match_time']);
             $item['format_match_time'] = date('Y-m-d H:i', $match['match_time']); //开赛时间
             $item['user_num'] = mt_rand(20, 50);

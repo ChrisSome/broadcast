@@ -815,7 +815,6 @@ class DataApi extends FrontUserController{
 
     public function teamInfo()
     {
-        Log::getInstance()->info('team-' . json_encode($this->params));
         $team_id = $this->params['team_id'];
         if (!$team_id || !$team = AdminTeam::getInstance()->where('team_id', $team_id)->get()) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
@@ -835,7 +834,7 @@ class DataApi extends FrontUserController{
             $season = [];
         }
 
-        $current_season_id = $team->getCompetition()->cur_season_id ?: end($season)['id'];
+        $current_season_id = $competition->cur_season_id ?: end($season)['id'];
         if ($type == 1) {
             //球队基本资料
             $basic = [

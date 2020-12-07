@@ -201,11 +201,11 @@ class FootballApi extends FrontUserController
     public function matchListPlaying()
     {
 
-        $hotCompetition = FrontService::getHotCompetitionIds();
 
         $uid = $this->auth['id'];
         $userInterestCompetitiones = [];
-
+        $page = $this->params['page'] ?: 1;
+        $size = $this->params['size'] ?: 20;
         if ($uid && $competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
             $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
 
@@ -225,10 +225,13 @@ class FootballApi extends FrontUserController
         }
         $playMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')
             ->where('competition_id', $selectCompetition, 'in')
-            ->where('is_delete', 0)->order('match_time', 'ASC')->all();
-        $sql = AdminMatch::getInstance()->lastQuery()->getLastQuery();
+            ->where('is_delete', 0)->order('match_time', 'ASC')
+            ->limit(($page - 1) * $size, $size)
+            ->withTotalCount();
+        $list = $playMatch->all(null);
+        $playingCount = $playMatch->lastQueryResult()->getTotalCount();
 
-        $formatMatch = FrontService::formatMatchTwo($playMatch, $this->auth['id']);
+        $formatMatch = FrontService::formatMatchTwo($list, $this->auth['id']);
         if ($uid) {
             if ($userInterestMatch = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->get()) {
                 $match = json_decode($userInterestMatch->match_ids);
@@ -243,7 +246,8 @@ class FootballApi extends FrontUserController
         }
         $return = [
             'user_interest_count' => $count, //关注的比赛数
-            'list' => $formatMatch
+            'list' => $formatMatch,
+            'count' => $playingCount
         ];
 
 
@@ -610,7 +614,7 @@ class FootballApi extends FrontUserController
         }
 
         $match = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->get();
-        $formatMatch = FrontService::handMatch([$match], $this->auth['id'] ?: 0, true, true);
+        $formatMatch = FrontService::formatMatch([$match], $this->auth['id']);
         $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
