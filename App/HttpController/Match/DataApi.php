@@ -23,6 +23,8 @@ use App\Model\AdminSysSettings;
 use App\Model\AdminTeam;
 use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
+use App\Model\SeasonAllTableDetail;
+use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
@@ -37,9 +39,8 @@ class DataApi extends FrontUserController{
     public $team_logo = 'https://cdn.sportnanoapi.com/football/team/';
     public $player_logo = 'https://cdn.sportnanoapi.com/football/player/';
 
-    protected $season_url = 'https://open.sportnanoapi.com/api/v4/football/match/season?user=%s&secret=%s&id=%s';  //赛季查询
-    protected $integral_url = 'https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s'; //赛季积分榜数据全量
-    protected $best_player = 'https://open.sportnanoapi.com/api/v4/football/season/all/stats/detail?user=%s&secret=%s&id=%s'; //获取赛季球队球员统计详情
+//    protected $season_url = 'https://open.sportnanoapi.com/api/v4/football/match/season?user=%s&secret=%s&id=%s';  //赛季查询
+//    protected $best_player = 'https://open.sportnanoapi.com/api/v4/football/season/all/stats/detail?user=%s&secret=%s&id=%s'; //获取赛季球队球员统计详情
     protected $FIFA_male_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/men?user=%s&secret=%s'; //FIFA男子排名
     protected $FIFA_female_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/women?user=%s&secret=%s'; //FIFA女子子排名
 
@@ -57,106 +58,19 @@ class DataApi extends FrontUserController{
         $cid = $this->params['competition_id'] ? $this->params['competition_id'] : $competition_id;
         $type = $this->params['type']; //0基本信息  1积分榜 2比赛 3最佳球员 4最佳球队
         if ($cid) {
-            //概况  最近比赛 统计（参赛球队 球员总数）
-            $lastMatch = AdminMatch::getInstance()->where('match_time', time(), '<')->order('match_time', 'desc')->limit(1)->get();
-            $formatMatch = FrontService::handMatch([$lastMatch], 1);
-            $formatLastMatch = $formatMatch ? $formatMatch[0] : [];
+
             if ($competition = AdminCompetition::getInstance()->where('competition_id', $cid)->get()) {
 
                 $select_season_id = !empty($this->params['season_id']) ? $this->params['season_id'] : $competition->cur_season_id;
 
                 $seasons = $competition->getSeason();
                 $competition_info = [
-                    'competition_id' => $competition->competition_id,
-                    'short_name_zh' => $competition->short_name_zh,
-                    'name_zh' => $competition->name_zh,
-                    'logo' => $competition->logo,
+
                     'season' => $seasons
                 ];
                 $current_season_id = $this->params['season_id'] ? $this->params['season_id'] : $competition->cur_season_id;
                 //基本信息
-                if (!$type) {
-
-                    $title_holder = json_decode($competition['title_holder'], true);  //卫冕冠军
-                    if ($title_holder) {
-                        $title_holder_team = AdminTeam::getInstance()->where('team_id', $title_holder[0])->get();
-                        $title_holder_team_info = [
-                            'team_id' => $title_holder_team->id,
-                            'name_zh' => $title_holder_team->name_zh,
-                            'short_name_zh' => $title_holder_team->short_name_zh,
-                            'logo' => $title_holder_team->logo,
-                            'champion_time' => $title_holder[1]
-                        ];
-                    }
-                    $most_titles = json_decode($competition['most_titles'], true);    //夺冠最多
-                    if ($most_titles) {
-                        $most_titles_teams = AdminTeam::getInstance()->where('team_id', $most_titles[0], 'in')->all();
-                        if ($most_titles_teams) {
-                            foreach ($most_titles_teams as $most_titles_team) {
-                                $data['team_od'] = $most_titles_team['team_id'];
-                                $data['name_zh'] = $most_titles_team['name_zh'];
-                                $data['short_name_zh'] = $most_titles_team['short_name_zh'];
-                                $data['logo'] = $most_titles_team['logo'];
-                                $data['champion_time'] = $most_titles[1];
-                                $most_titles_team_info[] = $data;
-                                unset($data);
-                            }
-                        }
-                    }
-
-                    if ($value = Cache::get('unique_team_ids_' . $current_season_id)) {
-
-                        $unique_team_ids = json_decode($value, true);
-                    } else {
-                        $matchSeason = Tool::getInstance()->postApi(sprintf($this->season_url, $this->user, $this->secret, $current_season_id));
-                        $teams = json_decode($matchSeason, true);
-
-                        $decodeDatas = $teams['results'];
-                        $team_ids = [];
-                        if ($decodeDatas) {
-                            foreach ($decodeDatas as $data) {
-                                $team_ids[] = $data['home_team_id'];
-                                $team_ids[] = $data['away_team_id'];
-
-                            }
-
-                        }
-
-                        $unique_team_ids = array_values(array_unique($team_ids));
-                        if ($unique_team_ids) {
-                            Cache::set('unique_team_ids_' . $current_season_id, json_encode($unique_team_ids), 60*60*24*7);
-                        }
-                    }
-
-                    //球队数量
-                    $team_season_count = count($unique_team_ids);
-                    $formatValue = 0;
-                    $player_count = 0;
-                    $player_count_foreign = 0;
-                    //球队总市值
-                    if ($unique_team_ids) {
-                        $team_total_value = AdminTeam::getInstance()->where('team_id', $unique_team_ids, 'in')->sum('market_value');
-                        $formatValue = AppFunc::formatValue($team_total_value);
-                        //球员总数
-                        $player_count = AdminTeam::getInstance()->where('team_id', $unique_team_ids, 'in')->sum('total_players');
-                        //非本土球员数
-                        $player_count_foreign = AdminTeam::getInstance()->where('team_id', $unique_team_ids, 'in')->where('foreign_players', '0', '>=')->sum('foreign_players');
-
-                    }
-
-                    //基本信息
-                    $returnData = [
-                        'last_match' => $formatLastMatch,
-                        'statistics' => [
-                            'title_holder' => isset($title_holder_team_info) ? $title_holder_team_info : [],
-                            'most_titles' => isset($most_titles_team_info) ? $most_titles_team_info : [],
-                            'join_team_count' => $team_season_count,
-                            'player_count' => $player_count,
-                            'player_count_no_native' => $player_count_foreign,
-                            'format_value' => $formatValue
-                        ]
-                    ];
-                } else if($type == 1) {
+                if($type == 1) {
                     /************************************************************************
                      * 积分榜
                      */
@@ -169,68 +83,73 @@ class DataApi extends FrontUserController{
                             }
                         }
                     }
+                    $dataT = [];
+                    $promotion = 0;
 
                     //积分榜
-                    $matchSeason = Tool::getInstance()->postApi(sprintf($this->integral_url, $this->user, $this->secret, $current_season_id));
-                    $teams = json_decode($matchSeason, true);
-                    $decodeDatas = $teams['results'];
+                    if ($table_detail = SeasonAllTableDetail::getInstance()->where('season_id', $current_season_id)->get()) {
+                        $promotions = json_decode($table_detail->promotions, true);
+                        $tables = json_decode($table_detail->tables, true);
 
-                    $dataT = [];
-                    if ($decodeDatas['promotions']) {
-                        foreach ($decodeDatas['tables'][0]['rows'] as $row) {
-                            $promotion_name_zh = '';
-                            foreach ($decodeDatas['promotions'] as $promotion) {
-                                if ($row['promotion_id'] == $promotion['id']) {
-                                    $promotion_name_zh = $promotion['name_zh'];
+                        if ($promotions) {
+                            foreach ($tables[0]['rows'] as $row) {
+                                $promotion_name_zh = '';
+                                foreach ($promotions as $promotion) {
+                                    if ($row['promotion_id'] == $promotion['id']) {
+                                        $promotion_name_zh = $promotion['name_zh'];
+                                    }
                                 }
+                                $team = AdminTeam::getInstance()->where('team_id', $row['team_id'])->get();
+                                $data['total'] = $row['total'];
+                                $data['won'] = $row['won'];
+                                $data['draw'] = $row['draw'];
+                                $data['loss'] = $row['loss'];
+                                $data['goals'] = $row['goals'];
+                                $data['goals_against'] = $row['goals_against'];
+                                $data['points'] = $row['points'];
+                                $data['logo'] = $team['logo'];
+                                $data['name_zh'] = $team['name_zh'];
+                                $data['team_id'] = $team['team_id'];
+                                $data['promotion_id'] = $row['promotion_id'];
+                                $data['promotion_name_zh'] = ($row['promotion_id'] == 0) ? '' : $promotion_name_zh;
+
+                                $dataT[] = $data;
+
+                                unset($data);
                             }
-                            $team = AdminTeam::getInstance()->where('team_id', $row['team_id'])->get();
-                            $data['total'] = $row['total'];
-                            $data['won'] = $row['won'];
-                            $data['draw'] = $row['draw'];
-                            $data['loss'] = $row['loss'];
-                            $data['goals'] = $row['goals'];
-                            $data['goals_against'] = $row['goals_against'];
-                            $data['points'] = $row['points'];
-                            $data['logo'] = $team['logo'];
-                            $data['name_zh'] = $team['name_zh'];
-                            $data['team_id'] = $team['team_id'];
-                            $data['promotion_id'] = $row['promotion_id'];
-                            $data['promotion_name_zh'] = ($row['promotion_id'] == 0) ? '' : $promotion_name_zh;
+                            $promotion = 1;
+                        } else {
+                            $promotion = 0;
+                            $dataT = [];
+                            foreach ($tables as $item_table) {
+                                $data = [];
+                                foreach ($item_table['rows'] as $item_row) {
+                                    $team = AdminTeam::getInstance()->where('team_id', $item_row['team_id'])->get();
+                                    if (!$team) continue;
+                                    $row_info['team_id'] = $team->team_id;
+                                    $row_info['name_zh'] = $team->name_zh;
+                                    $row_info['logo'] = $team->logo;
+                                    $row_info['total'] = $item_row['total'];
+                                    $row_info['won'] = $item_row['won'];
+                                    $row_info['draw'] = $item_row['draw'];
+                                    $row_info['loss'] = $item_row['loss'];
+                                    $row_info['goals'] = $item_row['goals'];
+                                    $row_info['goals_against'] = $item_row['goals_against'];
+                                    $row_info['points'] = $item_row['points'];
+                                    $data[] = $row_info;
+                                    unset($row_info);
+                                }
+                                $table_group['group'] = $item_table['group'];
+                                $table_group['list'] = $data;
+                                $dataT[] = $table_group;
+                                unset($table_group);
 
-                            $dataT[] = $data;
-
-                            unset($data);
-                        }
-                        $promotion = 1;
-                    } else {
-                        $promotion = 0;
-                        $dataT = [];
-                        foreach ($decodeDatas['tables'] as $item_table) {
-                            $data = [];
-                            foreach ($item_table['rows'] as $item_row) {
-                                $team = AdminTeam::getInstance()->where('team_id', $item_row['team_id'])->get();
-                                if (!$team) continue;
-                                $row_info['team_id'] = $team->team_id;
-                                $row_info['name_zh'] = $team->name_zh;
-                                $row_info['logo'] = $team->logo;
-                                $row_info['total'] = $item_row['total'];
-                                $row_info['won'] = $item_row['won'];
-                                $row_info['draw'] = $item_row['draw'];
-                                $row_info['loss'] = $item_row['loss'];
-                                $row_info['goals'] = $item_row['goals'];
-                                $row_info['goals_against'] = $item_row['goals_against'];
-                                $row_info['points'] = $item_row['points'];
-                                $data[] = $row_info;
-                                unset($row_info);
                             }
-                            $table_group['group'] = $item_table['group'];
-                            $table_group['list'] = $data;
-                            $dataT[] = $table_group;
-                            unset($table_group);
-
                         }
                     }
+
+
+
 
 
 
@@ -253,10 +172,7 @@ class DataApi extends FrontUserController{
 
                     $group_id = !empty($this->params['group_id']) ? $this->params['group_id'] : 1;
 
-                    $matchSeason = Tool::getInstance()->postApi(sprintf($this->season_url, $this->user, $this->secret, $select_season_id));
-
-                    $decode_matches = json_decode($matchSeason, true);
-                    $decodeDatas = $decode_matches['results'];
+                    $decodeDatas = SeasonMatchList::getInstance()->where('season_id', $select_season_id)->all();
 
                     foreach ($decodeDatas as $item_match) {
                         if ($item_match['round']['stage_id'] == $stage_id && ($item_match['round']['round_num'] == $round_id || $item_match['round']['group_num'] == $group_id)) {
@@ -282,7 +198,6 @@ class DataApi extends FrontUserController{
                         'cur_round' => $competition->cur_round
 
                     ];
-//                    return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return_data);
 
                 } else{
                     /************************************************************************
@@ -815,6 +730,7 @@ class DataApi extends FrontUserController{
 
     public function teamInfo()
     {
+//        Log::getInstance()->info('params' . json_encode($this->params));
         $team_id = $this->params['team_id'];
         if (!$team_id || !$team = AdminTeam::getInstance()->where('team_id', $team_id)->get()) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
@@ -933,10 +849,68 @@ class DataApi extends FrontUserController{
 
         } else if ($type == 2) {
             //积分
-            $matchSeason = Tool::getInstance()->postApi(sprintf($this->integral_url, $this->user, $this->secret, $select_season_id));
-            $teams = json_decode($matchSeason, true);
+            $dataT = [];
+            if ($seasonAllTableDetail = SeasonAllTableDetail::getInstance()->where('season_id', $select_season_id)->get()) {
+                $promotions = json_decode($seasonAllTableDetail->promotions, true);
+                $tables = json_decode($seasonAllTableDetail->tables, true);
+                if ($promotions) {
+                    foreach ($tables['rows'] as $row) {
+                        $promotion_name_zh = '';
+                        foreach ($promotions as $promotion) {
+                            if ($row['promotion_id'] == $promotion['id']) {
+                                $promotion_name_zh = $promotion['name_zh'];
+                            }
+                        }
+                        $team = AdminTeam::getInstance()->where('team_id', $row['team_id'])->get();
+                        $data['total'] = $row['total'];
+                        $data['won'] = $row['won'];
+                        $data['draw'] = $row['draw'];
+                        $data['loss'] = $row['loss'];
+                        $data['goals'] = $row['goals'];
+                        $data['goals_against'] = $row['goals_against'];
+                        $data['points'] = $row['points'];
+                        $data['logo'] = $team['logo'];
+                        $data['name_zh'] = $team['name_zh'];
+                        $data['team_id'] = $team['team_id'];
+                        $data['promotion_id'] = $row['promotion_id'];
+                        $data['promotion_name_zh'] = ($row['promotion_id'] == 0) ? '' : $promotion_name_zh;
 
-            $decodeDatas = $teams['results'];
+                        $dataT[] = $data;
+
+                        unset($data);
+                    }
+                    $promotion = 1;
+                } else {
+                    $promotion = 0;
+                    foreach ($tables as $item_table) {
+                        $data = [];
+                        foreach ($item_table['rows'] as $item_row) {
+                            $team = AdminTeam::getInstance()->where('team_id', $item_row['team_id'])->get();
+                            $row_info['team_id'] = $team->team_id;
+                            $row_info['name_zh'] = $team->name_zh;
+                            $row_info['logo'] = $team->logo;
+                            $row_info['total'] = $item_row['total'];
+                            $row_info['won'] = $item_row['won'];
+                            $row_info['draw'] = $item_row['draw'];
+                            $row_info['loss'] = $item_row['loss'];
+                            $row_info['goals'] = $item_row['goals'];
+                            $row_info['goals_against'] = $item_row['goals_against'];
+                            $row_info['points'] = $item_row['points'];
+                            $data[] = $row_info;
+                            unset($row_info);
+                        }
+                        $table_group['group'] = $item_table['group'];
+                        $table_group['list'] = $data;
+                        $dataT[] = $table_group;
+                        unset($table_group);
+
+                    }
+                }
+            } else {
+                $promotion = [];
+            }
+
+
             //赛制说明
             $competition_describe = '';
             if ($competition_rules = AdminCompetitionRuleList::getInstance()->where('competition_id', $team->competition_id)->all()) {
@@ -946,61 +920,7 @@ class DataApi extends FrontUserController{
                     }
                 }
             }
-            $dataT = [];
-            if ($decodeDatas['promotions']) {
-                foreach ($decodeDatas['tables'][0]['rows'] as $row) {
-                    $promotion_name_zh = '';
-                    foreach ($decodeDatas['promotions'] as $promotion) {
-                        if ($row['promotion_id'] == $promotion['id']) {
-                            $promotion_name_zh = $promotion['name_zh'];
-                        }
-                    }
-                    $team = AdminTeam::getInstance()->where('team_id', $row['team_id'])->get();
-                    $data['total'] = $row['total'];
-                    $data['won'] = $row['won'];
-                    $data['draw'] = $row['draw'];
-                    $data['loss'] = $row['loss'];
-                    $data['goals'] = $row['goals'];
-                    $data['goals_against'] = $row['goals_against'];
-                    $data['points'] = $row['points'];
-                    $data['logo'] = $team['logo'];
-                    $data['name_zh'] = $team['name_zh'];
-                    $data['team_id'] = $team['team_id'];
-                    $data['promotion_id'] = $row['promotion_id'];
-                    $data['promotion_name_zh'] = ($row['promotion_id'] == 0) ? '' : $promotion_name_zh;
 
-                    $dataT[] = $data;
-
-                    unset($data);
-                }
-                $promotion = 1;
-            } else {
-                $promotion = 0;
-                $dataT = [];
-                foreach ($decodeDatas['tables'] as $item_table) {
-                    $data = [];
-                    foreach ($item_table['rows'] as $item_row) {
-                        $team = AdminTeam::getInstance()->where('team_id', $item_row['team_id'])->get();
-                        $row_info['team_id'] = $team->team_id;
-                        $row_info['name_zh'] = $team->name_zh;
-                        $row_info['logo'] = $team->logo;
-                        $row_info['total'] = $item_row['total'];
-                        $row_info['won'] = $item_row['won'];
-                        $row_info['draw'] = $item_row['draw'];
-                        $row_info['loss'] = $item_row['loss'];
-                        $row_info['goals'] = $item_row['goals'];
-                        $row_info['goals_against'] = $item_row['goals_against'];
-                        $row_info['points'] = $item_row['points'];
-                        $data[] = $row_info;
-                        unset($row_info);
-                    }
-                    $table_group['group'] = $item_table['group'];
-                    $table_group['list'] = $data;
-                    $dataT[] = $table_group;
-                    unset($table_group);
-
-                }
-            }
             $return_data = [
                 'table' => $dataT,
                 'competition_describe' => $competition_describe,
@@ -1013,9 +933,9 @@ class DataApi extends FrontUserController{
         } else if ($type == 3) {
             //赛程
             $format_data = [];
-            $matchSeason = Tool::getInstance()->postApi(sprintf($this->season_url, $this->user, $this->secret, $select_season_id));
-            $decode_matches = json_decode($matchSeason, true);
-            $decodeDatas = $decode_matches['results'];
+
+            $decodeDatas = SeasonMatchList::getInstance()->where('season_id', $select_season_id)->all();
+
             foreach ($decodeDatas as $decodeData) {
                 if ($decodeData['home_team_id'] == $team->team_id || $decodeData['away_team_id'] == $team->team_id) {
                     $data_match[] = $decodeData;
@@ -1023,18 +943,21 @@ class DataApi extends FrontUserController{
                     continue;
                 }
             }
+
             $competition_short_name_zh = $team->getCompetition()->short_name_zh;
             $match = [];
             if (!empty($data_match)) {
                 foreach ($data_match as $match_item) {
+                    $decode_home_score = json_decode($match_item['home_scores'], true);
+                    $decode_away_score = json_decode($match_item['away_scores'], true);
                     $format_data['match_id'] = $match_item['id'];
                     $format_data['match_time'] = date('Y-m-d', $match_item['match_time']);
                     $format_data['competition_short_name_zh'] = $competition_short_name_zh;
                     $format_data['home_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $match_item['home_team_id'])->get()->name_zh;
                     $format_data['away_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $match_item['away_team_id'])->get()->name_zh;
-                    list($format_data['home_scores'], $format_data['away_scores']) = AppFunc::getFinalScore($match_item['home_scores'], $match_item['away_scores']);
-                    list($format_data['half_home_scores'], $format_data['half_away_scores']) = AppFunc::getHalfScore($match_item['home_scores'], $match_item['away_scores']);
-                    list($format_data['home_corner'], $format_data['away_corner']) = AppFunc::getCorner($match_item['home_scores'], $match_item['away_scores']);//角球
+                    list($format_data['home_scores'], $format_data['away_scores']) = AppFunc::getFinalScore($decode_home_score, $decode_away_score);
+                    list($format_data['half_home_scores'], $format_data['half_away_scores']) = AppFunc::getHalfScore($decode_home_score, $decode_away_score);
+                    list($format_data['home_corner'], $format_data['away_corner']) = AppFunc::getCorner($decode_home_score, $decode_away_score);//角球
 
                     $match[] = $format_data;
                     unset($format_data);
@@ -1047,11 +970,11 @@ class DataApi extends FrontUserController{
         } else if ($type == 4) {
             //数据
 
-            $matchSeason = Tool::getInstance()->postApi(sprintf($this->best_player, $this->user, $this->secret, $select_season_id));
-
-            $decode_matches = json_decode($matchSeason, true);
-            $decodeDatas = $decode_matches['results'];
-
+//            $matchSeason = Tool::getInstance()->postApi(sprintf($this->best_player, $this->user, $this->secret, $select_season_id));
+//
+//            $decode_matches = json_decode($matchSeason, true);
+//            $decodeDatas = $decode_matches['results'];
+            $decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get();
             $player_stat = $decodeDatas['players_stats'];
             $team_stat = $decodeDatas['teams_stats'];
 
@@ -1288,12 +1211,11 @@ class DataApi extends FrontUserController{
 
         } else if ($type == 5) {//阵容
 
-            $matchSeason = Tool::getInstance()->postApi(sprintf($this->best_player, $this->user, $this->secret, $select_season_id));
+            $player_stat = [];
+            if ($decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get()) {
+                $player_stat = $decodeDatas['players_stats'];
 
-            $decode_matches = json_decode($matchSeason, true);
-            $decodeDatas = $decode_matches['results'];
-
-            $player_stat = $decodeDatas['players_stats'];
+            }
             $players_team = [];
 
             foreach ($player_stat as $tk => $player_item) {

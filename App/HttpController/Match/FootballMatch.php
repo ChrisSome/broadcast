@@ -12,7 +12,7 @@ use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
-use App\Model\AdminMatchOne;
+use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
 use App\Model\AdminPlayer;
@@ -27,6 +27,7 @@ use App\Model\AdminTeamHonor;
 use App\Model\AdminTeamLineUp;
 use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
+use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
 use App\Task\MatchNotice;
 use App\Utility\Log\Log;
@@ -37,6 +38,7 @@ use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
+use EasySwoole\ORM\DbManager;
 
 class FootBallMatch extends FrontUserController
 {
@@ -143,6 +145,7 @@ class FootBallMatch extends FrontUserController
             $url = sprintf($this->url . $this->uriTeamList, $this->user, $this->secret, $time_stamp+1);
             $res = Tool::getInstance()->postApi($url);
             $teams = json_decode($res, true);
+
             if ($teams['query']['total'] == 0) {
                 break;
             }
@@ -417,6 +420,7 @@ class FootBallMatch extends FrontUserController
         $url = sprintf($this->url . $this->uriSteam, $this->user, $this->secret);
         $res = Tool::getInstance()->postApi($url);
         $steam = json_decode($res, true)['data'];
+
         if (!$steam) {
             return;
         }
@@ -718,29 +722,11 @@ class FootBallMatch extends FrontUserController
     public function test()
     {
 
-        if (!isset($this->params['time'])) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+       $a = '[1,0,0,0,-1,0,0]';
+       $b = '[2,1,0,0,-1,0,0]';
 
-        }
-        $page = $this->params['page'] ?: 1;
-        $limit = $this->params['size'] ?: 20;
-        if ($this->params['time'] == date('Y-m-d')) {
-            $is_today = true;
-        } else {
-            $is_today = false;
-        }
-        $start = strtotime($this->params['time']);
-
-        $end = $start + 60 * 60 * 24;
-
-
-        $model = AdminMatch::getInstance()->where('status_id', FootballApi::STATUS_SCHEDULE, 'in')
-            ->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')
-            ->where('is_delete', 0)
-            ->order('match_time', 'ASC')->limit(($page - 1) * $limit, $limit)->all();
-        $competition = array_column($model, 'competition_id');
-        $res = array_values(array_unique($competition));
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $res);
+       $decdoe = json_decode($a, true);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decdoe);
 
     }
 
@@ -1458,75 +1444,67 @@ class FootBallMatch extends FrontUserController
 
     }
 
-
-    public function fixSomeDayMatch()
+    /**
+     * 赛季比赛列表
+     */
+    public function updateMatchSeason()
     {
-        $time = $this->params['time'];
 
-        $url = sprintf($this->uriM, $this->user, $this->secret, $time);
+//        $season_id = Cache::get('update_season_id');
+        $season_id = SeasonMatchList::getInstance()->max('season_id');
+        $select_season_id = isset($season_id) ? $season_id : 0;
+        $season = AdminSeason::getInstance()->field(['season_id'])->where('season_id', $select_season_id, '>')->limit(2000)->all();
 
-        $res = Tool::getInstance()->postApi($url);
-        $teams = json_decode($res, true);
+        foreach ($season as $item) {
+            $res = Tool::getInstance()->postApi(sprintf('https://open.sportnanoapi.com/api/v4/football/match/season?user=%s&secret=%s&id=%s', 'mark9527', 'dbfe8d40baa7374d54596ea513d8da96', $item['season_id']));
+            $decode = json_decode($res, true);
 
-        $decodeDatas = $teams['results'];
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
+            if ($decode['code'] == 0) {
+                if ($decode['total'] == '0') {
+                    continue;
+                }
+                if ($results = $decode['results']) {
 
-        if (!$decodeDatas) {
-            Log::getInstance()->info(date('Y-d-d H:i:s') . ' 更新无数据');
-            return;
-        }
+                    foreach ($results as $data) {
 
-        foreach ($decodeDatas as $data) {
-
-            if ($signal = AdminMatchOne::getInstance()->where('match_id', $data['id'])->get()) {
-                $signal->home_scores = json_encode($data['home_scores']);
-                $signal->away_scores = json_encode($data['away_scores']);
-                $signal->home_position = $data['home_position'];
-                $signal->away_position = $data['away_position'];
-                $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
-                $signal->status_id = $data['status_id'];
-                $signal->updated_at = $data['updated_at'];
-                $signal->match_time = $data['match_time'];
-                $signal->coverage = isset($data['coverage']) ? json_encode($data['coverage']) : '';
-                $signal->referee_id = isset($data['referee_id']) ? json_encode($data['referee_id']) : 0;
-                $signal->round = isset($data['round']) ? json_encode($data['round']) : '';
-                $signal->environment = isset($data['environment']) ? json_encode($data['environment']) : '';
-                $signal->update();
+                        $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
+                        $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                        $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+                        $insertData = [
+                            'match_id' => $data['id'],
+                            'competition_id' => $data['competition_id'],
+                            'home_team_id' => $data['home_team_id'],
+                            'away_team_id' => $data['away_team_id'],
+                            'match_time' => $data['match_time'],
+                            'neutral' => $data['neutral'],
+                            'note' => $data['note'],
+                            'season_id' => $data['season_id'],
+                            'home_scores' => json_encode($data['home_scores']),
+                            'away_scores' => json_encode($data['away_scores']),
+                            'home_position' => $data['home_position'],
+                            'away_position' => $data['away_position'],
+                            'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
+                            'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
+                            'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
+                            'round' => isset($data['round']) ? json_encode($data['round']) : '',
+                            'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
+                            'status_id' => $data['status_id'],
+                            'updated_at' => $data['updated_at'],
+                            'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
+                            'home_team_logo' => $home_team->logo,
+                            'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
+                            'away_team_logo' => $away_team->logo,
+                            'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
+                            'competition_color' => $competition->primary_color
+                        ];
+                        SeasonMatchList::getInstance()->insert($insertData);
+                    }
+                } else {
+                    continue;
+                }
 
             } else {
-                $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
-                $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
-                $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
-                $insertData = [
-                    'match_id' => $data['id'],
-                    'competition_id' => $data['competition_id'],
-                    'home_team_id' => $data['home_team_id'],
-                    'away_team_id' => $data['away_team_id'],
-                    'match_time' => $data['match_time'],
-                    'neutral' => $data['neutral'],
-                    'note' => $data['note'],
-                    'season_id' => $data['season_id'],
-                    'home_scores' => json_encode($data['home_scores']),
-                    'away_scores' => json_encode($data['away_scores']),
-                    'home_position' => $data['home_position'],
-                    'away_position' => $data['away_position'],
-                    'coverage' => isset($data['coverage']) ? json_encode($data['coverage']) : '',
-                    'venue_id' => isset($data['venue_id']) ? $data['venue_id'] : 0,
-                    'referee_id' => isset($data['referee_id']) ? $data['referee_id'] : 0,
-                    'round' => isset($data['round']) ? json_encode($data['round']) : '',
-                    'environment' => isset($data['environment']) ? json_encode($data['environment']) : '',
-                    'status_id' => $data['status_id'],
-                    'updated_at' => $data['updated_at'],
-                    'home_team_name' => $home_team->short_name_zh ? $home_team->short_name_zh : $home_team->name_zh,
-                    'home_team_logo' => $home_team->logo,
-                    'away_team_name' => $away_team->short_name_zh ? $away_team->short_name_zh : $away_team->name_zh,
-                    'away_team_logo' => $away_team->logo,
-                    'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
-                    'competition_color' => $competition->primary_color
-                ];
-
-
-                AdminMatchOne::getInstance()->insert($insertData);
+                continue;
             }
         }
 

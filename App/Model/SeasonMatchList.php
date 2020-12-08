@@ -5,9 +5,9 @@ use App\Base\BaseModel;
 use App\Base\FatherModel;
 use EasySwoole\Mysqli\QueryBuilder;
 
-class AdminMatchOne  extends BaseModel
+class SeasonMatchList  extends BaseModel
 {
-    protected $tableName = "admin_match_list_one";
+    protected $tableName = "match_season_list";
 
 
     public function getLimit($page, $limit)

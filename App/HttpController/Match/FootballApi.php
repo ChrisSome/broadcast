@@ -267,9 +267,9 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
-        $uid = $this->auth['id'];
-        $page = $this->params['page'] ?: 1;
-        $limit = $this->params['size'] ?: 20;
+        $uid = isset($this->auth['id']) ?: 0;
+        $page = isset($this->params['page']) ?: 1;
+        $limit = isset($this->params['size']) ?: 20;
         if ($this->params['time'] == date('Y-m-d')) {
             $is_today = true;
         } else {
@@ -309,7 +309,7 @@ class FootballApi extends FrontUserController
 
         $total = $model->lastQueryResult()->getTotalCount();
 
-        $formatMatch = FrontService::formatMatchTwo($list, $this->auth['id']);
+        $formatMatch = FrontService::formatMatchTwo($list, $uid);
         $return = ['list' => $formatMatch, 'count' => $total];
 
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);

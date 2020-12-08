@@ -436,6 +436,7 @@ class AppFunc
      */
     public static function getHalfScore($home_score, $away_score)
     {
+
         if (isset($home_score[1])) {
             $home_half_score = $home_score[1];
         } else {

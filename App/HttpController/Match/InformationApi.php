@@ -120,9 +120,13 @@ class InformationApi extends FrontUserController
                     }
                 }
             }
+            if ($decode['match']) {
+                $matches = AdminMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
+                $formatMatches = FrontService::formatMatch($matches, 0);
+            } else {
+                $formatMatches = [];
+            }
 
-            $matches = AdminMatch::getInstance()->where('match_id', $decode['match'], 'in')->all();
-            $formatMatches = FrontService::handMatch($matches, 0, true);
 
             $model = AdminInformation::getInstance()->where('type', 1)->where('status', AdminInformation::STATUS_NORMAL)->getLimit($page, $size);
 
