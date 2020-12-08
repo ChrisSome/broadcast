@@ -466,19 +466,25 @@ class FootballApi extends FrontUserController
             }
 
             $matchInfo = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->where('is_delete', 0)->get();
-            $homeTeamInfo['firstPlayers'] = $homeFirstPlayers;
-            $homeTeamInfo['alternatePlayers'] = $homeAlternatePlayers;
-            $homeTeamInfo['teamName'] = $matchInfo->homeTeamName()['name_zh'];
-            $homeTeamInfo['teamLogo'] = $matchInfo->homeTeamName()['logo'];
-            $homeTeamInfo['homeManagerName'] = $matchInfo->homeTeamName()->getManager()->name_zh;
-            $homeTeamInfo['homeFormation'] = $homeFormation;
+            if (!$matchInfo) {
+                $homeTeamInfo = [];
+                $awayTeamInfo = [];
+            } else {
+                $homeTeamInfo['firstPlayers'] = $homeFirstPlayers;
+                $homeTeamInfo['alternatePlayers'] = $homeAlternatePlayers;
+                $homeTeamInfo['teamName'] = $matchInfo->homeTeamName()['name_zh'];
+                $homeTeamInfo['teamLogo'] = $matchInfo->homeTeamName()['logo'];
+                $homeTeamInfo['homeManagerName'] = $matchInfo->homeTeamName()->getManager()->name_zh;
+                $homeTeamInfo['homeFormation'] = $homeFormation;
 
-            $awayTeamInfo['firstPlayers'] = $awayFirstPlayers;
-            $awayTeamInfo['alternatePlayers'] = $awayAlternatePlayers;
-            $awayTeamInfo['teamName'] = $matchInfo->awayTeamName()['name_zh'];
-            $awayTeamInfo['teamLogo'] = $matchInfo->awayTeamName()['logo'];
-            $awayTeamInfo['awayManagerName'] = $matchInfo->awayTeamName()->getManager()->name_zh;
-            $awayTeamInfo['awayFormation'] = $awayFormation;
+                $awayTeamInfo['firstPlayers'] = $awayFirstPlayers;
+                $awayTeamInfo['alternatePlayers'] = $awayAlternatePlayers;
+                $awayTeamInfo['teamName'] = $matchInfo->awayTeamName()['name_zh'];
+                $awayTeamInfo['teamLogo'] = $matchInfo->awayTeamName()['logo'];
+                $awayTeamInfo['awayManagerName'] = $matchInfo->awayTeamName()->getManager()->name_zh;
+                $awayTeamInfo['awayFormation'] = $awayFormation;
+
+            }
 
             $data = [
                 'home' => $homeTeamInfo,
