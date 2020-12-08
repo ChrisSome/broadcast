@@ -175,7 +175,8 @@ class DataApi extends FrontUserController{
                     $decodeDatas = SeasonMatchList::getInstance()->where('season_id', $select_season_id)->all();
 
                     foreach ($decodeDatas as $item_match) {
-                        if ($item_match['round']['stage_id'] == $stage_id && ($item_match['round']['round_num'] == $round_id || $item_match['round']['group_num'] == $group_id)) {
+                        $round = json_decode($item_match->round, true);
+                        if ($round['stage_id'] == $stage_id && ($round['round_num'] == $round_id || $round['group_num'] == $group_id)) {
                             $data['match_id'] = $item_match['id'];
                             $data['match_time'] = date('Y-m-d H:i:s', $item_match['match_time']);
                             $data['home_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $item_match['home_team_id'])->get()->name_zh;
