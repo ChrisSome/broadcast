@@ -421,8 +421,8 @@ class User extends FrontUserController
         }
         $uComs = AdminUserInterestCompetition::getInstance()->where('user_id', $this->auth['id'])->get();
         if ($uComs) {
-
-            $bool = AdminUserInterestCompetition::getInstance()->update(['competition_ids' => $this->params['competition_id']],['id' => $uComs['id']]);
+            $uComs->competition_ids = $this->params['competition_id'];
+            $uComs->update();
         } else {
             $data = [
                 'competition_ids' => $this->params['competition_id'],

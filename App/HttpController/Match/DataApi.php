@@ -29,6 +29,8 @@ use App\Model\SeasonTeamPlayer;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use easySwoole\Cache\Cache;
+use EasySwoole\Redis\Redis as Redis;
+use EasySwoole\RedisPool\Redis as RedisPool;
 
 class DataApi extends FrontUserController{
 
@@ -148,15 +150,9 @@ class DataApi extends FrontUserController{
                         }
                     }
 
-
-
-
-
-
                     $returnData['data'] = $dataT;
                     $returnData['promotion'] = $promotion;
                     $returnData['competition_describe'] = $competition_describe;
-
 
                 } else if ($type == 2) {    //比赛
 
@@ -204,7 +200,6 @@ class DataApi extends FrontUserController{
                     /************************************************************************
                      * 最佳球员
                      */
-                    //最佳球员
 
                     $decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $current_season_id)->get();
                     $players_stats = json_decode($decodeDatas['players_stats'], true);
@@ -213,6 +208,8 @@ class DataApi extends FrontUserController{
                     $teams_stats = json_decode($decodeDatas['teams_stats'], true);
                     $shooter_table = [];
                     if ($type == 3) {
+
+
                         //射手榜
                         $i = 0;
                         foreach ($shooters as $shooter) {
@@ -228,82 +225,33 @@ class DataApi extends FrontUserController{
                             unset($data);
                             $i++;
                         }
+//                        $firstHundred = array_slice($players_stats, 99);
+                        array_walk($players_stats, function ($value) use(&$tables) {
+                            $data['player_id'] = $value['player']['id'];
+                            $data['name_zh'] = $value['player']['name_zh'];
+                            $data['team_logo'] = FrontService::TEAM_LOGO . $value['team']['logo'];
+                            $data['player_logo'] = FrontService::PLAYER_LOGO . $value['player']['logo'];
+                            $data['player_id'] = $value['player']['id'];//球员id
+                            $data['assists'] = $value['assists'];//助攻
+                            $data['shots'] = $value['shots'];//射门
+                            $data['shots_on_target'] = $value['shots_on_target'];//射正
+                            $data['passes'] = $value['passes'];//传球
+                            $data['passes_accuracy'] = $value['passes_accuracy'];//成功传球
+                            $data['key_passes'] = $value['key_passes'];//关键传球
+                            $data['interceptions'] = $value['interceptions'];//拦截
+                            $data['clearances'] = $value['clearances'];//解围
+                            $data['yellow_cards'] = $value['yellow_cards'];//黄牌
+                            $data['red_cards'] = $value['red_cards'];//红牌
+                            $data['minutes_played'] = $value['minutes_played'];//出场时间
+                            $tables[] = $data;
+                            unset($data);
 
-                        //助攻榜
-                        $assisting = array_column($players_stats, 'assists');
-                        array_multisort($assisting,SORT_DESC,$players_stats);
-                        $assisting_table = FrontService::handBestPlayerTable($players_stats, 'assists');
+                        });
 
-                        //射门
-                        $shots = array_column($players_stats, 'shots');
-                        array_multisort($shots,SORT_DESC,$players_stats);
-                        $shots_table = FrontService::handBestPlayerTable($players_stats, 'shots');
-
-                        //射正
-                        $shots_on_target = array_column($players_stats, 'shots_on_target');
-                        array_multisort($shots_on_target,SORT_DESC,$players_stats);
-                        $shots_on_target_table = FrontService::handBestPlayerTable($players_stats, 'shots_on_target');
-
-                        //传球
-                        $passes = array_column($players_stats, 'passes');
-                        array_multisort($passes,SORT_DESC,$players_stats);
-                        $passes_table = FrontService::handBestPlayerTable($players_stats, 'passes');
-
-                        //成功传球
-                        $passes_accuracy = array_column($players_stats, 'passes_accuracy');
-                        array_multisort($passes_accuracy,SORT_DESC,$players_stats);
-                        $passes_accuracy_table = FrontService::handBestPlayerTable($players_stats, 'passes_accuracy');
-
-                        //关键传球
-                        $key_passes = array_column($players_stats, 'key_passes');
-                        array_multisort($key_passes,SORT_DESC,$players_stats);
-                        $key_passes_table = FrontService::handBestPlayerTable($players_stats, 'key_passes');
-
-
-                        //拦截
-                        $interceptions = array_column($players_stats, 'interceptions');
-                        array_multisort($interceptions,SORT_DESC,$players_stats);
-                        $interceptions_table = FrontService::handBestPlayerTable($players_stats, 'interceptions');
-
-                        //解围
-                        $clearances = array_column($players_stats, 'clearances');
-                        array_multisort($clearances,SORT_DESC,$players_stats);
-                        $clearances_table = FrontService::handBestPlayerTable($players_stats, 'clearances');
-
-                        //扑救
-                        $saves = array_column($players_stats, 'saves');
-                        array_multisort($saves,SORT_DESC,$players_stats);
-                        $saves_table = FrontService::handBestPlayerTable($players_stats, 'saves');
-
-                        //黄牌
-                        $yellow_cards = array_column($players_stats, 'yellow_cards');
-                        array_multisort($yellow_cards,SORT_DESC,$players_stats);
-                        $yellow_cards_table = FrontService::handBestPlayerTable($players_stats, 'yellow_cards');
-
-                        //红牌
-                        $red_cards = array_column($players_stats, 'red_cards');
-                        array_multisort($red_cards,SORT_DESC,$players_stats);
-                        $red_cards_table = FrontService::handBestPlayerTable($players_stats, 'red_cards');
-
-                        //出场时间
-                        $minutes_played = array_column($players_stats, 'minutes_played');
-                        array_multisort($minutes_played,SORT_DESC,$players_stats);
-                        $minutes_played = FrontService::handBestPlayerTable($players_stats, 'minutes_played');
 
                         $returnData = [
                             'shooter_table' => $shooter_table, //射手榜
-                            'assisting_table' => $assisting_table,//助攻
-                            'shots_table' => $shots_table,//射门
-                            'shots_on_target_table' => $shots_on_target_table,//射正
-                            'passes_table' => $passes_table,//传球
-                            'passes_accuracy_table' => $passes_accuracy_table,//成功传球
-                            'key_passes_table' => $key_passes_table,//关键传球
-                            'interceptions_table' => $interceptions_table,//拦截
-                            'clearances_table' => $clearances_table, //解围
-                            'saves_table' => $saves_table,//扑救
-                            'yellow_cards_table' => $yellow_cards_table,//黄牌
-                            'red_cards_table' => $red_cards_table,//红牌
-                            'minutes_played' => $minutes_played,//上场时间
+                            'tables' => $tables
                         ];
                     } else if ($type == 4) {
                         /************************************************************************

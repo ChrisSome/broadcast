@@ -1,12 +1,24 @@
 <?php
+$fruits = array("d" => "lemon", "a" => "orange", "b" => "banana", "c" => "apple");
 
-$a = '{"hot":[{"competition_id":45,"short_name_zh":"欧洲杯"},{"competition_id":47,"short_name_zh":"欧联杯"},{"competition_id":542,"short_name_zh":"中超"},{"competition_id":2,"short_name_zh":"欧洲预选"}],"A":[{"competition_id":3099,"short_name_zh":"澳威北后备"},{"competition_id":1961,"short_name_zh":"澳黄后备"},{"competition_id":3109,"short_name_zh":"澳昆后备"},{"competition_id":598,"short_name_zh":"澳昆超"},{"competition_id":1858,"short_name_zh":"澳昆U20"},{"competition_id":3083,"short_name_zh":"澳达超"},{"competition_id":1878,"short_name_zh":"澳威北超"}],"B":[{"competition_id":447,"short_name_zh":"巴波联"},{"competition_id":178,"short_name_zh":"比U21"},{"competition_id":282,"short_name_zh":"冰岛乙"},{"competition_id":284,"short_name_zh":"冰岛杯"},{"competition_id":469,"short_name_zh":"巴拉甲"},{"competition_id":436,"short_name_zh":"巴西乙"},{"competition_id":1821,"short_name_zh":"巴丙"}],"D":[{"competition_id":1675,"short_name_zh":"德堡州联"},{"competition_id":132,"short_name_zh":"德地区北"}],"E":[{"competition_id":238,"short_name_zh":"俄超"},{"competition_id":478,"short_name_zh":"厄瓜甲秋"},{"competition_id":240,"short_name_zh":"俄乙"}],"F":[{"competition_id":195,"short_name_zh":"芬超"},{"competition_id":1940,"short_name_zh":"芬丙"},{"competition_id":1816,"short_name_zh":"法戊"}],"G":[{"competition_id":486,"short_name_zh":"哥斯甲"},{"competition_id":385,"short_name_zh":"格鲁甲"},{"competition_id":386,"short_name_zh":"格鲁乙"}],"H":[{"competition_id":356,"short_name_zh":"哈萨超"},{"competition_id":357,"short_name_zh":"哈萨甲"}],"J":[{"competition_id":2984,"short_name_zh":"加拿职"}],"Q":[{"competition_id":1785,"short_name_zh":"卡塔乙"},{"competition_id":24,"short_name_zh":"球会友谊"}],"L":[{"competition_id":2979,"short_name_zh":"老挝超"}],"M":[{"competition_id":2115,"short_name_zh":"墨女超"},{"competition_id":458,"short_name_zh":"美乙"},{"competition_id":465,"short_name_zh":"墨西超"},{"competition_id":2846,"short_name_zh":"蒙古超"}],"N":[{"competition_id":717,"short_name_zh":"南非甲"},{"competition_id":716,"short_name_zh":"南非超"},{"competition_id":202,"short_name_zh":"挪甲"},{"competition_id":203,"short_name_zh":"挪乙"}],"O":[{"competition_id":53,"short_name_zh":"欧青U19"}],"R":[{"competition_id":185,"short_name_zh":"瑞典超甲"},{"competition_id":187,"short_name_zh":"瑞典乙"},{"competition_id":192,"short_name_zh":"瑞典杯"},{"competition_id":226,"short_name_zh":"瑞士甲"},{"competition_id":186,"short_name_zh":"瑞典甲"}],"S":[{"competition_id":3121,"short_name_zh":"斯里总统杯"},{"competition_id":277,"short_name_zh":"斯伐杯"}],"W":[{"competition_id":674,"short_name_zh":"乌兹超"},{"competition_id":1736,"short_name_zh":"乌拉乙"}],"X":[{"competition_id":120,"short_name_zh":"西甲"},{"competition_id":126,"short_name_zh":"西超杯"}],"Y":[{"competition_id":1788,"short_name_zh":"印尼甲"},{"competition_id":625,"short_name_zh":"伊朗甲"}],"Z":[{"competition_id":1928,"short_name_zh":"中台联"},{"competition_id":543,"short_name_zh":"中甲"}]}';
-var_dump(json_decode($a, true));
-foreach (json_decode($a, true) as $item) {
-    foreach ($item as $sv) {
-        $data[] = $sv['competition_id'];
-    }
+function test_alter(&$item1, $key, $prefix)
+{
+    $item1 = "$prefix: $item1";
 }
-print_r($data);
-//$c = array_intersect(json_decode($a, true), json_decode($b, true));
-//var_dump($c);
+
+function test_print($item2, $key)
+{
+    echo "$key. $item2<br />\n";
+}
+
+echo "Before ...:\n";
+array_walk($fruits, 'test_print');
+//array_walk($fruits, function ($item2, $key) {
+//
+//});
+
+array_walk($fruits, 'test_alter', 'fruit');
+echo "... and after:\n";
+
+array_walk($fruits, 'test_print');
+?>

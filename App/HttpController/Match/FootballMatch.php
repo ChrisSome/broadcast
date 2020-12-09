@@ -206,7 +206,6 @@ class FootBallMatch extends FrontUserController
         $teams = json_decode($res, true);
 
         $decodeDatas = $teams['results'];
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
 
         if (!$decodeDatas) {
             Log::getInstance()->info(date('Y-d-d H:i:s') . ' 更新无数据');
@@ -722,11 +721,9 @@ class FootBallMatch extends FrontUserController
     public function test()
     {
 
-       $a = '[1,0,0,0,-1,0,0]';
-       $b = '[2,1,0,0,-1,0,0]';
-
-       $decdoe = json_decode($a, true);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decdoe);
+        $decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', 111)->get();
+        $players_stats = json_decode($decodeDatas['players_stats'], true);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $players_stats);
 
     }
 

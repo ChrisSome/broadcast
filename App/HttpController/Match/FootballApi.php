@@ -267,9 +267,9 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
-        $uid = isset($this->auth['id']) ?: 0;
-        $page = isset($this->params['page']) ?: 1;
-        $limit = isset($this->params['size']) ?: 20;
+        $uid = isset($this->auth['id']) ? $this->auth['id'] : 0;
+        $page = isset($this->params['page']) ? $this->params['page'] : 1;
+        $limit = isset($this->params['size']) ? $this->params['size'] : 20;
         if ($this->params['time'] == date('Y-m-d')) {
             $is_today = true;
         } else {
@@ -300,6 +300,8 @@ class FootballApi extends FrontUserController
         } else {
             $selectCompetition = $in_competition_arr;
         }
+
+
         $model = AdminMatch::getInstance()->where('status_id', self::STATUS_SCHEDULE, 'in')
             ->where('match_time', $is_today ? time() : $start, '>=')->where('match_time', $end, '<')
             ->where('is_delete', 0)
