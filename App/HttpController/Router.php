@@ -173,7 +173,6 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/footBall/noticeInMatch', '/Match/FootballApi/noticeInMatch');   //直播间公告
             $r->addRoute(['GET'], '/footBall/matchInfo', '/Match/FootballApi/getMatchInfo');   //比赛信息
 
-            $r->addRoute(['GET'], '/footBall/tlive', '/Match/FootballMatch/tlive');   //更新赛季
             $r->addRoute(['GET'], '/footBall/test', '/Match/FootballMatch/test');   //历史交锋
             $r->addRoute(['GET'], '/footBall/time', '/Match/FootballApi/test');   //历史交锋
 
