@@ -41,8 +41,6 @@ class DataApi extends FrontUserController{
     public $team_logo = 'https://cdn.sportnanoapi.com/football/team/';
     public $player_logo = 'https://cdn.sportnanoapi.com/football/player/';
 
-//    protected $season_url = 'https://open.sportnanoapi.com/api/v4/football/match/season?user=%s&secret=%s&id=%s';  //赛季查询
-//    protected $best_player = 'https://open.sportnanoapi.com/api/v4/football/season/all/stats/detail?user=%s&secret=%s&id=%s'; //获取赛季球队球员统计详情
     protected $FIFA_male_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/men?user=%s&secret=%s'; //FIFA男子排名
     protected $FIFA_female_rank = 'https://open.sportnanoapi.com/api/v4/football/ranking/fifa/women?user=%s&secret=%s'; //FIFA女子子排名
 
@@ -65,11 +63,11 @@ class DataApi extends FrontUserController{
 
                 $select_season_id = !empty($this->params['season_id']) ? $this->params['season_id'] : $competition->cur_season_id;
 
-                $seasons = $competition->getSeason();
-                $competition_info = [
-
-                    'season' => $seasons
-                ];
+//                $seasons = $competition->getSeason();
+//                $competition_info = [
+//
+//                    'season' => $seasons
+//                ];
                 $current_season_id = $this->params['season_id'] ? $this->params['season_id'] : $competition->cur_season_id;
                 //基本信息
                 if($type == 1) {
@@ -282,7 +280,7 @@ class DataApi extends FrontUserController{
                 }
 
 
-                $return['competition_info'] = $competition_info;
+//                $return['competition_info'] = $competition_info;
                 $return['data'] = $returnData ?: [];
 
                 return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
@@ -317,7 +315,7 @@ class DataApi extends FrontUserController{
                 $data['competition_id'] = $competition['competition_id'];
                 $data['logo'] = $competition['logo'];
                 $data['short_name_zh'] = $competition['short_name_zh'];
-//                $data['seasons'] = $competition->getSeason();
+                $data['seasons'] = $competition->getSeason();
                 $return[] = $data;
                 unset($data);
             }
