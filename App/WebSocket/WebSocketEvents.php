@@ -61,6 +61,7 @@ class WebSocketEvents
             'nickname' => isset($user) ? $user->nickname : '',
             'token' => '',
             'user_id' => isset($user) ? $user->id : 0,
+            'level' => isset($user) ? $user->level : 0,
         ];
         if (!$user_online) {
             OnlineUser::getInstance()->set($fd, $info);

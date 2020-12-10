@@ -105,7 +105,8 @@ class Login extends FrontUserController
             'nickname' => $user->nickname,
             'user_id' => $user->id,
             'last_heartbeat' => time(),
-            'match_id' => 0
+            'match_id' => 0,
+            'level' => $user->level
         ];
         if (OnlineUser::getInstance()->get($fd)) {
             OnlineUser::getInstance()->update($fd, $data);
@@ -286,7 +287,8 @@ class Login extends FrontUserController
                     'nickname' => $user->nickname,
                     'user_id' => $user->id,
                     'last_heartbeat' => time(),
-                    'match_id' => 0
+                    'match_id' => 0,
+                    'level' => $user->level
                 ];
 
                 if (OnlineUser::getInstance()->get($fd)) {
@@ -365,7 +367,6 @@ class Login extends FrontUserController
         }
 
         $password_hash = PasswordTool::getInstance()->generatePassword($password);
-        $logon = false;
         try{
             $ip = $this->request()->getHeaders()['x-real-ip'][0];
             $result = \Ritaswc\ZxIPAddress\IPv4Tool::query($ip);
@@ -448,7 +449,8 @@ class Login extends FrontUserController
                 'nickname' => $user->nickname,
                 'user_id' => $user->id,
                 'last_heartbeat' => time(),
-                'match_id' => 0
+                'match_id' => 0,
+                'level' => $user->level
             ];
 
             if (OnlineUser::getInstance()->get($fd)) {

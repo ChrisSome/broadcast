@@ -3,6 +3,7 @@
 namespace App\Storage;
 
 use App\lib\pool\Login;
+use App\Model\AdminUser;
 use EasySwoole\Component\Singleton;
 use EasySwoole\Component\TableManager;
 use Swoole\Table;
@@ -30,6 +31,7 @@ class OnlineUser
             'last_heartbeat' => ['type' => Table::TYPE_INT, 'size' => 4], //最后心跳
             'match_id' => ['type' => Table::TYPE_INT, 'size' => 4], //比赛id
             'user_id' => ['type' => Table::TYPE_INT, 'size' => 4], //用户id
+            'level' => ['type' => Table::TYPE_INT, 'size' => 4], //用户级别
         ]);
 
         $this->table = TableManager::getInstance()->get('onlineUsers');
@@ -44,11 +46,18 @@ class OnlineUser
      */
     function set($fd, $info)
     {
+        if ($info['user_id']) {
+            $user = AdminUser::getInstance()->where('id', $info['user_id'])->get();
+            $user_level = $user->level;
+        } else {
+            $user_level = 0;
+        }
         return $this->table->set($fd, [
             'fd' => $fd,
 //            'mid' => $info['mid'],
             'nickname' => $info['nickname'],
             'user_id' => $info['user_id'],
+            'level' => $user_level,
             'last_heartbeat' => time(),
             'match_id' => !empty($info['match_id']) ? $info['match_id'] : 0
         ]);
@@ -73,8 +82,8 @@ class OnlineUser
      */
     function update($fd, $data)
     {
-        $info = $this->get($fd);
-        if ($info) {
+        if ($info = $this->get($fd)) {
+
             $info = $data + $info;
             $this->table->set($fd, $info);
         }

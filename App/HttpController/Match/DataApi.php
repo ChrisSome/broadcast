@@ -171,18 +171,22 @@ class DataApi extends FrontUserController{
                     $decodeDatas = SeasonMatchList::getInstance()->where('season_id', $select_season_id)->all();
 
                     foreach ($decodeDatas as $item_match) {
+
                         $round = json_decode($item_match->round, true);
+
                         if ($round['stage_id'] == $stage_id && ($round['round_num'] == $round_id || $round['group_num'] == $group_id)) {
+                            $decode_home_score = json_decode($item_match['home_scores'], true);
+                            $decode_away_score = json_decode($item_match['away_scores'], true);
                             $data['match_id'] = $item_match['id'];
                             $data['match_time'] = date('Y-m-d H:i:s', $item_match['match_time']);
                             $data['home_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $item_match['home_team_id'])->get()->name_zh;
                             $data['away_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $item_match['away_team_id'])->get()->name_zh;
                             $data['status_id'] = $item_match['status_id'];
-                            list($data['home_scores'], $data['away_scores']) = AppFunc::getFinalScore($item_match['home_scores'], $item_match['away_scores']);
-                            list($data['half_home_scores'], $data['half_away_scores']) = AppFunc::getHalfScore($item_match['home_scores'], $item_match['away_scores']);
-                            list($data['home_corner'], $data['away_corner']) = AppFunc::getCorner($item_match['home_scores'], $item_match['away_scores']);
+                            list($data['home_scores'], $data['away_scores']) = AppFunc::getFinalScore($decode_home_score, $decode_away_score);
+                            list($data['half_home_scores'], $data['half_away_scores']) = AppFunc::getHalfScore($decode_home_score, $decode_away_score);
+                            list($data['home_corner'], $data['away_corner']) = AppFunc::getCorner($decode_home_score, $decode_away_score);
+                            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
-                            $match_competition[] = $data;
                         } else {
                             continue;
                         }

@@ -61,8 +61,8 @@ class Broadcast extends Base
             $message->setSendTime(date('Y-m-d H:i:s'));
             $message->setMatchId($broadcastPayload['match_id']);
             $message->setAtUserId($broadcastPayload['at_user_id']);
-            $task_id = TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $client->getFd()]));
-            Log::getInstance()->info('task failed-' . $task_id);
+            TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $client->getFd()]));
+//            Log::getInstance()->info('task failed-' . $task_id);
         }
         $this->response()->setStatus($this->response()::STATUS_OK);
     }

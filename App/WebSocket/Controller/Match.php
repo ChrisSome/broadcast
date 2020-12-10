@@ -58,7 +58,8 @@ class Match extends Base
                     'match_id' => $matchId,
                     'fd'=> $fd,
                     'user_id' => $uid,
-                    'nickname' => isset($user->nickname) ? $user->nickname : ''
+                    'nickname' => isset($user->nickname) ? $user->nickname : '',
+                    'level' => isset($user->level) ? $user->level : '',
                 ];
                 OnlineUser::getInstance()->set($fd, $data);
             } else {
@@ -162,7 +163,6 @@ class Match extends Base
         ];
         $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $respon));
         return;
-
     }
 
 

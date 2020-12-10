@@ -84,7 +84,7 @@ class BroadcastTask implements TaskInterface
 
         if (!$userOnline['user_id'] || !$userOnline['nickname']) {
             $userM = AdminUser::getInstance()->where('id', $aMessage['fromUserId'])->get();
-            OnlineUser::getInstance()->update($userOnline['fd'], ['user_id' => $userM->id, 'nickname'=>$userM->nickname]);
+            OnlineUser::getInstance()->update($userOnline['fd'], ['user_id' => $userM->id, 'nickname'=>$userM->nickname, 'level' => $userM->level]);
         }
 
 //        if (!$userOnline) {
