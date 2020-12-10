@@ -185,7 +185,8 @@ class DataApi extends FrontUserController{
                             list($data['home_scores'], $data['away_scores']) = AppFunc::getFinalScore($decode_home_score, $decode_away_score);
                             list($data['half_home_scores'], $data['half_away_scores']) = AppFunc::getHalfScore($decode_home_score, $decode_away_score);
                             list($data['home_corner'], $data['away_corner']) = AppFunc::getCorner($decode_home_score, $decode_away_score);
-
+                            $match_competition[] = $data;
+                            unset($data);
                         } else {
                             continue;
                         }
