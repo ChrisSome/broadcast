@@ -177,12 +177,16 @@ class DataApi extends FrontUserController{
                             $decode_away_score = json_decode($item_match['away_scores'], true);
                             $data['match_id'] = $item_match['id'];
                             $data['match_time'] = date('Y-m-d H:i:s', $item_match['match_time']);
-                            $data['home_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $item_match['home_team_id'])->get()->name_zh;
-                            $data['away_team_name_zh'] = AdminTeam::getInstance()->where('team_id', $item_match['away_team_id'])->get()->name_zh;
+                            $data['home_team_name_zh'] = $item_match->home_team_name;
+                            $data['away_team_name_zh'] = $item_match->away_team_name;
                             $data['status_id'] = $item_match['status_id'];
                             list($data['home_scores'], $data['away_scores']) = AppFunc::getFinalScore($decode_home_score, $decode_away_score);
                             list($data['half_home_scores'], $data['half_away_scores']) = AppFunc::getHalfScore($decode_home_score, $decode_away_score);
                             list($data['home_corner'], $data['away_corner']) = AppFunc::getCorner($decode_home_score, $decode_away_score);
+
+//                            list($data['home_scores'], $data['away_scores'], $data['half_home_scores'], $data['half_away_scores'], $data['home_corner'], $data['away_corner']) = AppFunc::getAllScoreType($decode_home_score, $decode_away_score);
+
+
                             $match_competition[] = $data;
                             unset($data);
                         } else {
@@ -209,13 +213,6 @@ class DataApi extends FrontUserController{
 
                     if ($type == 3) {
                         array_walk($players_stats, function ($value) use(&$tables) {
-//                            if (!$value['assists'] && !$value['shots'] && !$value['shots_on_target']
-//                                && !$value['passes'] && !$value['passes_accuracy']
-//                                && !$value['key_passes'] && !$value['interceptions']
-//                                && !$value['clearances'] && !$value['yellow_cards']
-//                                && !$value['red_cards'] && !$value['minutes_played']
-//                                && !$value['goals']
-//                            ) return;
                             $data['player_id'] = $value['player']['id'];
                             $data['name_zh'] = $value['player']['name_zh'];
                             $data['team_logo'] = FrontService::TEAM_LOGO . $value['team']['logo'];
@@ -272,6 +269,53 @@ class DataApi extends FrontUserController{
                             $returnData = [];
                         }
 
+                    } else if ($type == 5) {
+                        $stage = AdminStageList::getInstance()->field(['name_zh', 'stage_id', 'round_count', 'group_count'])->where('season_id', $select_season_id)->all();
+                        if ($select_season_id == $competition->cur_season_id) {
+                            $stage_id = !empty($this->params['stage_id']) ? $this->params['stage_id'] : $competition->cur_stage_id;
+                            $round_id = !empty($this->params['round_id']) ? $this->params['round_id'] : $competition->cur_round;
+                        } else {
+                            $stage_id = !empty($this->params['stage_id']) ? $this->params['stage_id'] : $stage[0]['stage_id'];
+                            $round_id = !empty($this->params['round_id']) ? $this->params['round_id'] : $stage[0]['round_count'];
+                        }
+
+                        $group_id = !empty($this->params['group_id']) ? $this->params['group_id'] : 1;
+
+                        $decodeDatas = SeasonMatchList::getInstance()->where('season_id', $select_season_id)->all();
+
+                        foreach ($decodeDatas as $item_match) {
+
+                            $round = json_decode($item_match->round, true);
+
+                            if ($round['stage_id'] == $stage_id && ($round['round_num'] == $round_id || $round['group_num'] == $group_id)) {
+                                $decode_home_score = json_decode($item_match['home_scores'], true);
+                                $decode_away_score = json_decode($item_match['away_scores'], true);
+                                $data['match_id'] = $item_match['id'];
+                                $data['match_time'] = date('Y-m-d H:i:s', $item_match['match_time']);
+                                $data['home_team_name_zh'] = $item_match->home_team_name;
+                                $data['away_team_name_zh'] = $item_match->away_team_name;
+                                $data['status_id'] = $item_match['status_id'];
+//                            list($data['home_scores'], $data['away_scores']) = AppFunc::getFinalScore($decode_home_score, $decode_away_score);
+//                            list($data['half_home_scores'], $data['half_away_scores']) = AppFunc::getHalfScore($decode_home_score, $decode_away_score);
+//                            list($data['home_corner'], $data['away_corner']) = AppFunc::getCorner($decode_home_score, $decode_away_score);
+
+                                list($data['home_scores'], $data['away_scores'], $data['half_home_scores'], $data['half_away_scores'], $data['home_corner'], $data['away_corner']) = AppFunc::getAllScoreType($decode_home_score, $decode_away_score);
+
+
+                                $match_competition[] = $data;
+                                unset($data);
+                            } else {
+                                continue;
+                            }
+                        }
+
+                        $returnData = [
+                            'stage' => $stage,
+                            'match_list' => isset($match_competition) ? $match_competition : [],
+                            'cur_stage_id' => $competition->cur_stage_id,
+                            'cur_round' => $competition->cur_round
+
+                        ];
                     } else  {
                         return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 

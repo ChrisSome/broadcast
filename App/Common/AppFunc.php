@@ -428,6 +428,28 @@ class AppFunc
 
     }
 
+
+    public static function getAllScoreType($home_score, $away_score)
+    {
+        //半场
+        $home_half_score = $home_score[1];
+        $away_half_score = $away_score[1];
+        $home_corner = $home_score[4];
+        $away_corner = $away_score[4];
+
+        //总比分
+        if (!$home_score[5] && !$away_score[5]){
+            $home_total_score = $home_score[0] + $home_score[6];
+            $away_total_score = $away_score[0] + $away_score[6];
+        } else {
+            $home_total_score = $home_score[5] + $home_score[6];
+            $away_total_score = $away_score[6] + $away_score[6];
+
+        }
+
+        return [$home_total_score, $away_total_score, $home_half_score, $away_half_score, $home_corner, $away_corner];
+    }
+
     /**
      * 半场比分
      * @param $home_score
