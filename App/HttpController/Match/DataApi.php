@@ -211,6 +211,13 @@ class DataApi extends FrontUserController{
 
                     if ($type == 3) {
                         array_walk($players_stats, function ($value) use(&$tables) {
+                            if (!$value['assists'] && !$value['shots'] && !$value['shots_on_target']
+                                && !$value['passes'] && !$value['passes_accuracy']
+                                && !$value['key_passes'] && !$value['interceptions']
+                                && !$value['clearances'] && !$value['yellow_cards']
+                                && !$value['red_cards'] && !$value['minutes_played']
+                                && !$value['goals']
+                            ) return;
                             $data['player_id'] = $value['player']['id'];
                             $data['name_zh'] = $value['player']['name_zh'];
                             $data['team_logo'] = FrontService::TEAM_LOGO . $value['team']['logo'];
