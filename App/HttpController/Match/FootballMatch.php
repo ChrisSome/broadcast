@@ -29,6 +29,7 @@ use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
 use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
+use App\Model\SeasonTeamPlayerBak;
 use App\Task\MatchNotice;
 use App\Utility\Log\Log;
 use App\lib\Tool;
@@ -82,33 +83,25 @@ class FootBallMatch extends FrontUserController
     protected $trend_detail = 'https://open.sportnanoapi.com/api/v4/football/match/trend/detail?user=%s&secret=%s&id=%s'; //获取比赛趋势详情
     protected $competition_rule = 'https://open.sportnanoapi.com/api/v4/football/competition/rule/list?user=%s&secret=%s&time=%s'; //获取赛事赛制列表
     protected $history = 'https://open.sportnanoapi.com/api/v4/football/match/live/history?user=%s&secret=%s&id=%s'; //历史比赛数据
+    protected $season_all_table_detail = 'https://open.sportnanoapi.com/api/v4/football/season/all/table/detail?user=%s&secret=%s&id=%s'; //获取赛季积分榜数据-全量
 
 
     protected $uriPlayerOne = '/api/v4/football/player/list?user=%s&secret=%s&id=%s';  //球员
 
     /**
-     * 获取赛季球队球员统计详情-全量
+     * 获取赛季球队球员统计详情-全量， 一周一次
      */
-    public function seasonAllStatDetail()
+    public function updateSeasonTeamPlayer()
     {
-
-        $url = sprintf($this->all_stat, $this->user, $this->secret, 9384);
-        $res = Tool::getInstance()->postApi($url);
-        $decodeDatas = json_decode($res, true);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
-
-        $season = AdminSeason::getInstance()->where('season_id', 9728, '>')->field(['season_id'])->limit(100)->all();
-        if (!$season) {
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
-
-        }
+        $select_season_id = Cache::get('select_season_id') ? Cache::get('select_season_id') : 0;
+        $season = AdminSeason::getInstance()->field(['season_id'])->where('season_id', $select_season_id, '>')->all();
 
         foreach ($season as $item) {
-            $url = sprintf($this->all_stat, $this->user, $this->secret, 9839);
+            $url = sprintf($this->all_stat, $this->user, $this->secret, $item->season_id);
             $res = Tool::getInstance()->postApi($url);
             $decodeDatas = json_decode($res, true);
             if ($decodeDatas['code'] == 0) {
-                if (!$table = SeasonTeamPlayer::getInstance()->where('season_id', $item->season_id)->get()) {
+                if (!$table = SeasonTeamPlayerBak::getInstance()->where('season_id', $item->season_id)->get()) {
                     $data = [
                         'players_stats' => json_encode($decodeDatas['results']['players_stats']),
                         'shooters' => json_encode($decodeDatas['results']['shooters']),
@@ -116,7 +109,7 @@ class FootBallMatch extends FrontUserController
                         'updated_at' => json_encode($decodeDatas['results']['updated_at']),
                         'season_id' => $item->season_id,
                     ];
-                    SeasonTeamPlayer::getInstance()->insert($data);
+                    SeasonTeamPlayerBak::getInstance()->insert($data);
                 } else {
                     $table->players_stats = json_encode($decodeDatas['results']['players_stats']);
                     $table->shooters = json_encode($decodeDatas['results']['shooters']);
@@ -124,7 +117,7 @@ class FootBallMatch extends FrontUserController
                     $table->updated_at = json_encode($decodeDatas['results']['updated_at']);
                     $table->update();
                 }
-
+            Cache::set('select_season_id', $item->season_id);
             } else {
                 continue;
             }
@@ -284,6 +277,71 @@ class FootBallMatch extends FrontUserController
     {
 
         $this->getTodayMatches(1);
+    }
+
+    /**
+     * 凌晨五点跑一次
+     * 更新赛季球队球员统计详情-全量
+     * 更新赛季积分榜
+     */
+    public function updateYesterdayMatch()
+    {
+
+        $time = date("Ymd", strtotime("-1 day"));
+        $timestamp = strtotime($time);
+        $end_timestamp = $timestamp + 60 * 60 *24;
+        $match = AdminMatch::getInstance()->where('match_time', $timestamp, '>=')->where('match_time', $end_timestamp, '<')->where('status_id', 8)->all();
+        foreach ($match as $match_item) {
+            $season_id = $match_item->season_id;
+            //更新赛季球队球员统计详情-全量
+            $url = sprintf($this->all_stat, $this->user, $this->secret, $season_id);
+            $res = Tool::getInstance()->postApi($url);
+            $decodeDatas = json_decode($res, true);
+            if ($decodeDatas['code'] == 0) {
+                if (!$table = SeasonTeamPlayer::getInstance()->where('season_id', $season_id)->get()) {
+                    $data = [
+                        'players_stats' => json_encode($decodeDatas['results']['players_stats']),
+                        'shooters' => json_encode($decodeDatas['results']['shooters']),
+                        'teams_stats' => json_encode($decodeDatas['results']['teams_stats']),
+                        'updated_at' => json_encode($decodeDatas['results']['updated_at']),
+                        'season_id' => $season_id,
+                    ];
+                    SeasonTeamPlayer::getInstance()->insert($data);
+                } else {
+                    $table->players_stats = json_encode($decodeDatas['results']['players_stats']);
+                    $table->shooters = json_encode($decodeDatas['results']['shooters']);
+                    $table->teams_stats = json_encode($decodeDatas['results']['teams_stats']);
+                    $table->updated_at = json_encode($decodeDatas['results']['updated_at']);
+                    $table->update();
+                }
+
+            }
+            //更新赛季积分榜
+
+            $url = sprintf($this->season_all_table_detail, $this->user, $this->secret, $season_id);
+            $res = Tool::getInstance()->postApi($url);
+            $decodeDatas = json_decode($res, true);
+            if ($decodeDatas['code'] == 0) {
+                if (!$table = SeasonAllTableDetail::getInstance()->where('season_id', $season_id)->get()) {
+                    $data = [
+                        'promotions' => json_encode($decodeDatas['results']['promotions']),
+                        'tables' => json_encode($decodeDatas['results']['tables']),
+                        'season_id' => $season_id,
+                    ];
+                    SeasonAllTableDetail::getInstance()->insert($data);
+                } else {
+                    $table->promotions = json_encode($decodeDatas['results']['promotions']);
+                    $table->tables = json_encode($decodeDatas['results']['tables']);
+                    $table->update();
+                }
+
+            }
+
+
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+
+
     }
 
 
@@ -1442,7 +1500,7 @@ class FootBallMatch extends FrontUserController
     }
 
     /**
-     * 赛季比赛列表
+     * 赛季比赛列表  一天一次
      */
     public function updateMatchSeason()
     {
@@ -1506,5 +1564,7 @@ class FootBallMatch extends FrontUserController
         }
 
     }
+
+
 
 }

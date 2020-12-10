@@ -24,14 +24,6 @@ class TestTask implements TaskInterface
     function run(int $taskId,int $workerIndex)
     {
 
-        return "返回值:".$this->taskData['name'];
-    }
-
-    function insert()
-    {
-
-
-
         // TODO: Implement run() method.
         $isDebug = AdminSysSettings::getInstance()->getSysKey('is_debug');
         if (!$isDebug) {
@@ -57,6 +49,13 @@ class TestTask implements TaskInterface
             Log::getInstance()->info('短信功能未开启');
 
         }
+    }
+
+    function insert()
+    {
+
+
+
 
     }
     function finish()

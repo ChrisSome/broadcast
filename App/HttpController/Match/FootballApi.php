@@ -583,8 +583,8 @@ class FootballApi extends FrontUserController
             'history' => $formatHistoryMatches, //历史交锋
             'homeRecent' => FrontService::handMatch($homeRecentMatches, 0, true),//主队近期战绩
             'awayRecent' => FrontService::handMatch($awayRecentMatches, 0, true),//客队近期战绩
-            'homeRecentSchedule' => FrontService::handMatch($homeRecentSchedule, $this->auth['id'] ?: 0, true),//主队近期赛程
-            'awayRecentSchedule' => FrontService::handMatch($awayRecentSchedule, $this->auth['id'] ?: 0, true),//客队近期赛程
+            'homeRecentSchedule' => FrontService::handMatch($homeRecentSchedule, $this->auth['id'] ? $this->auth['id'] : 0, true),//主队近期赛程
+            'awayRecentSchedule' => FrontService::handMatch($awayRecentSchedule, $this->auth['id'] ? $this->auth['id'] : 0, true),//客队近期赛程
         ];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
 

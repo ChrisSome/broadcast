@@ -180,12 +180,12 @@ class Login extends FrontUserController
         //异步task
 
         TaskManager::getInstance()->async(function ($taskId, $workerIndex) use ($code, $mobile) {
-            $phoneTask = new TestTask([
+            new TestTask([
                 'code' => $code,
                 'mobile' => $mobile,
                 'name' => '短信验证码'
             ]);
-            $phoneTask->insert();
+//            $phoneTask->insert();
         });
         return $this->writeJson(Statuses::CODE_OK, '验证码以发送至尾号' . substr($mobile, -4) .'手机');
 
@@ -405,7 +405,7 @@ class Login extends FrontUserController
                 'start' => 1, //比赛开始
                 'goal' => 1, //进球
                 'over' => 1, //结束
-                'read_card' => 1, //红牌
+                'red_card' => 1, //红牌
                 'yellow' => 1, //黄牌
                 'show_time_axis' => 1 //显示时间轴
             ];
