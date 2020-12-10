@@ -63,11 +63,6 @@ class DataApi extends FrontUserController{
 
                 $select_season_id = !empty($this->params['season_id']) ? $this->params['season_id'] : $competition->cur_season_id;
 
-//                $seasons = $competition->getSeason();
-//                $competition_info = [
-//
-//                    'season' => $seasons
-//                ];
                 $current_season_id = $this->params['season_id'] ? $this->params['season_id'] : $competition->cur_season_id;
                 //基本信息
                 if($type == 1) {
@@ -76,13 +71,16 @@ class DataApi extends FrontUserController{
                      */
 
                     $competition_describe = '';
-                    if ($competition_rules = AdminCompetitionRuleList::getInstance()->where('competition_id', $cid)->all()) {
-                        foreach ($competition_rules as $competition_rule) {
-                            if (in_array($select_season_id ,json_decode($competition_rule->season_ids, true))) {
-                                $competition_describe = $competition_rule->text;
-                            }
+                    if ($cache_competition_describe = Cache::get('competition_describe_' . $select_season_id)) {
+                        $competition_describe = $cache_competition_describe;
+                    } else {
+                        if ($competition_rules = AdminCompetitionRuleList::getInstance()->where('competition_id', $cid)->where('season_ids', '%' . $select_season_id . '%', 'like')->get()) {
+                            $competition_describe = $competition_rules->text;
+                            Cache::set('competition_describe_' . $select_season_id, $competition_describe, 60*60*24);
+
                         }
                     }
+
                     $dataT = [];
                     $promotion = 0;
 
@@ -99,7 +97,7 @@ class DataApi extends FrontUserController{
                                         $promotion_name_zh = $promotion['name_zh'];
                                     }
                                 }
-                                $team = AdminTeam::getInstance()->where('team_id', $row['team_id'])->get();
+                                $team = AdminTeam::getInstance()->field(['team_id', 'name_zh', 'logo'])->where('team_id', $row['team_id'])->get();
                                 $data['total'] = $row['total'];
                                 $data['won'] = $row['won'];
                                 $data['draw'] = $row['draw'];
@@ -124,7 +122,7 @@ class DataApi extends FrontUserController{
                             foreach ($tables as $item_table) {
                                 $data = [];
                                 foreach ($item_table['rows'] as $item_row) {
-                                    $team = AdminTeam::getInstance()->where('team_id', $item_row['team_id'])->get();
+                                    $team = AdminTeam::getInstance()->field(['team_id', 'name_zh', 'logo'])->where('team_id', $item_row['team_id'])->get();
                                     if (!$team) continue;
                                     $row_info['team_id'] = $team->team_id;
                                     $row_info['name_zh'] = $team->name_zh;
@@ -269,53 +267,6 @@ class DataApi extends FrontUserController{
                             $returnData = [];
                         }
 
-                    } else if ($type == 5) {
-                        $stage = AdminStageList::getInstance()->field(['name_zh', 'stage_id', 'round_count', 'group_count'])->where('season_id', $select_season_id)->all();
-                        if ($select_season_id == $competition->cur_season_id) {
-                            $stage_id = !empty($this->params['stage_id']) ? $this->params['stage_id'] : $competition->cur_stage_id;
-                            $round_id = !empty($this->params['round_id']) ? $this->params['round_id'] : $competition->cur_round;
-                        } else {
-                            $stage_id = !empty($this->params['stage_id']) ? $this->params['stage_id'] : $stage[0]['stage_id'];
-                            $round_id = !empty($this->params['round_id']) ? $this->params['round_id'] : $stage[0]['round_count'];
-                        }
-
-                        $group_id = !empty($this->params['group_id']) ? $this->params['group_id'] : 1;
-
-                        $decodeDatas = SeasonMatchList::getInstance()->where('season_id', $select_season_id)->all();
-
-                        foreach ($decodeDatas as $item_match) {
-
-                            $round = json_decode($item_match->round, true);
-
-                            if ($round['stage_id'] == $stage_id && ($round['round_num'] == $round_id || $round['group_num'] == $group_id)) {
-                                $decode_home_score = json_decode($item_match['home_scores'], true);
-                                $decode_away_score = json_decode($item_match['away_scores'], true);
-                                $data['match_id'] = $item_match['id'];
-                                $data['match_time'] = date('Y-m-d H:i:s', $item_match['match_time']);
-                                $data['home_team_name_zh'] = $item_match->home_team_name;
-                                $data['away_team_name_zh'] = $item_match->away_team_name;
-                                $data['status_id'] = $item_match['status_id'];
-//                            list($data['home_scores'], $data['away_scores']) = AppFunc::getFinalScore($decode_home_score, $decode_away_score);
-//                            list($data['half_home_scores'], $data['half_away_scores']) = AppFunc::getHalfScore($decode_home_score, $decode_away_score);
-//                            list($data['home_corner'], $data['away_corner']) = AppFunc::getCorner($decode_home_score, $decode_away_score);
-
-                                list($data['home_scores'], $data['away_scores'], $data['half_home_scores'], $data['half_away_scores'], $data['home_corner'], $data['away_corner']) = AppFunc::getAllScoreType($decode_home_score, $decode_away_score);
-
-
-                                $match_competition[] = $data;
-                                unset($data);
-                            } else {
-                                continue;
-                            }
-                        }
-
-                        $returnData = [
-                            'stage' => $stage,
-                            'match_list' => isset($match_competition) ? $match_competition : [],
-                            'cur_stage_id' => $competition->cur_stage_id,
-                            'cur_round' => $competition->cur_round
-
-                        ];
                     } else  {
                         return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
@@ -344,6 +295,11 @@ class DataApi extends FrontUserController{
     }
 
 
+
+    public function competitionDes()
+    {
+        $competition_id = $this->params[''];
+    }
     /**
      * 数据中心推荐热门赛事
      */
@@ -529,7 +485,6 @@ class DataApi extends FrontUserController{
         $basic = AdminPlayer::getInstance()->where('player_id', $player_id)->get();
         if (!$basic) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-
         }
         $type = !empty($this->params['type']) ? $this->params['type'] : 1;
         if ($type == 1) {
