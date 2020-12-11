@@ -670,7 +670,8 @@ class DataApi extends FrontUserController{
             $season = [];
         }
 
-        $current_season_id = !empty($competition->cur_season_id) ? $competition->cur_season_id : end($season)['id'];
+//        $current_season_id = !empty($competition->cur_season_id) ? $competition->cur_season_id : end($season)['id'];
+        $current_season_id = $competition->cur_season_id;
         if ($type == 1) {
             //球队基本资料
             $basic = [
@@ -682,6 +683,7 @@ class DataApi extends FrontUserController{
                 'manager_name_zh' => $team->getManager()->name_zh,
                 'foreign_players' => $team->foreign_players,
                 'national_players' => $team->national_players,
+                'current_season_id' => $current_season_id,
             ];
             $last_match = AdminMatch::getInstance()::create()->func(function ($builder) use ($team_id){
                 $builder->raw('select * from `admin_match_list` where (home_team_id = ? or away_team_id = ?) and status_id in (1,2,3,4,5,7) order by `match_time` desc limit 1',[$team_id, $team_id]);
@@ -890,6 +892,7 @@ class DataApi extends FrontUserController{
             //数据
 
             $decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get();
+
             $player_stat = json_decode($decodeDatas['players_stats'], true);
             $team_stat = json_decode($decodeDatas['teams_stats'], true);
 

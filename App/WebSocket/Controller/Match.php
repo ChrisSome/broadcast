@@ -19,6 +19,7 @@ use App\Storage\OnlineUser;
 use App\Task\BroadcastTask;
 use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
+use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
 
 class Match extends Base
@@ -50,23 +51,18 @@ class Match extends Base
         //记录房间内用户
         $matchId = $args['match_id'];
         $uid = $args['user_id'];
-        if ($matchId == true) {
-            //对比赛状态查询, 状态正常
-            if (!OnlineUser::getInstance()->get($fd)) {
+        if (!OnlineUser::getInstance()->get($fd)) {
 //                $mid = Login::getInstance()->getMid();
-                $data = [
-                    'match_id' => $matchId,
-                    'fd'=> $fd,
-                    'user_id' => $uid,
-                    'nickname' => isset($user->nickname) ? $user->nickname : '',
-                    'level' => isset($user->level) ? $user->level : '',
-                ];
-                OnlineUser::getInstance()->set($fd, $data);
-            } else {
-                OnlineUser::getInstance()->update($fd, ['match_id' => $matchId]);
-            }
+            $data = [
+                'match_id' => $matchId,
+                'fd'=> $fd,
+                'user_id' => $uid,
+                'nickname' => isset($user->nickname) ? $user->nickname : '',
+                'level' => isset($user->level) ? $user->level : '',
+            ];
+            OnlineUser::getInstance()->set($fd, $data);
         } else {
-            //比赛状态异常
+            OnlineUser::getInstance()->update($fd, ['match_id' => $matchId]);
         }
         $user['match_id'] = $matchId;
         $user['fd'] = $fd;
@@ -162,6 +158,19 @@ class Match extends Base
 
         ];
         $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $respon));
+
+        $fds = AppFunc::getUsersInRoom($matchId);
+        $server = ServerManager::getInstance()->getSwooleServer();
+        $response = [
+            'event' => 'welcome-user',
+            'data' => $user
+        ];
+        foreach ($fds as $fd) {
+            $connection = $server->connection_info($fd);
+            if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+                $server->push($user, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $response));
+            }
+        }
         return;
     }
 
