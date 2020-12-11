@@ -309,7 +309,8 @@ class AppFunc
     /**
      * 将整数转为万
      * @param $number
-     * @return string
+     * @param string $unit
+     * @return int|string
      */
     public static function changeToWan($number, $unit = '万')
     {
@@ -975,7 +976,7 @@ class AppFunc
     public static function getPlayerSeasons($seasons)
     {
 
-        //[9695,9722]
+
         if (!$seasons) return [];
         $data = [];
         foreach ($seasons as $season) {

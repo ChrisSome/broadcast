@@ -491,8 +491,6 @@ class DataApi extends FrontUserController{
         if ($type == 1) {
             $team = $basic->getTeam();
             $country = $basic->getCountry();
-            //球员技术能力
-//            $stat = AdminPlayerStat::getInstance()->where('player_id', $player_id)->get();
             //转会
             $format_history = [];
             if ($history = AdminPlayerChangeClub::getInstance()->where('player_id', $player_id)->all()) {
@@ -668,7 +666,7 @@ class DataApi extends FrontUserController{
             $season = [];
         }
 
-        $current_season_id = $competition->cur_season_id ?: end($season)['id'];
+        $current_season_id = !empty($competition->cur_season_id) ? $competition->cur_season_id : end($season)['id'];
         if ($type == 1) {
             //球队基本资料
             $basic = [

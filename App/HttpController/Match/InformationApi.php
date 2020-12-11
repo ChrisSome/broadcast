@@ -286,6 +286,7 @@ class InformationApi extends FrontUserController
            $list = $model->all(null);
            $count = $model->lastQueryResult()->getTotalCount();
            if ($list) {
+               $top_comment = [];
                foreach ($list as $comment) {
                    $childs = AdminInformationComment::getInstance()->where('top_comment_id', $comment->id)->where('information_id', $information_id)->where('status', AdminInformationComment::STATUS_NORMAL)->order('created_at', 'DESC')->limit(3)->all();
                    $child_count = AdminInformationComment::getInstance()->where('top_comment_id', $comment->id)->where('information_id', $information_id)->where('status', AdminInformationComment::STATUS_NORMAL)->count('id');
