@@ -896,8 +896,8 @@ class DataApi extends FrontUserController{
             //数据
 
             $decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get();
-            $player_stat = $decodeDatas['players_stats'];
-            $team_stat = $decodeDatas['teams_stats'];
+            $player_stat = json_decode($decodeDatas['players_stats'], true);
+            $team_stat = json_decode($decodeDatas['teams_stats'], true);
 
             foreach ($team_stat as $team_item) {
 
@@ -907,8 +907,9 @@ class DataApi extends FrontUserController{
 
                 }
             }
+
             if (!isset($team_info)) {
-                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], 1);
+                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
 
             }
             $team_match_num = $team_info['matches'];
