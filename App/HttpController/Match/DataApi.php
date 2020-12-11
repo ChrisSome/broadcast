@@ -685,47 +685,6 @@ class DataApi extends FrontUserController{
                 'national_players' => $team->national_players,
                 'current_season_id' => $current_season_id,
             ];
-            $last_match = AdminMatch::getInstance()::create()->func(function ($builder) use ($team_id){
-                $builder->raw('select * from `admin_match_list` where (home_team_id = ? or away_team_id = ?) and status_id in (1,2,3,4,5,7) order by `match_time` desc limit 1',[$team_id, $team_id]);
-                return true;
-            });
-            if (!$last_match) {
-                $format_last_match = [];
-            } else {
-                $last_match_home_team = AdminTeam::getInstance()->where('team_id', $last_match[0]['home_team_id'])->get();
-                $last_match_away_team = AdminTeam::getInstance()->where('team_id', $last_match[0]['away_team_id'])->get();
-                $format_last_match = [
-                    'match_id' => $last_match[0]['match_id'],
-                    'match_time' => date('Y-m-d', $last_match[0]['match_time']),
-                    'home_team_name_zh' => $last_match_home_team['name_zh'],
-                    'home_team_logo' => $last_match_home_team['logo'],
-                    'away_team_name_zh' => $last_match_away_team['name_zh'],
-                    'away_team_logo' => $last_match_away_team['logo'],
-                ];
-            }
-
-
-
-
-            $done_match = AdminMatch::getInstance()::create()->func(function ($builder) use ($team_id){
-                $builder->raw('select * from `admin_match_list` where (home_team_id = ? or away_team_id = ?) and status_id = ? order by `match_time` desc limit 1',[$team_id, $team_id, 8]);
-                return true;
-            });
-            if (!$done_match) {
-                $format_done_match = [];
-            } else {
-                $done_match_home_team = AdminTeam::getInstance()->where('team_id', $done_match[0]['home_team_id'])->get();
-                $done_match_away_team = AdminTeam::getInstance()->where('team_id', $done_match[0]['away_team_id'])->get();
-                $format_done_match = [
-                    'match_id' => $done_match[0]['match_id'],
-                    'match_time' => date('Y-m-d', $done_match[0]['match_time']),
-                    'home_team_name_zh' => $done_match_home_team['name_zh'],
-                    'home_team_logo' => $done_match_home_team['logo'],
-                    'away_team_name_zh' => $done_match_away_team['name_zh'],
-                    'away_team_logo' => $done_match_away_team['logo'],
-                ];
-            }
-
             //转会记录
 
             $timestamp_one_year_ago = mktime(0, 0, 0, date('m'), date('d'), date('Y')-1);
@@ -759,8 +718,6 @@ class DataApi extends FrontUserController{
 
             $return_data = [
                 'basic' => $basic,
-                'format_last_match' => $format_last_match,
-                'format_done_match' => $format_done_match,
                 'format_change_in_players' => $format_change_in_players,
                 'format_change_out_players' => $format_change_out_players,
                 'format_honors' => $data,
