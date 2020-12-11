@@ -816,16 +816,15 @@ class DataApi extends FrontUserController{
             $format_match = [];
             foreach ($decodeDatas as $decodeData) {
                 if ($decodeData['home_team_id'] == $team->team_id || $decodeData['away_team_id'] == $team->team_id) {
-                    $competition = AdminCompetition::getInstance()->where('competition_id', $decodeData['competition_id'])->get();
+                    $competition = $decodeData->competitionName();
                     $decode_home_score = json_decode($decodeData['home_scores'], true);
                     $decode_away_score = json_decode($decodeData['away_scores'], true);
-                    $home_team = AdminTeam::getInstance()->field(['team_id', 'name_zh'])->where('team_id', $decodeData['home_team_id'])->get();
-                    $away_team = AdminTeam::getInstance()->field(['team_id', 'name_zh'])->where('team_id', $decodeData['away_team_id'])->get();
+
                     $format_data['match_id'] = $decodeData['id'];
                     $format_data['match_time'] = date('Y-m-d', $decodeData['match_time']);
                     $format_data['competition_short_name_zh'] = $competition->short_name_zh;
-                    $format_data['home_team_name_zh'] = $home_team->name_zh;
-                    $format_data['away_team_name_zh'] =$away_team->name_zh;
+                    $format_data['home_team_name_zh'] = $decodeData->homeTeam()->name_zh;
+                    $format_data['away_team_name_zh'] = $decodeData->awayTeam()->name_zh;
                     list($format_data['home_scores'], $format_data['away_scores']) = AppFunc::getFinalScore($decode_home_score, $decode_away_score);
                     list($format_data['half_home_scores'], $format_data['half_away_scores']) = AppFunc::getHalfScore($decode_home_score, $decode_away_score);
                     list($format_data['home_corner'], $format_data['away_corner']) = AppFunc::getCorner($decode_home_score, $decode_away_score);//角球
