@@ -1004,22 +1004,6 @@ class DataApi extends FrontUserController{
 
         } else if ($type == 5) {//阵容
 
-//            $player_stat = [];
-//            if ($decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get()) {
-//                $player_stat = json_decode($decodeDatas['players_stats'], true);
-//
-//            }
-            $players_team = [];
-
-//            foreach ($player_stat as $tk => $player_item) {
-//
-//                if ($player_item['team']['id'] == $team->team_id) {
-//                    $players_team[] = $player_item;
-//                } else {
-//                    continue;
-//                }
-//            }
-
             $manager = $team->getManager();
             $manager_info = [
                 'name_zh' => $manager->name_zh,
@@ -1029,15 +1013,7 @@ class DataApi extends FrontUserController{
 
             $squad = AdminTeamLineUp::getInstance()->where('team_id', $team->team_id)->get();
             foreach (json_decode($squad->squad, true) as $squad_item) {
-//                foreach ($players_team as $player_team) {
-//                    if ($squad_item['player']['id'] == $player_team['player']['id']) {
-//                        $player['matches'] = $player_team['matches'];
-//                        $player['goals'] = $player_team['goals'];
-//                        $player['assists'] = $player_team['assists'];
-//                        break;
-//                    }
-//
-//                }
+
                 $player['name_zh'] = $squad_item['player']['name_zh'];
                 $player['player_id'] = $squad_item['player']['id'];
                 $player['shirt_number'] = $squad_item['shirt_number'];
