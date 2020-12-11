@@ -492,10 +492,10 @@ class DataApi extends FrontUserController{
             $team = $basic->getTeam();
             $country = $basic->getCountry();
             //球员技术能力
-            $stat = AdminPlayerStat::getInstance()->where('player_id', $player_id)->get();
+//            $stat = AdminPlayerStat::getInstance()->where('player_id', $player_id)->get();
             //转会
-            $history = AdminPlayerChangeClub::getInstance()->where('player_id', $player_id)->all();
-            if ($history) {
+            $format_history = [];
+            if ($history = AdminPlayerChangeClub::getInstance()->where('player_id', $player_id)->all()) {
                 foreach ($history as $k=>$item) {
                     $from_team = $item->fromTeamInfo();
                     if ($from_team) {
@@ -516,9 +516,7 @@ class DataApi extends FrontUserController{
             }
             $format_player_honor = [];
             if ($player_honor = AdminPlayerHonorList::getInstance()->where('player_id', $basic->player_id)->get()) {
-                $honor = json_decode($player_honor->honors, true);
-
-                $format_player_honor = $honor;
+                $format_player_honor = json_decode($player_honor->honors, true);
             }
             //获取球员参加的所有赛季
             $season = AppFunc::getPlayerSeasons(json_decode($basic->seasons, true));
@@ -535,9 +533,7 @@ class DataApi extends FrontUserController{
                     'height' => $basic->height,
                     'preferred_foot' => $basic->preferred_foot,
                     'position' => $basic->position,
-                    'ability' => isset($stat['ability']) ? json_decode($stat['ability'], true) : [],
                     'birthday' => $basic->birthday ? date('Y-m-d', $basic->birthday) : '',
-//                    'characteristics' => isset($stat['characteristics']) ? json_decode($stat['characteristics'], true) : [],
                 ],
                 'change_club_history' => isset($format_history) ? $format_history : [],
                 'player_honor' => $format_player_honor,
@@ -655,7 +651,6 @@ class DataApi extends FrontUserController{
 
     public function teamInfo()
     {
-//        Log::getInstance()->info('params' . json_encode($this->params));
         $team_id = $this->params['team_id'];
         if (!$team_id || !$team = AdminTeam::getInstance()->where('team_id', $team_id)->get()) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
@@ -849,7 +844,6 @@ class DataApi extends FrontUserController{
             $return_data = [
                 'table' => $dataT,
                 'competition_describe' => $competition_describe,
-                'season' => $season,
                 'current_season_id' => $current_season_id,
                 'promotion' => $promotion
             ];
@@ -911,6 +905,7 @@ class DataApi extends FrontUserController{
 
             }
             $team_match_num = $team_info['matches'];
+            //球队数据
             $team_data = [
                 'goals' => $team_info['goals'], //进球
                 'penalty' => $team_info['penalty'],//点球
@@ -931,209 +926,131 @@ class DataApi extends FrontUserController{
 
 
             ];
-            $team_shooter_table = [];
-            if ($shooters = $decodeDatas['shooters']) {
-                foreach ($shooters as $shooter) {
-                    if ($shooter['team']['id'] == $team_id && $shooter['goals'] > 0) {
-                        $team_shooter_table[] = $shooter;
-                    }
-                }
-            }
-            $goal_table_format = FrontService::handTeamPlayerTable($team_shooter_table, 'goals');
-
-            $returnData = [];
+            $key_players = [];
             if (!empty($player_stat)) {
+                $most_goals = [];
                 foreach ($player_stat as $tk => $player_item) {
 
-                    if ($player_item['team']['id'] == $team->team_id) {
-                        $players_team[] = $player_item;
-                    } else {
+                    if ($player_item['team']['id'] != $team->team_id) {
                         continue;
                     }
-                }
-                if (!empty($players_team)) {
 
-                    foreach ($players_team as $player_team) {
-                        //助攻
-                        if ($player_team['assists']) {
-                            $table_assist[] = $player_team;
+                    if ($player_item['goals']) {
+                        if (!isset($most_goals) || $player_item['goals'] >= $most_goals['goals']) {
+                            $most_goals = $player_item;
                         }
-                        //射门
-                        if ($player_team['shots']) {
-                            $table_shots[] = $player_team;
-                        }
-                        //射正
-                        if ($player_team['shots_on_target']) {
-                            $table_shots_on_target[] = $player_team;
-                        }
-                        //传球
-                        if ($player_team['passes']) {
-                            $table_passes[] = $player_team;
-                        }
-
-                        //成功传球
-                        if ($player_team['passes_accuracy']) {
-                            $table_passes_accuracy[] = $player_team;
-                        }
-
-                        //关键传球
-                        if ($player_team['key_passes']) {
-                            $table_key_passes[] = $player_team;
-                        }
-
-                        //拦截
-                        if ($player_team['interceptions']) {
-                            $table_interceptions[] = $player_team;
-                        }
-
-                        //解围
-                        if ($player_team['clearances']) {
-                            $table_clearances[] = $player_team;
-                        }
-                        //扑救
-                        if ($player_team['saves']) {
-                            $table_saves[] = $player_team;
-                        }
-                        //黄牌
-                        if ($player_team['yellow_cards']) {
-                            $table_yellow_cards[] = $player_team;
-                        }
-                        //红牌
-                        if ($player_team['red_cards']) {
-                            $table_red_cards[] = $player_team;
-                        }
-                        //上场时间
-                        if ($player_team['minutes_played']) {
-                            $table_minutes_played[] = $player_team;
-                        }
-                        //上场时间
-                        if ($player_team['minutes_played']) {
-                            $table_minutes_played[] = $player_team;
-                        }
-
-
 
                     }
-                    if (isset($table_assist)) {
-                        $assisting = array_column($table_assist, 'assists');
-                        array_multisort($assisting,SORT_DESC,$table_assist);
-                        $assisting_table_format = FrontService::handTeamPlayerTable($table_assist, 'assists');
-                    } else {
-                        $assisting_table_format = [];
+
+                    if ($player_item['assists']) {
+                        if (!isset($most_assists) || $player_item['assists'] >= $most_assists['assists']) {
+                            $most_assists = $player_item;
+                        }
+
+                    }
+
+                    if ($player_item['shots']) {
+                        if (!isset($most_shots) || $player_item['assists'] >= $most_shots['shots']) {
+                            $most_shots = $player_item;
+                        }
+                    }
+
+                    if ($player_item['shots_on_target']) {
+                        if (!isset($most_shots_on_target) || $player_item['shots_on_target'] >= $most_shots_on_target['shots_on_target']) {
+                            $most_shots_on_target = $player_item;
+                        }
+                    }
+
+                    if ($player_item['passes']) {
+                        if (!isset($most_passes) || $player_item['passes'] >= $most_passes['passes']) {
+                            $most_passes = $player_item;
+                        }
+                    }
+
+                    if ($player_item['passes_accuracy']) {
+                        if (!isset($most_passes_accuracy) || $player_item['passes_accuracy'] >= $most_passes_accuracy['passes_accuracy']) {
+                            $most_passes_accuracy = $player_item;
+                        }
+                    }
+
+                    if ($player_item['key_passes']) {
+                        if (!isset($most_key_passes) || $player_item['key_passes'] >= $most_key_passes['key_passes']) {
+                            $most_key_passes = $player_item;
+                        }
+                    }
+
+                    if ($player_item['interceptions']) {
+                        if (!isset($most_interceptions) || $player_item['interceptions'] >= $most_interceptions['interceptions']) {
+                            $most_interceptions = $player_item;
+                        }
+                    }
+
+                    if ($player_item['clearances']) {
+                        if (!isset($most_clearances) || $player_item['clearances'] >= $most_clearances['clearances']) {
+                            $most_clearances = $player_item;
+                        }
+                    }
+
+                    if ($player_item['saves']) {
+                        if (!isset($most_clearances) || $player_item['saves'] >= $most_clearances['saves']) {
+                            $most_clearances = $player_item;
+                        }
+                    }
+
+                    if ($player_item['yellow_cards']) {
+                        if (!isset($most_yellow_cards) || $player_item['yellow_cards'] >= $most_yellow_cards['yellow_cards']) {
+                            $most_yellow_cards = $player_item;
+                        }
+                    }
+
+                    if ($player_item['red_cards']) {
+                        if (!isset($most_red_cards) || $player_item['red_cards'] >= $most_red_cards['red_cards']) {
+                            $most_red_cards = $player_item;
+                        }
                     }
 
 
-                    if (isset($table_shots)) {
-                        $shots = array_column($table_shots, 'shots');
-                        array_multisort($shots,SORT_DESC,$table_shots);
-                        $shots_table_format = FrontService::handTeamPlayerTable($table_shots, 'shots');
-                    } else {
-                        $shots_table_format = [];
+                    if ($player_item['minutes_played']) {
+                        if (!isset($most_minutes_played) || $player_item['minutes_played'] >= $most_minutes_played['minutes_played']) {
+                            $most_minutes_played = $player_item;
+                        }
                     }
-
-                    if (isset($table_shots_on_target)) {
-                        $shots_on_target = array_column($table_shots_on_target, 'shots_on_target');
-                        array_multisort($shots_on_target,SORT_DESC,$table_shots_on_target);
-                        $table_shots_on_target_format = FrontService::handTeamPlayerTable($table_shots_on_target, 'shots_on_target');
-                    } else {
-                        $table_shots_on_target_format = [];
-                    }
-
-                    if (isset($table_passes)) {
-                        $passes = array_column($table_passes, 'passes');
-                        array_multisort($passes,SORT_DESC,$table_passes);
-                        $passes_table_format = FrontService::handTeamPlayerTable($table_passes, 'passes');
-                    } else {
-                        $passes_table_format = [];
-                    }
-
-                    if (isset($table_passes_accuracy)) {
-                        $passes_accuracy = array_column($table_passes_accuracy, 'passes_accuracy');
-                        array_multisort($passes_accuracy,SORT_DESC,$table_passes_accuracy);
-                        $passes_accuracy_table_format = FrontService::handTeamPlayerTable($table_passes_accuracy, 'passes_accuracy');
-                    } else {
-                        $passes_accuracy_table_format = [];
-                    }
-
-                    if (isset($table_key_passes)) {
-                        $key_passes = array_column($table_key_passes, 'key_passes');
-                        array_multisort($key_passes,SORT_DESC,$table_key_passes);
-                        $key_passes_table_format = FrontService::handTeamPlayerTable($table_key_passes, 'key_passes');
-                    } else {
-                        $key_passes_table_format = [];
-                    }
-
-                    if (isset($table_clearances)) {
-                        $clearances = array_column($table_clearances, 'clearances');
-                        array_multisort($clearances,SORT_DESC,$table_clearances);
-                        $clearances_table_format = FrontService::handTeamPlayerTable($table_clearances, 'clearances');
-                    } else {
-                        $clearances_table_format = [];
-                    }
-
-                    if (isset($table_saves)) {
-                        $saves = array_column($table_saves, 'saves');
-                        array_multisort($saves,SORT_DESC,$table_saves);
-                        $saves_table_format = FrontService::handTeamPlayerTable($table_saves, 'saves');
-                    } else {
-                        $saves_table_format = [];
-                    }
-
-                    if (isset($table_yellow_cards)) {
-                        $yellow_cards = array_column($table_yellow_cards, 'yellow_cards');
-                        array_multisort($yellow_cards,SORT_DESC,$table_yellow_cards);
-                        $yellow_cards_table_format = FrontService::handTeamPlayerTable($table_yellow_cards, 'yellow_cards');
-                    } else {
-                        $yellow_cards_table_format = [];
-                    }
-
-                    if (isset($table_red_cards)) {
-                        $red_cards = array_column($table_red_cards, 'red_cards');
-                        array_multisort($red_cards,SORT_DESC,$table_red_cards);
-                        $red_cards_table_format = FrontService::handTeamPlayerTable($table_red_cards, 'red_cards');
-                    } else {
-                        $red_cards_table_format = [];
-                    }
-
-                    if (isset($table_minutes_played)) {
-                        $minutes_played = array_column($table_minutes_played, 'minutes_played');
-                        array_multisort($minutes_played,SORT_DESC,$table_minutes_played);
-                        $minutes_played_table_format = FrontService::handTeamPlayerTable($table_minutes_played, 'minutes_played');
-                    } else {
-                        $minutes_played_table_format = [];
-                    }
-                    $most_data = [
-                        'most_goals' => isset($goal_table_format[0]) ? $goal_table_format[0] : [], //进球
-                        'most_assisting' => isset($assisting_table_format[0]) ? $assisting_table_format[0] : [], //助攻
-                        'most_shots' => isset($shots_table_format[0]) ? $shots_table_format[0] : [], //射门
-                        'most_shots_on_target' => isset($table_shots_on_target_format[0]) ? $table_shots_on_target_format[0] : [],//射正
-                        'most_passes' => isset($passes_table_format[0]) ? $passes_table_format[0] : [],//传球
-                        'most_passes_accuracy' => isset($passes_accuracy_table_format[0]) ? $passes_accuracy_table_format[0] : [],//成功传球
-                        'most_key_passes' => isset($key_passes_table_format[0]) ? $key_passes_table_format[0] : [],//关键传球
-                        'most_clearances' => isset($clearances_table_format[0]) ? $clearances_table_format[0] : [],//解围
-                        'most_saves' => isset($saves_table_format[0]) ? $saves_table_format[0] : [],//扑球
-                        'most_yellow_cards' => isset($yellow_cards_table_format[0]) ? $yellow_cards_table_format[0] : [],//黄牌
-                        'most_red_cards' => isset($red_cards_table_format[0]) ? $red_cards_table_format[0] : [],//红牌
-                        'most_minutes_played' => isset($minutes_played_table_format[0]) ? $minutes_played_table_format[0] : [],//出场时间
-                    ];
-                    $returnData = [
-                        'key_player' => $most_data,
-                        'team_data' => $team_data,
-                        'season' => $season,
-                        'current_season_id' => $current_season_id
-                    ];
 
                 }
+
+
+                $key_players = [
+                    'most_goals' => FrontService::formatKeyPlayer(isset($most_goals) ? $most_goals : [], 'goals'),
+                    'most_assists' => FrontService::formatKeyPlayer(isset($most_assists) ? $most_assists : [], 'assists'),
+                    'most_shots' => FrontService::formatKeyPlayer(isset($most_shots) ? $most_shots : [], 'shots'),
+                    'most_shots_on_target' => FrontService::formatKeyPlayer(isset($most_most_shots_on_target) ? $most_most_shots_on_target : [], 'most_shots_on_target'),
+                    'most_passes' => FrontService::formatKeyPlayer(isset($most_passes) ? $most_passes : [], 'passes'),
+                    'most_passes_accuracy' => FrontService::formatKeyPlayer(isset($most_passes_accuracy) ? $most_passes_accuracy : [], 'passes_accuracy'),
+                    'most_key_passes' => FrontService::formatKeyPlayer(isset($most_key_passes) ? $most_key_passes : [], 'key_passes'),
+                    'most_interceptions' => FrontService::formatKeyPlayer(isset($most_interceptions) ? $most_interceptions : [], 'interceptions'),
+                    'most_clearances' => FrontService::formatKeyPlayer(isset($most_clearances) ? $most_clearances : [], 'clearances'),
+                    'most_saves' => FrontService::formatKeyPlayer(isset($most_saves) ? $most_saves : [], 'saves'),
+                    'most_yellow_cards' => FrontService::formatKeyPlayer(isset($most_yellow_cards) ? $most_yellow_cards : [], 'yellow_cards'),
+                    'most_red_cards' => FrontService::formatKeyPlayer(isset($most_red_cards) ? $most_red_cards : [], 'red_cards'),
+                    'most_minutes_played' => FrontService::formatKeyPlayer(isset($most_minutes_played) ? $most_minutes_played : [], 'minutes_played'),
+                ];
+
+
+
+
 
             }
-
+            $returnData = [
+                'team_data' => $team_data,
+                'key_player' => $key_players
+            ];
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $returnData);
 
         } else if ($type == 5) {//阵容
 
             $player_stat = [];
             if ($decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get()) {
-                $player_stat = $decodeDatas['players_stats'];
+                $player_stat = json_decode($decodeDatas['players_stats'], true);
 
             }
             $players_team = [];
@@ -1158,6 +1075,7 @@ class DataApi extends FrontUserController{
             $squad = AdminTeamLineUp::getInstance()->where('team_id', $team->team_id)->get();
 
             foreach (json_decode($squad->squad, true) as $squad_item) {
+
                 foreach ($players_team as $player_team) {
 
                     if ($squad_item['player']['id'] == $player_team['player']['id']) {

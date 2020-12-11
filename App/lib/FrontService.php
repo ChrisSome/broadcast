@@ -505,29 +505,21 @@ class  FrontService {
     }
 
     /**
-     * 球队最佳
-     * @param $items
+     * 关键球员
+     * @param $item
      * @param $column
      * @return array
      */
-    public static function handTeamPlayerTable($items, $column)
-    {
-        if (!$items) {
-            return [];
-        } else {
-            $datas = [];
-            foreach ($items as $item) {
-                $data['player_id'] = $item['player']['id'];
-                $data['name_zh'] = $item['player']['name_zh'];
-                $data['team_logo'] = self::TEAM_LOGO . $item['team']['logo'];
-                $data['player_logo'] = self::PLAYER_LOGO . $item['player']['logo'];
-                $data['total'] = $item[$column];
-                $datas[] = $data;
-                unset($data);
-            }
 
-            return $datas;
-        }
+    public static function formatKeyPlayer($item, $column)
+    {
+        if (!$item) return [];
+
+        $data['player_id'] = $item['player']['id'];
+        $data['name_zh'] = $item['player']['name_zh'];
+        $data['player_logo'] = self::PLAYER_LOGO . $item['player']['logo'];
+        $data['total'] = $item[$column];
+        return $data;
     }
 
     /**
