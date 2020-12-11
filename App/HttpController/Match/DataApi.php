@@ -1050,7 +1050,7 @@ class DataApi extends FrontUserController{
             $player_list['C'] = $manager_info; //教练
 
 
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $select_season_id);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $player_list);
 
         }
 
