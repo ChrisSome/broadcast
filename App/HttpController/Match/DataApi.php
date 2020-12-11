@@ -483,17 +483,21 @@ class DataApi extends FrontUserController{
         }
 
         //基本信息
-        $basic = AdminPlayer::getInstance()->where('player_id', $player_id)->get();
+        $basic = AdminPlayer::getInstance()->field(['player_id', 'team_id', 'country_id'])->where('player_id', $player_id)->get();
         if (!$basic) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
         }
         $type = !empty($this->params['type']) ? $this->params['type'] : 1;
         if ($type == 1) {
-            $team = $basic->getTeam();
+            if ($team = $basic->getTeam()) {
+                $team_info = ['name_zh' => $team->name_zh, 'logo' => $team->logo];
+            } else {
+                $team_info = [];
+            }
             $country = $basic->getCountry();
             //转会
             $format_history = [];
-            if ($history = AdminPlayerChangeClub::getInstance()->where('player_id', $player_id)->all()) {
+            if ($history = AdminPlayerChangeClub::getInstance()->field(['player_id', 'from_team_id', 'to_team_id'])->where('player_id', $player_id)->all()) {
                 foreach ($history as $k=>$item) {
                     $from_team = $item->fromTeamInfo();
                     if ($from_team) {
@@ -513,13 +517,13 @@ class DataApi extends FrontUserController{
                 }
             }
             $format_player_honor = [];
-            if ($player_honor = AdminPlayerHonorList::getInstance()->where('player_id', $basic->player_id)->get()) {
+            if ($player_honor = AdminPlayerHonorList::getInstance()->field(['honors', 'player_id'])->where('player_id', $basic->player_id)->get()) {
                 $format_player_honor = json_decode($player_honor->honors, true);
             }
             //获取球员参加的所有赛季
             $season = AppFunc::getPlayerSeasons(json_decode($basic->seasons, true));
             $player_info = [
-                'team_info' => ['name_zh' => $team->name_zh, 'logo' => $team->logo],
+                'team_info' => $team_info,
                 'contract_until' => date('Y-m-d', $basic->contract_until),
                 'country_info' => ['name_zh' => $country->name_zh, 'logo' => $country->logo],
                 'user_info' => [
