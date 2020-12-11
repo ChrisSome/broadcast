@@ -1,5 +1,3 @@
 <?php
-$fruits = array("d" => "lemon", "a" => "orange", "b" => "banana", "c" => "apple");
-
-$b = serialize($fruits);
-var_dump($b);
+$a = number_format(0/0,1);
+var_dump($a);

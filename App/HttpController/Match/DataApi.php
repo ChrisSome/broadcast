@@ -31,6 +31,7 @@ use App\Utility\Message\Status;
 use easySwoole\Cache\Cache;
 use EasySwoole\Redis\Redis as Redis;
 use EasySwoole\RedisPool\Redis as RedisPool;
+use Illuminate\Support\Facades\App;
 
 class DataApi extends FrontUserController{
 
@@ -76,7 +77,7 @@ class DataApi extends FrontUserController{
                     } else {
                         if ($competition_rules = AdminCompetitionRuleList::getInstance()->where('competition_id', $cid)->where('season_ids', '%' . $select_season_id . '%', 'like')->get()) {
                             $competition_describe = $competition_rules->text;
-                            Cache::set('competition_describe_' . $select_season_id, $competition_describe, 60*60*24);
+                            Cache::set('competition_describe_' . $select_season_id, $competition_describe, 60 * 60 * 24);
 
                         }
                     }
@@ -516,11 +517,11 @@ class DataApi extends FrontUserController{
             $format_player_honor = [];
             if ($player_honor = AdminPlayerHonorList::getInstance()->where('player_id', $basic->player_id)->get()) {
                 $honor = json_decode($player_honor->honors, true);
-//                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $player_honor);
 
                 $format_player_honor = $honor;
             }
-
+            //获取球员参加的所有赛季
+            $season = AppFunc::getPlayerSeasons(json_decode($basic->seasons, true));
             $player_info = [
                 'team_info' => ['name_zh' => $team->name_zh, 'logo' => $team->logo],
                 'contract_until' => date('Y-m-d', $basic->contract_until),
@@ -539,68 +540,101 @@ class DataApi extends FrontUserController{
 //                    'characteristics' => isset($stat['characteristics']) ? json_decode($stat['characteristics'], true) : [],
                 ],
                 'change_club_history' => isset($format_history) ? $format_history : [],
-                'player_honor' => $format_player_honor
+                'player_honor' => $format_player_honor,
+                'season_list' => $season ?: [],
             ];
             $return_data = $player_info;
         } else if ($type == 2) {
             //技术统计
             $return_data = [];
-            //获取球员参加的所有赛季
-            $season = AppFunc::getPlayerSeasons(json_decode($basic->seasons, true));
-            if (!$season) {
-                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], []);
-            }
+
             $stat_data = [];
 
-            $select_season_id = !empty($this->params['select_season_id']) ? $this->params['select_season_id'] : $season[0]['season_list'][0]['season_id'];
+            $select_season_id = $this->params['select_season_id'];
+            if (!$select_season_id) {
+                return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES], []);
+
+            }
             $res = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get();
 
             if ($res && $players_stats = json_decode($res->players_stats, true)) {
+
                 foreach ($players_stats as $players_stat) {
                     if ($players_stat['player']['id'] == $player_id) {
 
                         //比赛
                         $stat_data['match']['matches'] = $players_stat['matches']; //出场
                         $stat_data['match']['first'] = $players_stat['first']; //首发
-                        $stat_data['match']['minutes_played'] = $players_stat['minutes_played'];//场均时间
-                        $stat_data['match']['minutes_played_per_match'] = number_format($players_stat['minutes_played']/$players_stat['matches'],1);//场均时间
+                        $stat_data['match']['minutes_played'] = $players_stat['minutes_played'];//出场时间
+                        $stat_data['match']['minutes_played_per_match'] = AppFunc::getAverageData($players_stat['minutes_played'], $players_stat['matches']);//场均时间
                         //进攻
                         $stat_data['goal']['goals'] = $players_stat['goals'];//进球
                         $stat_data['goal']['penalty'] = $players_stat['penalty'];//点球
-                        $stat_data['goal']['penalty_per_match'] = number_format($players_stat['penalty']/$players_stat['matches'],1);//场均点球
-                        $stat_data['goal']['goals_per_match'] = number_format($players_stat['goals']/$players_stat['matches'],1);//场均进球
+                        $stat_data['goal']['penalty_per_match'] = AppFunc::getAverageData($players_stat['penalty'], $players_stat['matches']);//场均点球
+
+
+
+                        $stat_data['goal']['goals_per_match'] = AppFunc::getAverageData($players_stat['goals'], $players_stat['matches']);//场均进球
+
+
                         $stat_data['goal']['cost_time_per_goal'] = number_format($players_stat['minutes_played']/$players_stat['goals'],1);//每球耗时
-                        $stat_data['goal']['shots_per_match'] = number_format($players_stat['shots']/$players_stat['matches'],1);//场均射门
+                        $stat_data['goal']['cost_time_per_goal'] = AppFunc::getAverageData($players_stat['minutes_played'], $players_stat['goals']);//每球耗时
+
+
+                        $stat_data['goal']['shots_per_match'] = AppFunc::getAverageData($players_stat['shots'], $players_stat['matches']);//场均射门
+
+
                         $stat_data['goal']['shots'] = $players_stat['shots'];//射门总数
                         $stat_data['goal']['was_fouled'] = $players_stat['was_fouled'];//被犯规
                         $stat_data['goal']['shots_on_target_per_match'] = number_format($players_stat['shots_on_target']/$players_stat['matches'],1);//场均射正
+                        $stat_data['goal']['shots_on_target_per_match'] = AppFunc::getAverageData($players_stat['shots_on_target'], $players_stat['matches']);//场均射正
+
+
+
                         //组织
                         $stat_data['pass']['assists'] = $players_stat['assists'];//助攻
-                        $stat_data['pass']['assists_per_match'] = number_format($players_stat['assists']/$players_stat['matches'],1);//场均助攻
-                        $stat_data['pass']['key_passes_per_match'] = number_format($players_stat['key_passes']/$players_stat['matches'],1);//场均关键传球
+                        $stat_data['pass']['assists_per_match'] = AppFunc::getAverageData($players_stat['assists'], $players_stat['matches']);//场均助攻
+
+
+                        $stat_data['pass']['key_passes_per_match'] = AppFunc::getAverageData($players_stat['key_passes'], $players_stat['matches']);//场均关键传球
+
+
                         $stat_data['pass']['key_passes'] = $players_stat['key_passes'];//关键传球
                         $stat_data['pass']['passes'] = $players_stat['passes'];//传球
-                        $stat_data['pass']['passes_per_match'] = number_format($players_stat['passes']/$players_stat['matches'],1);//传球
-                        $stat_data['pass']['passes_accuracy_per_match'] = number_format($players_stat['passes_accuracy']/$players_stat['matches'],1);//场均成功传球
+                        $stat_data['pass']['passes_per_match'] = AppFunc::getAverageData($players_stat['passes'], $players_stat['matches']);//传球
+
+
+                        $stat_data['pass']['passes_accuracy_per_match'] = AppFunc::getAverageData($players_stat['passes_accuracy'], $players_stat['matches']);//场均成功传球
+
+
                         $stat_data['pass']['passes_accuracy'] = $players_stat['passes_accuracy'];//成功传球
 
                         //防守
-                        $stat_data['defense']['tackles_per_match'] = number_format($players_stat['tackles']/$players_stat['matches'],1);//场均抢断
+                        $stat_data['defense']['tackles_per_match'] = AppFunc::getAverageData($players_stat['tackles'], $players_stat['matches']);//场均抢断
+
+
+
                         $stat_data['defense']['tackles'] = $players_stat['tackles'];//场均抢断
-                        $stat_data['defense']['interceptions_per_match'] = number_format($players_stat['interceptions']/$players_stat['matches'],1);//场均拦截
+                        $stat_data['defense']['interceptions_per_match'] = AppFunc::getAverageData($players_stat['interceptions'], $players_stat['matches']);//场均拦截
+
+
                         $stat_data['defense']['interceptions'] = $players_stat['interceptions'];//场均拦截
-                        $stat_data['defense']['clearances_per_match'] = number_format($players_stat['clearances']/$players_stat['matches'],1);//场均解围
+                        $stat_data['defense']['clearances_per_match'] = AppFunc::getAverageData($players_stat['clearances'], $players_stat['matches']);//场均解围
+
+
                         $stat_data['defense']['clearances'] = $players_stat['clearances'];//场均解围
                         $stat_data['defense']['blocked_shots'] = $players_stat['blocked_shots'];//有效阻挡
-                        $stat_data['defense']['blocked_shots_per_match'] = number_format($players_stat['blocked_shots']/$players_stat['matches'],1);//场均解围
+                        $stat_data['defense']['blocked_shots_per_match'] = AppFunc::getAverageData($players_stat['blocked_shots'], $players_stat['matches']);//场均解围
 
                         //其他
-                        $stat_data['other']['dribble_succ_per_match'] = number_format($players_stat['dribble_succ']/$players_stat['matches'],1); //场均过人成功
-                        $stat_data['other']['duels_won_succ_per_match'] = number_format($players_stat['duels_won']/$players_stat['matches'],1); //场均1对1拼抢成功
-                        $stat_data['other']['fouls_per_match'] = number_format($players_stat['fouls']/$players_stat['matches'],1); //场均犯规
-                        $stat_data['other']['was_fouled_per_match'] = number_format($players_stat['was_fouled']/$players_stat['matches'],1); //场均被犯规
-                        $stat_data['other']['yellow_cards_per_match'] = number_format($players_stat['yellow_cards']/$players_stat['matches'],1); //黄牌场均
-                        $stat_data['other']['red_cards_per_match'] = number_format($players_stat['red_cards']/$players_stat['matches'],1); //红牌场均
+                        $stat_data['other']['dribble_succ_per_match'] = AppFunc::getAverageData($players_stat['dribble_succ'], $players_stat['matches']); //场均过人成功
+
+
+                        $stat_data['other']['duels_won_succ_per_match'] = AppFunc::getAverageData($players_stat['duels_won'], $players_stat['matches']); //场均1对1拼抢成功
+                        $stat_data['other']['fouls_per_match'] = AppFunc::getAverageData($players_stat['fouls'], $players_stat['matches']); //场均犯规
+                        $stat_data['other']['was_fouled_per_match'] = AppFunc::getAverageData($players_stat['was_fouled'], $players_stat['matches']); //场均被犯规
+                        $stat_data['other']['yellow_cards_per_match'] = AppFunc::getAverageData($players_stat['yellow_cards'], $players_stat['matches']); //黄牌场均
+                        $stat_data['other']['red_cards_per_match'] = AppFunc::getAverageData($players_stat['red_cards'], $players_stat['matches']); //红牌场均
                         break;
 
                     } else {
@@ -608,7 +642,6 @@ class DataApi extends FrontUserController{
                     }
                 }
                 $return_data['stat_data'] = $stat_data;
-                $return_data['season_list'] = $season;
             }
         } else {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -1239,7 +1272,7 @@ class DataApi extends FrontUserController{
             $list = $team_competition->all(null);
             $total = $team_competition->lastQueryResult()->getTotalCount();
         } else if ($type == 3) { //球员
-            $model_player = AdminPlayer::getInstance()->where("name_zh like '%" . $key_word. "%'")->field(['player_id, name_zh, logo'])->getLimit($page, $size);
+            $model_player = AdminPlayer::getInstance()->where("name_zh like '%" . $key_word. "%'")->field(['player_id, name_zh, logo'])->order('market_value', 'DESC')->getLimit($page, $size);
             $list = $model_player->all(null);
             $total = $model_player->lastQueryResult()->getTotalCount();
         }

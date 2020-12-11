@@ -1006,6 +1006,10 @@ class AppFunc
         return $return;
     }
 
-
+    public static function getAverageData($data, $match)
+    {
+        if (!$match || !$data) return '0';
+        return number_format($data/$match,1);
+    }
 
 }
