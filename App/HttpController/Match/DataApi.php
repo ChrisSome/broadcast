@@ -866,17 +866,18 @@ class DataApi extends FrontUserController{
             }
             $team_match_num = $team_info['matches'];
             //球队数据
+
             $team_data = [
                 'goals' => $team_info['goals'], //进球
                 'penalty' => $team_info['penalty'],//点球
-                'shots_per_match' => !empty($team_info['shots']) ? number_format($team_info['shots']/$team_match_num,1) : 0,//场均射门
-                'shots_on_target_per_match' => !empty($team_info['shots_on_target']) ? number_format($team_info['shots_on_target']/$team_match_num,1) : 0,//场均射正
-                'penalty_per_match' => number_format($team_info['penalty']/$team_match_num,1),//场均角球
-                'passes_per_match' => number_format($team_info['passes']/$team_match_num,1),//场均传球
-                'key_passes_per_match' => number_format($team_info['key_passes']/$team_match_num,1),//场均关键传球
-                'passes_accuracy_per_match' => number_format($team_info['passes_accuracy']/$team_match_num,1),//场均成功传球
-                'crosses_per_match' => number_format($team_info['crosses']/$team_match_num,1),//场均过人
-                'crosses_accuracy_per_match' => number_format($team_info['crosses_accuracy']/$team_match_num,1),//场均成功过人
+                'shots_per_match' => AppFunc::getAverageData($team_info['shots'], $team_match_num),//场均射门
+                'shots_on_target_per_match' => AppFunc::getAverageData($team_info['shots_on_target'], $team_match_num),//场均射正
+                'penalty_per_match' => AppFunc::getAverageData($team_info['penalty'], $team_match_num),//场均角球
+                'passes_per_match' => AppFunc::getAverageData($team_info['passes'], $team_match_num),//场均传球
+                'key_passes_per_match' => AppFunc::getAverageData($team_info['key_passes'], $team_match_num),//场均关键传球
+                'passes_accuracy_per_match' => AppFunc::getAverageData($team_info['passes_accuracy'], $team_match_num),//场均成功传球
+                'crosses_per_match' => AppFunc::getAverageData($team_info['crosses'], $team_match_num),//场均过人
+                'crosses_accuracy_per_match' => AppFunc::getAverageData($team_info['crosses_accuracy'], $team_match_num),//场均成功过人
                 'goals_against' => $team_info['goals_against'],//失球
                 'fouls' => $team_info['fouls'],//犯规
                 'was_fouled' => $team_info['was_fouled'],//被犯规
@@ -994,11 +995,6 @@ class DataApi extends FrontUserController{
                     'most_red_cards' => FrontService::formatKeyPlayer(isset($most_red_cards) ? $most_red_cards : [], 'red_cards'),
                     'most_minutes_played' => FrontService::formatKeyPlayer(isset($most_minutes_played) ? $most_minutes_played : [], 'minutes_played'),
                 ];
-
-
-
-
-
             }
             $returnData = [
                 'team_data' => $team_data,
@@ -1008,22 +1004,21 @@ class DataApi extends FrontUserController{
 
         } else if ($type == 5) {//阵容
 
-            $player_stat = [];
-            if ($decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get()) {
-                $player_stat = json_decode($decodeDatas['players_stats'], true);
-
-            }
+//            $player_stat = [];
+//            if ($decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get()) {
+//                $player_stat = json_decode($decodeDatas['players_stats'], true);
+//
+//            }
             $players_team = [];
 
-            foreach ($player_stat as $tk => $player_item) {
-
-                if ($player_item['team']['id'] == $team->team_id) {
-                    $players_team[] = $player_item;
-                } else {
-                    continue;
-                }
-            }
-
+//            foreach ($player_stat as $tk => $player_item) {
+//
+//                if ($player_item['team']['id'] == $team->team_id) {
+//                    $players_team[] = $player_item;
+//                } else {
+//                    continue;
+//                }
+//            }
 
             $manager = $team->getManager();
             $manager_info = [
@@ -1033,19 +1028,16 @@ class DataApi extends FrontUserController{
             ];
 
             $squad = AdminTeamLineUp::getInstance()->where('team_id', $team->team_id)->get();
-
             foreach (json_decode($squad->squad, true) as $squad_item) {
-
-                foreach ($players_team as $player_team) {
-
-                    if ($squad_item['player']['id'] == $player_team['player']['id']) {
-                        $player['matches'] = $player_team['matches'];
-                        $player['goals'] = $player_team['goals'];
-                        $player['assists'] = $player_team['assists'];
-                        break;
-                    }
-
-                }
+//                foreach ($players_team as $player_team) {
+//                    if ($squad_item['player']['id'] == $player_team['player']['id']) {
+//                        $player['matches'] = $player_team['matches'];
+//                        $player['goals'] = $player_team['goals'];
+//                        $player['assists'] = $player_team['assists'];
+//                        break;
+//                    }
+//
+//                }
                 $player['name_zh'] = $squad_item['player']['name_zh'];
                 $player['player_id'] = $squad_item['player']['id'];
                 $player['shirt_number'] = $squad_item['shirt_number'];
@@ -1053,13 +1045,12 @@ class DataApi extends FrontUserController{
                 $player['logo'] = !empty($player_info->logo) ? $player_info->logo : '';
                 $player['format_market_value'] = AppFunc::changeToWan($player_info['market_value']);
                 $player_list[$squad_item['position']][] = $player;
-
             }
 
             $player_list['C'] = $manager_info; //教练
 
 
-            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $player_list);
+            return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $select_season_id);
 
         }
 

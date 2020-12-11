@@ -778,14 +778,11 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        $table_detail = SeasonAllTableDetail::getInstance()->where('season_id', 9874)->get();
-
-//            $decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', 9863)->get();
-//        $players_stats = json_decode($decodeDatas['players_stats'], true);
-        $promotions = json_decode($table_detail->promotions, true);
-        $tables = json_decode($table_detail->tables, true);
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], [$promotions, $tables]);
+//        if ($decodeDatas = SeasonTeamPlayer::getInstance()->where('season_id', $select_season_id)->get()) {
+//            $player_stat = json_decode($decodeDatas['players_stats'], true);
+//
+//        }
+//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], [$promotions, $tables]);
 
     }
 

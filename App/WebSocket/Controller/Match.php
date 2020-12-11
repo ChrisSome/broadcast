@@ -153,9 +153,7 @@ class Match extends Base
                 'lastMessage' => $messages,
                 'stats' => $stats,
                 'tlive' => $tlive,
-
             ],
-
         ];
         $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $respon));
 

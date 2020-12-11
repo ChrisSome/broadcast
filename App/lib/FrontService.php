@@ -473,36 +473,6 @@ class  FrontService {
         return $data;
     }
 
-    /**
-     * 处理球员数据 得到各种榜单
-     * @param $players
-     * @param $column
-     * @return array
-     */
-    public static function handBestPlayerTable($players, $column)
-    {
-        if (!$players) {
-            $table = [];
-        }
-        $i = 0;
-        foreach ($players as $k => $player) {
-            if ($player[$column] == 0) {
-                continue;
-            }
-            if ($i == 100) {
-                break;
-            }
-            $data['player_id'] = $player['player']['id'];
-            $data['name_zh'] = $player['player']['name_zh'];
-            $data['team_logo'] = self::TEAM_LOGO . $player['team']['logo'];
-            $data['player_logo'] = self::PLAYER_LOGO . $player['player']['logo'];
-            $data['total'] = $player[$column];
-            $table[] = $data;
-            unset($data);
-            $i++;
-        }
-        return isset($table) ? $table : [];
-    }
 
     /**
      * 关键球员
@@ -522,34 +492,6 @@ class  FrontService {
         return $data;
     }
 
-    /**
-     * 处理球员数据 得到各种榜单
-     * @param $data
-     * @param $column
-     * @return array
-     */
-    public static function handBestTeamTable($data, $column)
-    {
-        if (!$data || !isset($data['teams_stats'])) {
-            $table = [];
-        }
-        foreach ($data as $k => $player) {
-//            $data['position'] = $k+1;
-            $return['team_id'] = $player['team']['id'];
-            $return['name_zh'] = $player['team']['name_zh'];
-            $return['team_logo'] = self::TEAM_LOGO . $player['team']['logo'];
-            if (isset($player[$column])) {
-                $return['total'] = $player[$column];
-
-            } else {
-                $return['total'] = [];
-            }
-            $table[] = $return;
-            unset($return);
-        }
-
-        return isset($table) ? $table : [];
-    }
 
 
 
