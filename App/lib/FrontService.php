@@ -483,7 +483,7 @@ class  FrontService {
 
     public static function formatKeyPlayer($item, $column)
     {
-        if (!$item) return [];
+        if (empty($item)) return [];
 
         $data['player_id'] = $item['player']['id'];
         $data['name_zh'] = $item['player']['name_zh'];

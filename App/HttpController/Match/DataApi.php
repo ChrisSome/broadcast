@@ -841,8 +841,8 @@ class DataApi extends FrontUserController{
                     unset($format_data);
                 }
             }
-            $match_time = array_column($match, 'match_time');
-            array_multisort($match_time,SORT_DESC,$match);
+//            $match_time = array_column($match, 'match_time');
+//            array_multisort($match_time,SORT_DESC,$match);
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $match);
 
         } else if ($type == 4) {
@@ -953,8 +953,8 @@ class DataApi extends FrontUserController{
                     }
 
                     if ($player_item['saves']) {
-                        if (!isset($most_clearances) || $player_item['saves'] >= $most_clearances['saves']) {
-                            $most_clearances = $player_item;
+                        if (!isset($most_saves) || $player_item['saves'] >= $most_saves['saves']) {
+                            $most_saves = $player_item;
                         }
                     }
 
@@ -981,19 +981,19 @@ class DataApi extends FrontUserController{
 
 
                 $key_players = [
-                    'most_goals' => FrontService::formatKeyPlayer(isset($most_goals) ? $most_goals : [], 'goals'),
-                    'most_assists' => FrontService::formatKeyPlayer(isset($most_assists) ? $most_assists : [], 'assists'),
-                    'most_shots' => FrontService::formatKeyPlayer(isset($most_shots) ? $most_shots : [], 'shots'),
-                    'most_shots_on_target' => FrontService::formatKeyPlayer(isset($most_most_shots_on_target) ? $most_most_shots_on_target : [], 'most_shots_on_target'),
-                    'most_passes' => FrontService::formatKeyPlayer(isset($most_passes) ? $most_passes : [], 'passes'),
-                    'most_passes_accuracy' => FrontService::formatKeyPlayer(isset($most_passes_accuracy) ? $most_passes_accuracy : [], 'passes_accuracy'),
-                    'most_key_passes' => FrontService::formatKeyPlayer(isset($most_key_passes) ? $most_key_passes : [], 'key_passes'),
-                    'most_interceptions' => FrontService::formatKeyPlayer(isset($most_interceptions) ? $most_interceptions : [], 'interceptions'),
-                    'most_clearances' => FrontService::formatKeyPlayer(isset($most_clearances) ? $most_clearances : [], 'clearances'),
-                    'most_saves' => FrontService::formatKeyPlayer(isset($most_saves) ? $most_saves : [], 'saves'),
-                    'most_yellow_cards' => FrontService::formatKeyPlayer(isset($most_yellow_cards) ? $most_yellow_cards : [], 'yellow_cards'),
-                    'most_red_cards' => FrontService::formatKeyPlayer(isset($most_red_cards) ? $most_red_cards : [], 'red_cards'),
-                    'most_minutes_played' => FrontService::formatKeyPlayer(isset($most_minutes_played) ? $most_minutes_played : [], 'minutes_played'),
+                    'most_goals' => FrontService::formatKeyPlayer($most_goals, 'goals'),
+                    'most_assists' => FrontService::formatKeyPlayer($most_assists, 'assists'),
+                    'most_shots' => FrontService::formatKeyPlayer($most_shots, 'shots'),
+                    'most_shots_on_target' => FrontService::formatKeyPlayer($most_shots_on_target, 'most_shots_on_target'),
+                    'most_passes' => FrontService::formatKeyPlayer($most_passes, 'passes'),
+                    'most_passes_accuracy' => FrontService::formatKeyPlayer($most_passes_accuracy, 'passes_accuracy'),
+                    'most_key_passes' => FrontService::formatKeyPlayer($most_key_passes, 'key_passes'),
+                    'most_interceptions' => FrontService::formatKeyPlayer($most_interceptions, 'interceptions'),
+                    'most_clearances' => FrontService::formatKeyPlayer($most_clearances, 'clearances'),
+                    'most_saves' => FrontService::formatKeyPlayer($most_saves, 'saves'),
+                    'most_yellow_cards' => FrontService::formatKeyPlayer($most_yellow_cards, 'yellow_cards'),
+                    'most_red_cards' => FrontService::formatKeyPlayer($most_red_cards, 'red_cards'),
+                    'most_minutes_played' => FrontService::formatKeyPlayer($most_minutes_played, 'minutes_played'),
                 ];
             }
             $returnData = [
