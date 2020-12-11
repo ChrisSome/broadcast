@@ -573,7 +573,6 @@ class DataApi extends FrontUserController{
                         $stat_data['goal']['goals_per_match'] = AppFunc::getAverageData($players_stat['goals'], $players_stat['matches']);//场均进球
 
 
-                        $stat_data['goal']['cost_time_per_goal'] = number_format($players_stat['minutes_played']/$players_stat['goals'],1);//每球耗时
                         $stat_data['goal']['cost_time_per_goal'] = AppFunc::getAverageData($players_stat['minutes_played'], $players_stat['goals']);//每球耗时
 
 
@@ -582,7 +581,6 @@ class DataApi extends FrontUserController{
 
                         $stat_data['goal']['shots'] = $players_stat['shots'];//射门总数
                         $stat_data['goal']['was_fouled'] = $players_stat['was_fouled'];//被犯规
-                        $stat_data['goal']['shots_on_target_per_match'] = number_format($players_stat['shots_on_target']/$players_stat['matches'],1);//场均射正
                         $stat_data['goal']['shots_on_target_per_match'] = AppFunc::getAverageData($players_stat['shots_on_target'], $players_stat['matches']);//场均射正
 
 
