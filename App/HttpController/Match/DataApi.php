@@ -900,11 +900,9 @@ class DataApi extends FrontUserController{
             $team_stat = json_decode($decodeDatas['teams_stats'], true);
 
             foreach ($team_stat as $team_item) {
-
                 if ($team_item['team']['id'] == $team->team_id) {
-
                     $team_info = $team_item;
-
+                    break;
                 }
             }
 
