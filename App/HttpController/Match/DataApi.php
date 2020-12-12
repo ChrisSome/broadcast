@@ -732,6 +732,8 @@ class DataApi extends FrontUserController{
             if ($seasonAllTableDetail = SeasonAllTableDetail::getInstance()->where('season_id', $select_season_id)->get()) {
                 $promotions = json_decode($seasonAllTableDetail->promotions, true);
                 $tables = json_decode($seasonAllTableDetail->tables, true);
+//                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], [$promotions, $tables]);
+
                 if ($promotions) {
                     foreach ($tables['rows'] as $row) {
                         $promotion_name_zh = '';
@@ -792,13 +794,13 @@ class DataApi extends FrontUserController{
 
             //赛制说明
             $competition_describe = '';
-//            if ($competition_rules = AdminCompetitionRuleList::getInstance()->where('competition_id', $team->competition_id)->all()) {
-//                foreach ($competition_rules as $competition_rule) {
-//                    if (in_array($select_season_id ,json_decode($competition_rule->season_ids, true))) {
-//                        $competition_describe = $competition_rule->text;
-//                    }
-//                }
-//            }
+            if ($competition_rules = AdminCompetitionRuleList::getInstance()->where('competition_id', $team->competition_id)->all()) {
+                foreach ($competition_rules as $competition_rule) {
+                    if (in_array($select_season_id ,json_decode($competition_rule->season_ids, true))) {
+                        $competition_describe = $competition_rule->text;
+                    }
+                }
+            }
 
             $return_data = [
                 'table' => $dataT,
