@@ -792,13 +792,13 @@ class DataApi extends FrontUserController{
 
             //赛制说明
             $competition_describe = '';
-            if ($competition_rules = AdminCompetitionRuleList::getInstance()->where('competition_id', $team->competition_id)->all()) {
-                foreach ($competition_rules as $competition_rule) {
-                    if (in_array($select_season_id ,json_decode($competition_rule->season_ids, true))) {
-                        $competition_describe = $competition_rule->text;
-                    }
-                }
-            }
+//            if ($competition_rules = AdminCompetitionRuleList::getInstance()->where('competition_id', $team->competition_id)->all()) {
+//                foreach ($competition_rules as $competition_rule) {
+//                    if (in_array($select_season_id ,json_decode($competition_rule->season_ids, true))) {
+//                        $competition_describe = $competition_rule->text;
+//                    }
+//                }
+//            }
 
             $return_data = [
                 'table' => $dataT,
@@ -810,6 +810,7 @@ class DataApi extends FrontUserController{
 
         } else if ($type == 3) {
             //赛程
+
             $format_data = [];
 
             $decodeDatas = SeasonMatchList::getInstance()->where('season_id', $select_season_id)->all();
@@ -831,51 +832,12 @@ class DataApi extends FrontUserController{
 
                     $format_match[] = $format_data;
 
-
-
-
-
-
-
-
-
-//                    $data_match[] = $decodeData;
-
-
-
-
-
-
-
-
                 } else {
                     continue;
                 }
             }
 
-//            $competition_short_name_zh = $team->getCompetition()->short_name_zh;
-//            $match = [];
-//            if (!empty($data_match)) {
-//                foreach ($data_match as $match_item) {
-//                    $decode_home_score = json_decode($match_item['home_scores'], true);
-//                    $decode_away_score = json_decode($match_item['away_scores'], true);
-//                    $home_team = AdminTeam::getInstance()->field(['team_id', 'name_zh'])->where('team_id', $match_item['home_team_id'])->get();
-//                    $away_team = AdminTeam::getInstance()->field(['team_id', 'name_zh'])->where('team_id', $match_item['away_team_id'])->get();
-//                    $format_data['match_id'] = $match_item['id'];
-//                    $format_data['match_time'] = date('Y-m-d', $match_item['match_time']);
-//                    $format_data['competition_short_name_zh'] = $competition_short_name_zh;
-//                    $format_data['home_team_name_zh'] = $home_team->name_zh;
-//                    $format_data['away_team_name_zh'] =$away_team->name_zh;
-//                    list($format_data['home_scores'], $format_data['away_scores']) = AppFunc::getFinalScore($decode_home_score, $decode_away_score);
-//                    list($format_data['half_home_scores'], $format_data['half_away_scores']) = AppFunc::getHalfScore($decode_home_score, $decode_away_score);
-//                    list($format_data['home_corner'], $format_data['away_corner']) = AppFunc::getCorner($decode_home_score, $decode_away_score);//角球
-//
-//                    $match[] = $format_data;
-//                    unset($format_data);
-//                }
-//            }
-//            $match_time = array_column($match, 'match_time');
-//            array_multisort($match_time,SORT_DESC,$match);
+
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $format_match);
 
         } else if ($type == 4) {

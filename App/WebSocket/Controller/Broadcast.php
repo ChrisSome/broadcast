@@ -40,10 +40,9 @@ class Broadcast extends Base
         } else {
             $type = 1;
         }
-        $sender_user_id = $broadcastPayload['sender_user_id'] ?: 0;
         $server = ServerManager::getInstance()->getSwooleServer();
 
-        if (!$sender_user_id) {
+        if (!$sender_user_id = $broadcastPayload['sender_user_id']) {
             return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
         }
 
