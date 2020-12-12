@@ -89,9 +89,9 @@ class System extends FrontUserController
                 if ($this->params['phone_type'] == 'test') {
                     $data['shield_live'] = 1;
                 }
+                $data['wgt_url'] = $value['wgt_url'];
 
             }
-            $data['wgt_url'] = 'http://download.yemaoty.cn/WGT/__UNI__0AC1311.wgt';
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
         } else {

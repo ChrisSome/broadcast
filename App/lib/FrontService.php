@@ -484,7 +484,7 @@ class  FrontService {
     public static function formatKeyPlayer($item, $column)
     {
         if (empty($item)) return [];
-
+        if (!isset($item[$column])) return [];
         $data['player_id'] = $item['player']['id'];
         $data['name_zh'] = $item['player']['name_zh'];
         $data['player_logo'] = self::PLAYER_LOGO . $item['player']['logo'];

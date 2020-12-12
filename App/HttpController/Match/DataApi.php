@@ -732,7 +732,6 @@ class DataApi extends FrontUserController{
             if ($seasonAllTableDetail = SeasonAllTableDetail::getInstance()->where('season_id', $select_season_id)->get()) {
                 $promotions = json_decode($seasonAllTableDetail->promotions, true);
                 $tables = json_decode($seasonAllTableDetail->tables, true);
-//                return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], [$promotions, $tables]);
 
                 if ($promotions) {
                     foreach ($tables['rows'] as $row) {
@@ -887,6 +886,18 @@ class DataApi extends FrontUserController{
             $key_players = [];
             if (!empty($player_stat)) {
                 $most_goals = [];
+                $most_assists = [];
+                $most_shots = [];
+                $most_shots_on_target = [];
+                $most_passes = [];
+                $most_passes_accuracy = [];
+                $most_key_passes = [];
+                $most_interceptions = [];
+                $most_clearances = [];
+                $most_saves = [];
+                $most_yellow_cards = [];
+                $most_red_cards = [];
+                $most_minutes_played = [];
                 foreach ($player_stat as $tk => $player_item) {
 
                     if ($player_item['team']['id'] != $team->team_id) {

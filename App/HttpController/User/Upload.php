@@ -85,7 +85,6 @@ class Upload extends FrontUserController
         $ossClient = new OssService($sUploadType);
         $res = $ossClient->uploadFile($baseName, $tempFile);
         $returnData['imgUrl'] = $res['imgUrl'];
-
         if ($res['status'] == Status::CODE_OK) {
             return $this->writeJson(Status::CODE_OK, '', $returnData);
 

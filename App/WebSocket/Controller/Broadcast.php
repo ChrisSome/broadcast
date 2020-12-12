@@ -9,6 +9,7 @@
 namespace App\WebSocket\Controller;
 
 use App\lib\Tool;
+use App\Storage\OnlineUser;
 use App\Task\BroadcastTask;
 use App\Utility\Log\Log;
 use App\WebSocket\Actions\Broadcast\BroadcastMessage;
@@ -47,6 +48,15 @@ class Broadcast extends Base
         }
 
         if (!$bool = $this->checkUserRight($client->getFd(), $broadcastPayload, $message)) {
+            return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
+
+        }
+
+
+        if (!$onlineUser = OnlineUser::getInstance()->get($client->getFd())) {
+            return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
+
+        } else if (!$onlineUser['match_id']) {
             return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
 
         }

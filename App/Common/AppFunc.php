@@ -13,6 +13,7 @@ use App\Model\AdminSysSettings;
 use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
 use App\Model\AdminZoneList;
+use App\Storage\OnlineUser;
 use easySwoole\Cache\Cache;
 use EasySwoole\Redis\Redis as Redis;
 use EasySwoole\RedisPool\Redis as RedisPool;
@@ -759,6 +760,7 @@ class AppFunc
         if (!$match_id || !AdminMatch::getInstance()->where('match_id')->get()) {
             return false;
         } else {
+            OnlineUser::getInstance()->update($fd, ['match_id' => 0]);
             RedisPool::invoke('redis', function(Redis $redis) use ($match_id, $fd) {
                 $redis->sRem(sprintf(self::USERS_IN_ROOM, $match_id), $fd);
             });
