@@ -62,6 +62,7 @@ class Router extends AbstractRouter
             $r->addRoute(['POST'], '/user/interestCompetition', '/User/User/userInterestCompetition');   //  用户关注赛事
             $r->addRoute(['GET'], '/user/unBindWx', '/User/User/unBindWx');   //  用户解绑微信
             $r->addRoute(['GET'], '/system/sensitiveWord', '/User/system/sensitiveWord');   //  敏感词
+            $r->addRoute(['GET'], '/user/checkUser', '/User/User/checkUserStatus');   //  检查用户状态
 
 
             //社区部分

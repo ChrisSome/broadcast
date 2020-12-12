@@ -379,7 +379,8 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
 
         }
-
+        $page = $this->params['page'] ?: 1;
+        $limit = $this->params['size'] ?: 20;
         $res = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->get();
         if (!$res) {
             $data = [];
@@ -388,8 +389,14 @@ class FootballApi extends FrontUserController
             if (!$matchIds) {
                 $data = [];
             } else {
-                $matches = AdminMatch::getInstance()->where('match_id', $matchIds, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
-                $data = FrontService::formatMatchTwo($matches, $this->auth['id']);
+                $formatMatchId = array_slice($matchIds, ($page - 1) * $limit, $limit);
+                if ($formatMatchId && is_array($formatMatchId)) {
+                    $matches = AdminMatch::getInstance()->where('match_id', $formatMatchId, 'in')->where('is_delete', 0)->order('match_time', 'ASC')->all();
+                    $data = FrontService::formatMatchTwo($matches, $this->auth['id']);
+                } else {
+                    $data = [];
+                }
+
 
             }
         }

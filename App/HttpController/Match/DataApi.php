@@ -670,7 +670,6 @@ class DataApi extends FrontUserController{
             $season = [];
         }
 
-//        $current_season_id = !empty($competition->cur_season_id) ? $competition->cur_season_id : end($season)['id'];
         $current_season_id = $competition->cur_season_id;
         if ($type == 1) {
             //球队基本资料
@@ -919,7 +918,7 @@ class DataApi extends FrontUserController{
                     }
 
                     if ($player_item['shots']) {
-                        if (!isset($most_shots) || $player_item['assists'] >= $most_shots['shots']) {
+                        if (!isset($most_shots) || $player_item['shots'] >= $most_shots['shots']) {
                             $most_shots = $player_item;
                         }
                     }

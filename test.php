@@ -1,3 +1,7 @@
 <?php
-$a = number_format(0/0,1);
-var_dump($a);
+
+for ($i = 0; $i <= 20; $i++) {
+    $arr[] = $i;
+}
+$m = array_slice($arr, 0, 10);
+var_dump($m);

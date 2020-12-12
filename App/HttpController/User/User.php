@@ -630,5 +630,21 @@ class User extends FrontUserController
     }
 
 
+    public function checkUserStatus()
+    {
+        $uid = $this->auth['id'];
+        $bool = false;
+        if ($user = AdminUser::getInstance()->where('id', $uid)->get()) {
+            if (in_array($user->status, [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
+                $bool = true;
+            } else {
+                $bool = false;
+            }
+        }
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $bool);
+
+    }
+
+
 
 }
