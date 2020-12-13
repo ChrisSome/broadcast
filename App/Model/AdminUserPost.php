@@ -142,7 +142,6 @@ class AdminUserPost extends BaseModel
         }
         $where = ['id'=>$id, 'status'=>self::STATUS_EXAMINE_SUCC];
         return $this->get($where);
-//        return $this->where('id', $id)->all();
     }
 
 

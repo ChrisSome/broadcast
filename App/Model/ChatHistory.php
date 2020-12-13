@@ -32,4 +32,15 @@ class ChatHistory extends BaseModel
         return $this->hasOne(AdminUser::class, null, 'at_user_id', 'id');
 
     }
+
+
+    protected function setContentAttr($value, $data)
+    {
+        return base64_encode($value);
+    }
+
+    protected function getContentAttr($value, $data)
+    {
+        return base64_encode($value);
+    }
 }

@@ -112,7 +112,9 @@ class BroadcastMessage extends ActionPayload
      */
     public function setContent($content): void
     {
-        $this->content = $content;
+//        'content'        => base64_encode(htmlspecialchars(addslashes($aMessage['content']))),
+
+        $this->content = base64_encode(addslashes($content));
     }
 
     /**

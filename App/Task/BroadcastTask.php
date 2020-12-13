@@ -68,7 +68,7 @@ class BroadcastTask implements TaskInterface
         }
         $messageData = [
             'sender_user_id' => $aMessage['fromUserId'],
-            'content'        => htmlspecialchars(addslashes($aMessage['content'])),
+            'content'        => $aMessage['content'],
             'type'           => $aMessage['type'],
             'match_id'       => $aMessage['matchId'],
             'with_message_id' => isset($aMessage['with_message_id']) ? (int)$aMessage['with_message_id'] : 0,
@@ -98,13 +98,15 @@ class BroadcastTask implements TaskInterface
             $server->push($userOnline['fd'], $tool->writeJson(WebSocketStatus::STATUS_USER_NOT_FOUND, WebSocketStatus::$msg[WebSocketStatus::STATUS_USER_NOT_FOUND]));
             return;
         }
+        Log::getInstance()->info('params-' . $aMessage['content']);
+        Log::getInstance()->info('decode-params-' . $aMessage['content']);
         $returnData = [
             'event' => 'broadcast-roomBroadcast',
             'data' => [
                 'sender_user_info' => OnlineUser::getInstance()->get($aMessage['fromUserFd']),
                 'message_info' => [
                     'id' => $insertId,
-                    'content' => $aMessage['content']
+                    'content' => base64_decode($aMessage['content'])
                 ],
 
 

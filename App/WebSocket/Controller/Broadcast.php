@@ -54,24 +54,6 @@ class Broadcast extends Base
         }
 
 
-        if (!$onlineUser = OnlineUser::getInstance()->get($client->getFd())) {
-            return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
-
-        } else if (!$onlineUser['match_id']) {
-            return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
-
-        } else if (!$onlineUser['user_id']) {
-            return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
-
-        }
-
-        if (!$user = AdminUser::getInstance()->find(['id' => $onlineUser['user_id']])) {
-            return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
-
-        } else if (!in_array($user->status, [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
-            return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
-
-        }
         if (!empty($broadcastPayload) && isset($broadcastPayload['content']) && isset($broadcastPayload['match_id'])) {
 
             $message = new BroadcastMessage;
