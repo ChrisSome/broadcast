@@ -1055,6 +1055,7 @@ class DataApi extends FrontUserController{
 
     public function teamInfo()
     {
+
         $type = 1;
         if(!empty($this->params['type'])) $type = intval($this->params['type']);
 
@@ -1066,7 +1067,7 @@ class DataApi extends FrontUserController{
 
         //赛季  当前赛季
         $competitionId = intval($this->params['competition_id']);
-        if ($competition = AdminCompetition::getInstance()->find(['competition_id' => $competitionId]))
+        if (!$competition = AdminCompetition::getInstance()->find(['competition_id' => $competitionId]))
         return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
         $season = $competition->getSeason();
         $currentSeasonId = $selectSeasonId = $competition['cur_season_id'];
