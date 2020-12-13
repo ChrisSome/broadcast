@@ -33,7 +33,6 @@ class Broadcast extends Base
      */
     function roomBroadcast()
     {
-
         /** @var WebSocketClient $client */
         $client = $this->caller()->getClient();
         $broadcastPayload = $this->caller()->getArgs();
@@ -65,7 +64,7 @@ class Broadcast extends Base
 
         }
 
-        if ($user = AdminUser::getInstance()->find(['id' => $onlineUser['user_id']])) {
+        if (!$user = AdminUser::getInstance()->find(['id' => $onlineUser['user_id']])) {
             return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
 
         } else if (!in_array($user->status, [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {

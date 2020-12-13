@@ -53,7 +53,6 @@ class Match extends Base
         $matchId = $args['match_id'];
         $uid = $args['user_id'];
         if (!OnlineUser::getInstance()->get($fd)) {
-//                $mid = Login::getInstance()->getMid();
             $data = [
                 'match_id' => $matchId,
                 'fd'=> $fd,

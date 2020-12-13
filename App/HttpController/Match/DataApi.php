@@ -211,28 +211,33 @@ class DataApi extends FrontUserController{
                     $teams_stats = json_decode($decodeDatas['teams_stats'], true);
 
                     if ($type == 3) {
-                        array_walk($players_stats, function ($value) use(&$tables) {
-                            $data['player_id'] = $value['player']['id'];
-                            $data['name_zh'] = $value['player']['name_zh'];
-                            $data['team_logo'] = FrontService::TEAM_LOGO . $value['team']['logo'];
-                            $data['player_logo'] = FrontService::PLAYER_LOGO . $value['player']['logo'];
-                            $data['player_id'] = $value['player']['id'];//球员id
-                            $data['assists'] = $value['assists'];//助攻
-                            $data['shots'] = $value['shots'];//射门
-                            $data['shots_on_target'] = $value['shots_on_target'];//射正
-                            $data['passes'] = $value['passes'];//传球
-                            $data['passes_accuracy'] = $value['passes_accuracy'];//成功传球
-                            $data['key_passes'] = $value['key_passes'];//关键传球
-                            $data['interceptions'] = $value['interceptions'];//拦截
-                            $data['clearances'] = $value['clearances'];//解围
-                            $data['yellow_cards'] = $value['yellow_cards'];//黄牌
-                            $data['red_cards'] = $value['red_cards'];//红牌
-                            $data['minutes_played'] = $value['minutes_played'];//出场时间
-                            $data['goals'] = $value['goals'];//出场进球
-                            $tables[] = $data;
-                            unset($data);
+                        if ($players_stats) {
+                            array_walk($players_stats, function ($value) use(&$tables) {
+                                $data['player_id'] = $value['player']['id'];
+                                $data['name_zh'] = $value['player']['name_zh'];
+                                $data['team_logo'] = FrontService::TEAM_LOGO . $value['team']['logo'];
+                                $data['player_logo'] = FrontService::PLAYER_LOGO . $value['player']['logo'];
+                                $data['player_id'] = $value['player']['id'];//球员id
+                                $data['assists'] = $value['assists'];//助攻
+                                $data['shots'] = $value['shots'];//射门
+                                $data['shots_on_target'] = $value['shots_on_target'];//射正
+                                $data['passes'] = $value['passes'];//传球
+                                $data['passes_accuracy'] = $value['passes_accuracy'];//成功传球
+                                $data['key_passes'] = $value['key_passes'];//关键传球
+                                $data['interceptions'] = $value['interceptions'];//拦截
+                                $data['clearances'] = $value['clearances'];//解围
+                                $data['yellow_cards'] = $value['yellow_cards'];//黄牌
+                                $data['red_cards'] = $value['red_cards'];//红牌
+                                $data['minutes_played'] = $value['minutes_played'];//出场时间
+                                $data['goals'] = $value['goals'];//出场进球
+                                $tables[] = $data;
+                                unset($data);
 
-                        });
+                            });
+                        } else {
+                            $tables = [];
+                        }
+
 
                         $returnData = $tables;
                     }
