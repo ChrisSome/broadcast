@@ -10,6 +10,7 @@ use App\Model\AdminMatchTlive;
 use App\Model\AdminPlayer;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserInterestCompetition;
+use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
 use easySwoole\Cache\Cache;
@@ -379,8 +380,8 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_VERIFY_ERR, '登陆令牌缺失或者已过期');
 
         }
-        $page = $this->params['page'] ?: 1;
-        $limit = $this->params['size'] ?: 20;
+        $page = !empty($this->params['page']) ? (int)$this->params['page']: 1;
+        $limit = !empty($this->params['size']) ? (int)$this->params['size']: 20;
         $res = AdminInterestMatches::getInstance()->where('uid', $this->auth['id'])->get();
         if (!$res) {
             $data = [];
@@ -625,12 +626,12 @@ class FootballApi extends FrontUserController
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         } else if (!$match = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->get()) {
+
             return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH]);
 
         }
 
-        $match = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->get();
-        $formatMatch = FrontService::formatMatch([$match], $this->auth['id']);
+        $formatMatch = FrontService::formatMatchTwo([$match], $this->auth['id']);
         $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 

@@ -732,6 +732,7 @@ class DataApi extends FrontUserController{
                 $promotions = json_decode($seasonAllTableDetail->promotions, true);
                 $tables = json_decode($seasonAllTableDetail->tables, true);
 
+
                 if ($promotions) {
                     foreach ($tables['rows'] as $row) {
                         $promotion_name_zh = '';
