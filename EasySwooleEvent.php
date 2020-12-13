@@ -50,7 +50,7 @@ class EasySwooleEvent implements Event
         $redisPoolConfig = \EasySwoole\RedisPool\Redis::getInstance()->register('redis',$redisPoolConfig);
         //配置连接池连接数
         $redisPoolConfig->setMinObjectNum(5);
-        $redisPoolConfig->setMaxObjectNum(20);
+        $redisPoolConfig->setMaxObjectNum(50);
 
         //数据库
         $dbConf = Config::getInstance()->getConf('database')['MYSQL'];
