@@ -14,7 +14,7 @@ class AdminCompetition extends BaseModel
     }
 
     public function getLimit($page, $limit) {
-        return $this->order('competition_id', 'DESC')
+        return $this->order('competition_id', 'ASC')
             ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();
     }

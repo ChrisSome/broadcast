@@ -488,7 +488,8 @@ class DataApi extends FrontUserController{
         }
 
         //基本信息
-        $basic = AdminPlayer::getInstance()->field(['player_id', 'team_id', 'country_id'])->where('player_id', $player_id)->get();
+        $basic = AdminPlayer::getInstance()->where('player_id', $player_id)->get();
+
         if (!$basic) {
             return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
         }

@@ -49,8 +49,8 @@ class EasySwooleEvent implements Event
         $redisPoolConfig->setPort($redisConf['port']);
         $redisPoolConfig = \EasySwoole\RedisPool\Redis::getInstance()->register('redis',$redisPoolConfig);
         //配置连接池连接数
-        $redisPoolConfig->setMinObjectNum(5);
-        $redisPoolConfig->setMaxObjectNum(50);
+        $redisPoolConfig->setMinObjectNum(20);
+        $redisPoolConfig->setMaxObjectNum(100);
 
         //数据库
         $dbConf = Config::getInstance()->getConf('database')['MYSQL'];

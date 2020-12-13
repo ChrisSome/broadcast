@@ -20,7 +20,7 @@ class AdminTeam  extends BaseModel
 
     public function getLimit($page, $limit)
     {
-        return $this->order('team_id', 'DESC')
+        return $this->order('market_value', 'DESC')
             ->limit(($page - 1) * $limit, $limit)
             ->withTotalCount();
     }
