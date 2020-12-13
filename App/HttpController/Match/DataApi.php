@@ -1067,12 +1067,18 @@ class DataApi extends FrontUserController{
 
         //赛季  当前赛季
         $competitionId = intval($this->params['competition_id']);
-        if (!$competition = AdminCompetition::getInstance()->find(['competition_id' => $competitionId]))
-        return $this->writeJson(Status::CODE_WRONG_RES, Status::$msg[Status::CODE_WRONG_RES]);
-        $season = $competition->getSeason();
-        $currentSeasonId = $selectSeasonId = $competition['cur_season_id'];
-        if(!empty($this->params['select_season_id'])) $selectSeasonId = $this->params['select_season_id'];
-        //
+        if ($competition = AdminCompetition::getInstance()->find(['competition_id' => $competitionId])) {
+            $season = $competition->getSeason();
+            $currentSeasonId = $selectSeasonId = $competition['cur_season_id'];
+            if(!empty($this->params['select_season_id'])) $selectSeasonId = $this->params['select_season_id'];
+
+        } else {
+            $season = [];
+            $currentSeasonId = $selectSeasonId = 0;
+        }
+
+
+
         switch($type){
             case 1:
                 // 球队荣誉
