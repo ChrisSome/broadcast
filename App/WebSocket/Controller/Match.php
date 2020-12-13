@@ -41,8 +41,9 @@ class Match extends Base
 
             return;
         }
-        if (!$this->checkUserRight($fd, $args, $message)) {
-            $this->response()->setMessage($tool->writeJson(406, $message));
+        if (!$this->checkUser($fd, [])) {
+            $this->response()->setMessage($tool->writeJson(406, '服务错误，请重新连接'));
+            return;
         }
         //用户进入房间
 

@@ -122,6 +122,7 @@ class Router extends AbstractRouter
             $r->addRoute(['GET'], '/footBall/getHotCompetition', '/Match/DataApi/getHotCompetition');   //热门赛事
             $r->addRoute(['GET'], '/footBall/getPlayerInfo', '/Match/DataApi/getPlayerInfo');   //球员信息
             $r->addRoute(['GET'], '/footBall/teamInfo', '/Match/DataApi/teamInfo');   //球员信息
+            $r->addRoute(['GET'], '/footBall/teamInfoOne', '/Match/DataApi/teamInfoOne');   //球员信息
             $r->addRoute(['GET'], '/footBall/contentByKeyWord', '/Match/DataApi/contentByKeyWord');   //搜索
             $r->addRoute(['GET'], '/footBall/teamChangeClubHistory', '/Match/DataApi/teamChangeClubHistory');   //转会记录
             $r->addRoute(['GET'], '/footBall/hotSearchCompetition', '/Match/DataApi/hotSearchCompetition');   //热搜赛事

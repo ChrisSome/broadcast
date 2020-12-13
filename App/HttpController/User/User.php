@@ -411,7 +411,6 @@ class User extends FrontUserController
 
     public function userInterestCompetition()
     {
-        Log::getInstance()->info('param-' . json_encode($this->params));
         if (!isset($this->params['competition_id']) || !$this->params['competition_id']) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 

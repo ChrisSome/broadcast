@@ -9,6 +9,7 @@
 namespace App\WebSocket\Controller;
 
 use App\lib\Tool;
+use App\Model\AdminUser;
 use App\Storage\OnlineUser;
 use App\Task\BroadcastTask;
 use App\Utility\Log\Log;
@@ -47,7 +48,7 @@ class Broadcast extends Base
             return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
         }
 
-        if (!$bool = $this->checkUserRight($client->getFd(), $broadcastPayload, $message)) {
+        if (!$bool = $this->checkUser($client->getFd(), ['status', 'login'])) {
             return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
 
         }
@@ -57,6 +58,17 @@ class Broadcast extends Base
             return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
 
         } else if (!$onlineUser['match_id']) {
+            return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
+
+        } else if (!$onlineUser['user_id']) {
+            return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
+
+        }
+
+        if ($user = AdminUser::getInstance()->find(['id' => $onlineUser['user_id']])) {
+            return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
+
+        } else if (!in_array($user->status, [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
             return $server->push($client->getFd(), $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
 
         }

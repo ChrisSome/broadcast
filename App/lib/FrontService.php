@@ -360,8 +360,8 @@ class  FrontService {
             $item['competition_name'] = $competition['short_name_zh'];
             $item['competition_color'] = $competition['primary_color'];
             $item['competition_type'] = $competition['type'];
-            $item['group_num'] = $round['group_num']; //第几组
-            $item['round_num'] = $round['round_num']; //第几轮
+            $item['group_num'] = !empty($round['group_num']) ? $round['group_num'] : 0; //第几组
+            $item['round_num'] = !empty($round['round_num']) ? $round['round_num'] : 0; //第几轮
             $item['match_time'] = date('H:i', $match['match_time']);
             $item['format_match_time'] = date('Y-m-d H:i', $match['match_time']); //开赛时间
             $item['user_num'] = mt_rand(20, 50);
@@ -440,11 +440,14 @@ class  FrontService {
             $living_url = ['liveUrl' => '', 'liveUrl2' => '', 'liveUrl3' => ''];
 
             $match_data_info = Cache::get('match_data_info' . $match->match_id);
-
+            $round = json_decode($match->round, true);
             $item['home_team_name'] = $match->home_team_name;
             $item['home_team_logo'] = $match->home_team_logo;
             $item['away_team_name'] = $match->away_team_name;
             $item['away_team_logo'] = $match->away_team_logo;
+            $item['group_num'] = $round['group_num']; //第几组
+            $item['round_num'] = $round['round_num']; //第几轮
+            $item['competition_id'] = $match->competition_id;
             $item['competition_name'] = $match->competition_name;
             $item['competition_color'] = $match->competition_color;
             $item['match_time'] = date('H:i', $match['match_time']);

@@ -5,6 +5,7 @@ use App\Base\FrontUserController;
 use App\lib\FrontService;
 use App\lib\Tool;
 use App\Model\AdminClashHistory;
+use App\Model\AdminCompetition;
 use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminPlayer;
@@ -633,6 +634,9 @@ class FootballApi extends FrontUserController
 
         $formatMatch = FrontService::formatMatchTwo([$match], $this->auth['id']);
         $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
+        if ($competition = AdminCompetition::getInstance()->field(['id', 'competition_id', 'type'])->where('competition_id', $return['competition_id'])->get()) {
+            $return['competition_type'] = $competition->type;
+        }
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 
     }

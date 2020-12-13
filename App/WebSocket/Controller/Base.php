@@ -9,6 +9,7 @@
 namespace App\WebSocket\Controller;
 
 use App\lib\Tool;
+use App\Model\AdminNormalProblems;
 use App\Model\AdminUser;
 use App\Storage\OnlineUser;
 use App\Utility\Log\Log;
@@ -62,6 +63,28 @@ class Base extends Controller
         }
         return $bool;
 
+
+    }
+
+
+
+    public function checkUser($fd, $jurisdiction)
+    {
+        if (!$onLineUser = OnlineUser::getInstance($fd)) {
+            return false;
+        }
+        if (isset($jurisdiction['login']) && !$onLineUser['user_id']) {
+            return false;
+        }
+        if (isset($jurisdiction['status']) && !$onLineUser['user_id']) {
+            if (!$user = AdminUser::getInstance()->find(['id' => $onLineUser['user_id']])) {
+                return false;
+            } else if (!in_array($user['status'], [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
+                return false;
+            }
+        }
+
+        return true;
 
     }
 
