@@ -36,6 +36,8 @@ class Login extends FrontUserController
     protected $isCheckSign = false;
     public $needCheckToken = false;
 
+
+    const DEFAULT_PHOTO = 'http://live-broadcast-system.oss-cn-hongkong.aliyuncs.com/859c3661cbcc2902.jpg';
     public function index()
     {
         return $this->render('front.user.login');
@@ -377,7 +379,8 @@ class Login extends FrontUserController
                 'nickname' => $this->params['nickname'],
                 'password_hash' => $password_hash,
                 'mobile' => $this->params['mobile'],
-                'photo' => !empty($this->params['wx_photo']) ? $this->params['wx_photo'] : Gravatar::makeGravatar($this->params['nickname']),
+//                'photo' => !empty($this->params['wx_photo']) ? $this->params['wx_photo'] : Gravatar::makeGravatar($this->params['nickname']),
+                'photo' => !empty($this->params['wx_photo']) ? $this->params['wx_photo'] : self::DEFAULT_PHOTO,
                 'sign_at' => date('Y-m-d H:i:s'),
                 'cid' => isset($this->params['cid']) ? $this->params['cid'] : '',
                 'wx_photo' => !empty($this->params['wx_photo']) ? $this->params['wx_photo'] : '',
