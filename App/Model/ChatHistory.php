@@ -34,13 +34,8 @@ class ChatHistory extends BaseModel
     }
 
 
-    protected function setContentAttr($value, $data)
-    {
-        return base64_encode($value);
-    }
-
     protected function getContentAttr($value, $data)
     {
-        return base64_encode($value);
+        return base64_decode($value);
     }
 }

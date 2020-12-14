@@ -118,7 +118,7 @@ class BroadcastMessage extends ActionPayload
     }
 
     /**
-     * @param mixed $content
+     * @param mixed $type
      */
     public function setType($type): void
     {

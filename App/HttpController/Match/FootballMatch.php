@@ -12,6 +12,8 @@ use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
+use App\Model\AdminSysSettings;
+use App\Model\ChatHistory;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
@@ -225,7 +227,9 @@ class FootBallMatch extends FrontUserController
             } else {
                 $home_team = AdminTeam::getInstance()->where('team_id', $data['home_team_id'])->get();
                 $away_team = AdminTeam::getInstance()->where('team_id', $data['away_team_id'])->get();
+                if (!$home_team || !$away_team) continue;
                 $competition = AdminCompetition::getInstance()->where('competition_id', $data['competition_id'])->get();
+
                 $insertData = [
                     'match_id' => $data['id'],
                     'competition_id' => $data['competition_id'],
@@ -253,10 +257,10 @@ class FootBallMatch extends FrontUserController
                     'competition_name' => $competition->short_name_zh ? $competition->short_name_zh : $competition->name_zh,
                     'competition_color' => $competition->primary_color
                 ];
+                AdminMatch::create()->data($insertData, false)->save();
 
                 Log::getInstance()->info('insert_match_id-1-' . $data['id']);
-
-                AdminMatch::getInstance()->insert($insertData);
+//                AdminMatch::getInstance()->insert($insertData);
             }
         }
         if ($isUpdateYes) {
@@ -778,15 +782,10 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        if (!isset($this->params['match_id'])) {
-            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
-
-        } else if (!$match = AdminMatch::getInstance()->where('match_id', $this->params['match_id'])->get()) {
-
-            return $this->writeJson(Status::CODE_WRONG_MATCH, Status::$msg[Status::CODE_WRONG_MATCH], 1);
-
-        }
-//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], [$promotions, $tables]);
+        $lastMessages = ChatHistory::getInstance()->where('id', 97)->get();
+        $a = 'T1RnMg==';
+        $b = base64_decode(base64_decode($a));
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $lastMessages);
 
     }
 

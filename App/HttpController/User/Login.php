@@ -180,7 +180,7 @@ class Login extends FrontUserController
         $code = Tool::getInstance()->generateCode();
         //异步task
 
-        TaskManager::getInstance()->async(function ($taskId, $workerIndex) use ($code, $mobile) {
+        $res = TaskManager::getInstance()->async(function ($taskId, $workerIndex) use ($code, $mobile) {
             new TestTask([
                 'code' => $code,
                 'mobile' => $mobile,
@@ -188,7 +188,7 @@ class Login extends FrontUserController
             ]);
 //            $phoneTask->insert();
         });
-        return $this->writeJson(Statuses::CODE_OK, '验证码以发送至尾号' . substr($mobile, -4) .'手机');
+        return $this->writeJson(Statuses::CODE_OK, '验证码以发送至尾号' . substr($mobile, -4) .'手机', $res);
 
     }
 
