@@ -17,15 +17,22 @@ class TestTask implements TaskInterface
 
     public function __construct($taskData)
     {
+        Log::getInstance()->info('code 2');
+
         $this->taskData = $taskData;
     }
 
-
-    function run(int $taskId,int $workerIndex)
+    /**
+     * @param int $taskId
+     * @param int $workerIndex
+     * @throws \Exception
+     */
+    public function run(int $taskId,int $workerIndex)
     {
-
         // TODO: Implement run() method.
         $isDebug = AdminSysSettings::getInstance()->getSysKey('is_debug');
+        Log::getInstance()->info('code 4');
+
         if (!$isDebug) {
 
             //需要引入短信表发送短信
@@ -33,7 +40,6 @@ class TestTask implements TaskInterface
             $content = sprintf(PhoneCodeService::$copying, $this->taskData['code']);
 
             $xsend = $phoneCodeS->sendMess($this->taskData['mobile'], $content);
-
             if ($xsend['status'] !== PhoneCodeService::STATUS_SUCCESS) {
             } else {
                 $data = [
@@ -51,13 +57,6 @@ class TestTask implements TaskInterface
         }
     }
 
-    function insert()
-    {
-
-
-
-
-    }
     function finish()
     {
         return '123';
