@@ -98,8 +98,6 @@ class BroadcastTask implements TaskInterface
             $server->push($userOnline['fd'], $tool->writeJson(WebSocketStatus::STATUS_USER_NOT_FOUND, WebSocketStatus::$msg[WebSocketStatus::STATUS_USER_NOT_FOUND]));
             return;
         }
-        Log::getInstance()->info('params-' . $aMessage['content']);
-        Log::getInstance()->info('decode-params-' . $aMessage['content']);
         $returnData = [
             'event' => 'broadcast-roomBroadcast',
             'data' => [

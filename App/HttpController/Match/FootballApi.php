@@ -205,8 +205,6 @@ class FootballApi extends FrontUserController
 
         $uid = $this->auth['id'];
         $userInterestCompetitiones = [];
-        $page = $this->params['page'] ?: 1;
-        $size = $this->params['size'] ?: 20;
         if ($uid && $competitiones = AdminUserInterestCompetition::getInstance()->where('user_id', $uid)->get()) {
             $userInterestCompetitiones = json_decode($competitiones['competition_ids'], true);
 
@@ -227,7 +225,6 @@ class FootballApi extends FrontUserController
         $playMatch = AdminMatch::getInstance()->where('status_id', self::STATUS_PLAYING, 'in')
             ->where('competition_id', $selectCompetition, 'in')
             ->where('is_delete', 0)->order('match_time', 'ASC')
-            ->limit(($page - 1) * $size, $size)
             ->withTotalCount();
         $list = $playMatch->all(null);
 
