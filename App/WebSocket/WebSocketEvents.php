@@ -2,16 +2,11 @@
 
 namespace App\WebSocket;
 
-use App\lib\pool\Login;
 use App\lib\pool\Login as Base;
 use App\lib\Tool;
 use App\Model\AdminUser;
-use App\Storage\ChatMessage;
 use App\Storage\OnlineUser;
-use App\Task\BroadcastTask;
-use App\Utility\Gravatar;
 use App\WebSocket\Actions\Broadcast\BroadcastAdmin;
-use App\WebSocket\Actions\User\UserInRoom;
 use App\WebSocket\Actions\User\UserOutRoom;
 use easySwoole\Cache\Cache;
 use EasySwoole\Utility\Random;
@@ -19,10 +14,7 @@ use \swoole_server;
 use \swoole_websocket_server;
 use \swoole_http_request;
 use EasySwoole\EasySwoole\ServerManager;
-use App\Model\AdminUser as UserModel;
 use \Exception;
-use EasySwoole\EasySwoole\Task\TaskManager;
-use App\Utility\Log\Log;
 /**
  * WebSocket Events
  * Class WebSocketEvents
@@ -45,17 +37,14 @@ class WebSocketEvents
 
         $fd = $request->fd;
         $user_online = OnlineUser::getInstance()->get($fd);
-
-        //分配对应mid写入redis队列
-        $mid = Login::getInstance()->getMid();
+        //这里也可以做一个唯一标志 考虑以后有用
+        $mid = uniqid($fd . '-');
         $user_id = $request->get['user_id'];
         if ($user_id) {
             $user = AdminUser::getInstance()->where('id', $user_id)->get();
         }
         //如果已经有设备登陆,则强制退出, 根据后台配置是否允许多终端登陆
-//        if (false) {
-//            self::userClose($server, $info['id']);
-//        }
+
         $info = [
             'fd' => $fd,
             'nickname' => isset($user) ? $user->nickname : '',
@@ -107,12 +96,8 @@ class WebSocketEvents
 
         $info = $server->connection_info($fd);
         if (isset($info['websocket_status']) && $info['websocket_status'] !== 0) {
-            // 移除用户并广播告知
            if ($mid = Cache::get($fd)) {
                // 移除用户并广播告知
-               $userOnline = OnlineUser::getInstance()->get($mid);
-               $hashKey =  Login::getInstance()->getUserKey($userOnline['user_id'], $mid);;
-               Login::getInstance()->del($hashKey);
                OnlineUser::getInstance()->delete($fd);
 
             }

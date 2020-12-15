@@ -236,10 +236,12 @@ class Community extends FrontUserController
         $validator->addColumn('category_id')->required();
         $validator->addColumn('order_type')->required();
         $validator->addColumn('is_refine')->required();
+
         if (!$validator->validate($this->params)) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
 
         }
+
         $page = $this->params['page'] ?: 1;
         $size = $this->params['size'] ?: 15;
         $order_type = $this->params['order_type'] ?: 1;
@@ -301,6 +303,8 @@ class Community extends FrontUserController
             return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
         }
+
+        //全部帖子
         if ($banner = AdminUserPostsCategory::getInstance()->field(['id', 'dispose'])->where('id', $cat_id)->get()) {
 
             foreach ($banner->dispose as $item) {
@@ -314,16 +318,19 @@ class Community extends FrontUserController
 
 
         //置顶帖子
-        $top_posts = AdminUserPost::getInstance()->where('cat_id', $cat_id)->where('status', [AdminUserPost::NEW_STATUS_NORMAL, AdminUserPost::NEW_STATUS_REPORTED, AdminUserPost::NEW_STATUS_LOCK], 'in')
-            ->where('is_top', AdminUserPost::IS_TOP)
-            ->field(['id', 'title'])
-            ->order('created_at', 'DESC')
-            ->all();
+        $post_model = AdminUserPost::getInstance()->where('status', [AdminUserPost::NEW_STATUS_NORMAL, AdminUserPost::NEW_STATUS_REPORTED, AdminUserPost::NEW_STATUS_LOCK], 'in');
+        if ($cat_id == 1) {
+            $post_model = $post_model->where('is_all_top', AdminUserPost::IS_TOP);
+        } else {
+            $post_model = $post_model->where('is_top', AdminUserPost::IS_TOP)->where('cat_id', $cat_id);
+
+        }
+        $top_posts = $post_model->field(['id', 'title'])->order('created_at', 'DESC')->all();
 
         //普通帖子
-
-
-        $model = AdminUserPost::getInstance()->where('status', [AdminUserPost::NEW_STATUS_NORMAL, AdminUserPost::NEW_STATUS_REPORTED, AdminUserPost::NEW_STATUS_LOCK], 'in');
+        $model = AdminUserPost::getInstance()->where('status', [AdminUserPost::NEW_STATUS_NORMAL, AdminUserPost::NEW_STATUS_REPORTED, AdminUserPost::NEW_STATUS_LOCK], 'in')
+            ->where('is_top', AdminUserPost::IS_NOT_TOP)
+            ->where('is_all_top', AdminUserPost::IS_NOT_TOP);
 
         if ($is_refine) {
             $model = $model->where('is_refine', AdminUserPost::IS_REFINE);

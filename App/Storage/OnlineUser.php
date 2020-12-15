@@ -2,7 +2,6 @@
 
 namespace App\Storage;
 
-use App\lib\pool\Login;
 use App\Model\AdminUser;
 use EasySwoole\Component\Singleton;
 use EasySwoole\Component\TableManager;
@@ -25,13 +24,13 @@ class OnlineUser
     public function __construct()
     {
         TableManager::getInstance()->add('onlineUsers', [
-            'fd' => ['type' => Table::TYPE_INT, 'size' => 8],
+            'fd' => ['type' => Table::TYPE_INT, 'size' => 16],
             'nickname' => ['type' => Table::TYPE_STRING, 'size' => 128], //昵称
 //            'mid' => ['type' => Table::TYPE_STRING, 'size' => 15], //websocket分配mid
-            'last_heartbeat' => ['type' => Table::TYPE_INT, 'size' => 4], //最后心跳
-            'match_id' => ['type' => Table::TYPE_INT, 'size' => 4], //比赛id
-            'user_id' => ['type' => Table::TYPE_INT, 'size' => 4], //用户id
-            'level' => ['type' => Table::TYPE_INT, 'size' => 4], //用户级别
+            'last_heartbeat' => ['type' => Table::TYPE_INT, 'size' => 16], //最后心跳
+            'match_id' => ['type' => Table::TYPE_INT, 'size' => 16], //比赛id
+            'user_id' => ['type' => Table::TYPE_INT, 'size' => 16], //用户id
+            'level' => ['type' => Table::TYPE_INT, 'size' => 16], //用户级别
         ]);
 
         $this->table = TableManager::getInstance()->get('onlineUsers');
@@ -56,10 +55,10 @@ class OnlineUser
             'fd' => $fd,
 //            'mid' => $info['mid'],
             'nickname' => $info['nickname'],
-            'user_id' => $info['user_id'],
-            'level' => $user_level,
+            'user_id' => (int)$info['user_id'],
+            'level' => (int)$user_level,
             'last_heartbeat' => time(),
-            'match_id' => !empty($info['match_id']) ? $info['match_id'] : 0
+            'match_id' => !empty($info['match_id']) ? (int)$info['match_id'] : 0
         ]);
     }
 
@@ -90,18 +89,6 @@ class OnlineUser
     }
 
 
-    public function close($mid)
-    {
-        $info = $this->get($mid);
-        if ($info) {
-            $key = sprintf(self::LIST_ONLINE, $info['match_id']);
-            Login::getInstance()->lrem($key, 0, $mid);
-            return $this->table->del($mid);
-        }
-
-        return false;
-
-    }
 
 
     /**

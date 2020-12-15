@@ -2,19 +2,14 @@
 
 namespace App\Base;
 
-use App\lib\pool\Login;
 use App\Model\AdminUser;
-use App\Utility\Message\Status as Statuses;
 use EasySwoole\EasySwoole\Config;
 
-use App\Model\AdminAuth as AuthModel;
 use App\Model\AdminLog as LogModel;
 
-use easySwoole\Cache\Cache;
 use App\Common\AppFunc;
 use App\Utility\Message\Status;
 use EasySwoole\Template\Render;
-use App\Utility\Log\Log;
 
 
 /**

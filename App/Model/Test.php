@@ -3,9 +3,6 @@
 namespace App\Model;
 
 use App\Base\BaseModel;
-use App\Base\FatherModel;
-use App\lib\pool\Login;
-use App\lib\Tool;
 class Test extends BaseModel {
     public $tableName = "admin_match_list";
 

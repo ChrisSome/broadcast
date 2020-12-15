@@ -29,42 +29,7 @@ class Base extends Controller
 {
 
     public $is_login = false;
-    /**
-     * 获取用户信息
-     * @param $fd
-     * @param $args
-     * @param string $message
-     * @return bool
-     */
-    public function checkUserRight($fd, $args = [], &$message = '')
-    {
-        $bool = true;
-        $info = OnlineUser::getInstance()->get($fd);
 
-        if (!$info) {
-            $message = '用户已下线';
-            $bool = false;
-
-        } else {
-            //判断是否他人窃取
-            if($info['fd'] != $fd) {
-                $bool = false;
-                $message = '禁止获取他人用户信息';
-
-            }
-
-            $user = AdminUser::getInstance()->where('id', $info['user_id'])->get();
-            if (isset($user['status']) && !in_array($user['status'], [AdminUser::STATUS_NORMAL, AdminUser::STATUS_REPORTED])) {
-                $bool = false;
-                $message = '违反直播间规定，详情请联系客服';
-
-            }
-
-        }
-        return $bool;
-
-
-    }
 
 
 

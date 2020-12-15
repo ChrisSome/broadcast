@@ -33,7 +33,6 @@ class Router extends AbstractRouter
             $r->addRoute(['POST'], '/user/upload', '/User/Upload');
             $r->addRoute(['POST'], '/user/ossUpload', '/User/Upload/ossUpload');  //oss上传
             $r->addRoute(['POST'], '/user/info', '/User/User/info');
-            $r->addRoute(['POST'], '/user/operate', '/User/User/operate');  //用户信息更改
             $r->addRoute(['POST'], '/user/doLogin', '/User/Login/userLogin'); //登陆接口
             $r->addRoute(['POST'], '/user/wxLogin', '/User/Login/wxLogin'); //微信登陆接口
             $r->addRoute(['POST'], '/user/forgetPass', '/User/Login/forgetPass'); //忘记密码

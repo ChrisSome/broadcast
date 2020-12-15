@@ -17,8 +17,6 @@ use App\Model\AdminUserPhonecode;
 use App\Model\AdminUserSetting;
 use App\Storage\OnlineUser;
 use App\Task\TestTask;
-use App\Utility\Gravatar;
-use App\Utility\Log\Log;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Task\TaskManager;
@@ -27,8 +25,6 @@ use EasySwoole\Redis\Redis as Redis;
 use EasySwoole\RedisPool\Redis as RedisPool;
 use EasySwoole\Validate\Validate;
 use App\Utility\Message\Status as Statuses;
-use App\lib\pool\Login as LoginRedis;
-use Illuminate\Support\Facades\App;
 
 
 class Login extends FrontUserController

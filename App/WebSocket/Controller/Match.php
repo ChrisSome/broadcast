@@ -5,22 +5,15 @@ namespace App\WebSocket\Controller;
 
 
 use App\Common\AppFunc;
-use App\lib\pool\Login;
-use App\lib\pool\MatchRedis;
 use App\lib\Tool;
 use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
-use App\Model\AdminMessage;
-use App\Model\AdminUser;
 use App\Model\ChatHistory;
 use App\Storage\MatchLive;
-use App\Utility\Log\Log;
 use App\Storage\OnlineUser;
-use App\Task\BroadcastTask;
 use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
-use EasySwoole\EasySwoole\Task\TaskManager;
 
 class Match extends Base
 {
@@ -223,7 +216,7 @@ class Match extends Base
             }
 
         } else {
-            $this->response()->setMessage($tool->writeJson(406, '用户已下线'));
+            $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC]));
 
             return  ;
         }

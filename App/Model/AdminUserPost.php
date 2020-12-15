@@ -14,6 +14,7 @@ class AdminUserPost extends BaseModel
     const STATUS_EXAMINE_SUCC        = 4;        //审核成功（展示）
 
     const IS_TOP        = 1; //置顶
+    const IS_NOT_TOP    = 0; //非置顶
     const IS_REFINE     = 1; //加精
 
     const NEW_STATUS_NORMAL = 1;//正常

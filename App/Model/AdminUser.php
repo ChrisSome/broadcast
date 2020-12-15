@@ -3,7 +3,6 @@
 namespace App\Model;
 
 use App\Base\BaseModel;
-use App\lib\pool\Login;
 use App\lib\Tool;
 use EasySwoole\Mysqli\QueryBuilder;
 
@@ -60,34 +59,7 @@ class AdminUser extends BaseModel
         return Tool::getInstance()->postApi($url);
     }
 
-    public function getOneByToken($token)
-    {
-        //头部传递access_token
-        $tokenKey = sprintf(self::USER_TOKEN_KEY, $token);
-        $mobile = Login::getInstance()->get($tokenKey);
-        if ($mobile) {
-            Login::getInstance()->setEx($tokenKey, 60*60*24*7, $mobile);
-        }
-        return $this->where('mobile', $mobile)->limit(1)->get();
 
-    }
-
-    /**
-     * 获取用户详情
-     * @param $id
-     * @return mixed
-     */
-    public function findOne($id)
-    {
-        if (Login::getInstance()->exists('hash:user:'.$id)) {
-            $user = Login::getInstance()->hgetall('hash:user:'.$id);
-        } else {
-            $user = $this->where('id', $id)->get()->toArray();
-            unset($user['password_hash']);
-        }
-
-        return $user;
-    }
 
     /**
      * 某人的评论数

@@ -4,14 +4,11 @@
 namespace App\Task;
 
 use App\lib\pool\PhoneCodeService as PhoneCodeService;
-use App\lib\Tool;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserPhonecode;
 use App\Utility\Log\Log;
-use App\Utility\Pool\RedisPool;
 use EasySwoole\Component\Singleton;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
-use App\lib\pool\Login;
 
 class PhoneTask implements TaskInterface
 {

@@ -42,6 +42,8 @@ use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\ORM\DbManager;
+use EasySwoole\Redis\Redis as Redis;
+use EasySwoole\RedisPool\Redis as RedisPool;
 
 class FootBallMatch extends FrontUserController
 {
@@ -782,10 +784,9 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        $lastMessages = ChatHistory::getInstance()->where('id', 97)->get();
-        $a = 'T1RnMg==';
-        $b = base64_decode(base64_decode($a));
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $lastMessages);
+        $users = AppFunc::getUsersInRoom(3439058);
+        $count = count($users);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $count);
 
     }
 

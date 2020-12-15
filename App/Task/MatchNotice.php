@@ -4,19 +4,15 @@ namespace App\Task;
 
 use App\Common\AppFunc;
 use App\GeTui\BatchSignalPush;
-use App\lib\pool\Login;
 use App\lib\Tool;
 use App\Model\AdminInterestMatches;
 use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
 use App\Model\AdminUser;
-use App\Model\AdminUserInterestCompetition;
-use App\Model\AdminUserSetting;
 use App\Storage\OnlineUser;
 use App\Utility\Log\Log;
 use App\WebSocket\WebSocketStatus;
-use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 
