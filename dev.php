@@ -19,13 +19,13 @@ return [
             'maxRunningNum' => 128,
             'timeout'=> 15
         ],
-//        'SETTING' => [
-//            'worker_num' => 8,
-//            'task_worker_num' => 8,
-//            'reload_async' => true,
-//            'task_enable_coroutine' => true,
-//            'max_wait_time'=>3
-//        ],
+        'SETTING' => [
+            'worker_num' => 8,
+            'task_worker_num' => 8,
+            'reload_async' => true,
+            'task_enable_coroutine' => true,
+            'max_wait_time'=>3
+        ],
     ],
     'TEMP_DIR' => null,
     'LOG_DIR' => RUNNING_ROOT . '/Log',

@@ -12,8 +12,7 @@ use App\Model\AdminCompetitionRuleList;
 use App\Model\AdminHonorList;
 use App\Model\AdminManagerList;
 use App\Model\AdminMatch;
-use App\Model\AdminSysSettings;
-use App\Model\ChatHistory;
+use EasySwoole\Component\Process\Manager;
 use App\Model\SeasonAllTableDetail;
 use App\Model\AdminMatchTlive;
 use App\Model\AdminNoticeMatch;
@@ -32,6 +31,7 @@ use App\Model\AdminUserSetting;
 use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
 use App\Model\SeasonTeamPlayerBak;
+use App\Storage\OnlineUser;
 use App\Task\MatchNotice;
 use App\Utility\Log\Log;
 use App\lib\Tool;
@@ -262,7 +262,6 @@ class FootBallMatch extends FrontUserController
                 AdminMatch::create()->data($insertData, false)->save();
 
                 Log::getInstance()->info('insert_match_id-1-' . $data['id']);
-//                AdminMatch::getInstance()->insert($insertData);
             }
         }
         if ($isUpdateYes) {
@@ -784,9 +783,20 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-        $users = AppFunc::getUsersInRoom(3439058);
-        $count = count($users);
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $count);
+//        AppFunc::getUsersInRoom(3451833);
+//        $users = AppFunc::getUsersInRoom(3439118);
+//        $count = count($users);
+        $table = Manager::getInstance()->getProcessTable();
+
+        foreach ($table as $item) {
+            $data[] = $item;
+        }
+//        $pid = getmypid();
+//        $size = sizeof($pid);
+
+
+
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
 
     }
 
@@ -799,6 +809,7 @@ class FootBallMatch extends FrontUserController
         $res = Tool::getInstance()->postApi($url);
         $decode = json_decode($res, true);
         $decodeDatas = $decode['results'];
+//        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $decodeDatas);
 
         if (!$decodeDatas) return false;
         $match = AdminMatch::getInstance()->where('match_id', $match_id)->get();

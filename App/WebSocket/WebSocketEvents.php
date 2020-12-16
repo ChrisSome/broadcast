@@ -15,6 +15,27 @@ use \swoole_websocket_server;
 use \swoole_http_request;
 use EasySwoole\EasySwoole\ServerManager;
 use \Exception;
+
+////////////////////////////////////////////////////////////////////
+//                          _ooOoo_                               //
+//                         o8888888o                              //
+//                         88" . "88                              //
+//                         (| ^_^ |)                              //
+//                         O\  =  /O                              //
+//                      ____/`---'\____                           //
+//                    .'  \\|     |//  `.                         //
+//                   /  \\|||  :  |||//  \                        //
+//                  /  _||||| -:- |||||-  \                       //
+//                  |   | \\\  -  /// |   |                       //
+//                  | \_|  ''\---/''  |   |                       //
+//                  \  .-\__  `-`  ___/-. /                       //
+//                ___`. .'  /--.--\  `. . ___                     //
+//            \  \ `-.   \_ __\ /__ _/   .-` /  /                 //
+//      ========`-.____`-.___\_____/___.-`____.-'========         //
+//                           `=---='                              //
+//      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        //
+//         佛祖保佑       永无BUG       永不修改                     //
+////////////////////////////////////////////////////////////////////
 /**
  * WebSocket Events
  * Class WebSocketEvents
@@ -40,6 +61,7 @@ class WebSocketEvents
         //这里也可以做一个唯一标志 考虑以后有用
         $mid = uniqid($fd . '-');
         $user_id = $request->get['user_id'];
+        $match_id = isset($request->get['match_id']) ? $request->get['match_id'] : 0;
         if ($user_id) {
             $user = AdminUser::getInstance()->where('id', $user_id)->get();
         }
@@ -48,7 +70,7 @@ class WebSocketEvents
         $info = [
             'fd' => $fd,
             'nickname' => isset($user) ? $user->nickname : '',
-            'token' => '',
+            'match_id' => $match_id,
             'user_id' => isset($user) ? $user->id : 0,
             'level' => isset($user) ? $user->level : 0,
         ];

@@ -11,10 +11,12 @@ use App\Model\AdminMatchTlive;
 use App\Model\AdminPlayer;
 use App\Model\AdminSysSettings;
 use App\Model\AdminUserInterestCompetition;
+use App\Model\ChatHistory;
 use App\Utility\Log\Log;
 use App\Utility\Message\Status;
 use App\Model\AdminInterestMatches;
 use easySwoole\Cache\Cache;
+use EasySwoole\ORM\DbManager;
 
 class FootballApi extends FrontUserController
 {
@@ -634,8 +636,18 @@ class FootballApi extends FrontUserController
 
         $formatMatch = FrontService::formatMatchTwo([$match], $this->auth['id']);
         $return = isset($formatMatch[0]) ? $formatMatch[0] : [];
+        $competition_id = $return['competition_id'];
+        $type = DbManager::getInstance()->invoke(function ($client) use ($competition_id) {
+            $data = 0;
+            if ($competition = AdminCompetition::invoke($client)->where('competition_id', $competition_id)->get()) {
+                $data = $competition->type;
+            }
+
+
+            return $data;
+        });
         if ($competition = AdminCompetition::getInstance()->field(['id', 'competition_id', 'type'])->where('competition_id', $return['competition_id'])->get()) {
-            $return['competition_type'] = $competition->type;
+            $return['competition_type'] = $type;
         }
         return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $return);
 

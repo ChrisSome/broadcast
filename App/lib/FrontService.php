@@ -502,7 +502,7 @@ class  FrontService {
     /**
      * 转会球员
      */
-    public static function handChangePlayer($res)
+    public static function handChangePlayerSonto($res)
     {
         if (!$res) {
             return [];
@@ -533,6 +533,65 @@ class  FrontService {
             $data['to_team_id'] = isset($to_team['team_id']) ? $to_team['team_id'] : 0;
             $return[] = $data;
             unset($data);
+        }
+        return $return;
+    }
+
+
+
+    public static function handChangePlayer($res)
+    {
+        $return = $playerMapper = $teamMapper = $playerIds = $teamIds = [];
+        if(!empty($res)) array_walk($res, function($v, $k) use(&$playerIds,&$teamIds) {
+            $id = $res[$k]['player_id'] = intval($v['player_id']);
+            if($id > 0 && !in_array($id, $playerIds)) $playerIds[] = $id;
+            $id = $res[$k]['to_team_id'] = intval($v['to_team_id']);
+            if($id > 0 && !in_array($id, $teamIds)) $ids[] = $id;
+            $id = $res[$k]['from_team_id'] = intval($v['from_team_id']);
+            if($id > 0 && !in_array($id, $teamIds)) $ids[] = $id;
+        });
+        if (empty($playerIds)) return [];
+        // 获取映射数据
+        $tmp = AdminPlayer::getInstance()->func(function ($builder) use ($playerIds) {
+            $builder->raw('select * from admin_player_list where player_id in (' . join(',', $playerIds) . ')');
+            return true;
+        });
+        foreach ($tmp as $v){
+            $id = $v['player_id'];
+            $playerMapper[$id] = $v;
+        }
+        $tmp = empty($teamIds) ? [] : AdminTeam::getInstance()->func(function ($builder) use ($teamIds) {
+            $builder->raw('select * from admin_team_list where team_id in (' . join(',', $teamIds) . ')');
+            return true;
+        });
+        foreach ($tmp as $v){
+            $id = $v['team_id'];
+            $teamMapper[$id] = $v;
+        }
+        // 填充数据
+        foreach ($res as $item) {
+            $pid = $item['player_id'];
+            $ttId = $item['to_team_id'];
+            $ftId = $item['from_team_id'];
+            if(empty($playerMapper[$pid])) continue;
+            $player = $playerMapper[$pid];
+            $toTeam = isset($teamMapper[$ttId]) ? $teamMapper[$ttId] : [];
+            $fromTeam = isset($teamMapper[$ftId]) ? $teamMapper[$ftId] : [];
+            $data = [];
+            $data['player_id'] = $item['player_id'];
+            $data['player_position'] = $player['position'];
+            $data['transfer_time'] = date('Y-m-d', $item['transfer_time']);
+            $data['transfer_type'] = $item['transfer_type'];
+            $data['transfer_fee'] = AppFunc::changeToWan($item['transfer_fee']);
+            $data['name_zh'] = $player['name_zh'];
+            $data['logo'] = $player['logo'];
+            $data['from_team_name_zh'] = empty($fromTeam['name_zh']) ? '' : $fromTeam['name_zh'];
+            $data['from_team_logo'] = empty($fromTeam['logo']) ? '' : $fromTeam['logo'];
+            $data['from_team_id'] = intval($ftId);
+            $data['to_team_name_zh'] = empty($toTeam['name_zh']) ? '' : $toTeam['name_zh'];
+            $data['to_team_logo'] = empty($toTeam['logo']) ? '' : $toTeam['logo'];
+            $data['to_team_id'] = intval($ttId);
+            $return[] = $data;
         }
         return $return;
     }

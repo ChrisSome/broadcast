@@ -49,22 +49,28 @@ class Broadcast extends Base
 
         if (!$bool = $this->checkUser($client->getFd(), ['status', 'login'])) {
             return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
-
         }
 
+        if (!empty($broadcastPayload) && !empty($broadcastPayload['content']) && !empty($broadcastPayload['match_id'])) {
 
-        if (!empty($broadcastPayload) && isset($broadcastPayload['content']) && isset($broadcastPayload['match_id'])) {
-
-            $message = new BroadcastMessage;
-            $message->setFromUserId($sender_user_id);
-            $message->setFromUserFd($client->getFd());
-            $message->setContent($broadcastPayload['content']);
-            $message->setType($type);
-            $message->setSendTime(date('Y-m-d H:i:s'));
-            $message->setMatchId($broadcastPayload['match_id']);
-            $message->setAtUserId($broadcastPayload['at_user_id']);
-            TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message->__toString(), 'fromFd' => $client->getFd()]));
-//            Log::getInstance()->info('task failed-' . $task_id);
+            $message = [
+                'fromUserId' => $sender_user_id,
+                'fromUserFd' => $client->getFd(),
+                'content' => base64_encode(addslashes($broadcastPayload['content'])),
+                'type' => $type,
+                'sendTime' => date('Y-m-d H:i:s'),
+                'matchId' => $broadcastPayload['match_id'],
+                'atUserId' => $broadcastPayload['at_user_id'],
+            ];
+//            $message = new BroadcastMessage;
+//            $message->setFromUserId($sender_user_id);
+//            $message->setFromUserFd($client->getFd());
+//            $message->setContent($broadcastPayload['content']);
+//            $message->setType($type);
+//            $message->setSendTime(date('Y-m-d H:i:s'));
+//            $message->setMatchId($broadcastPayload['match_id']);
+//            $message->setAtUserId($broadcastPayload['at_user_id']);
+            TaskManager::getInstance()->async(new BroadcastTask(['payload' => $message, 'fromFd' => $client->getFd()]));
         }
         $this->response()->setStatus($this->response()::STATUS_OK);
     }

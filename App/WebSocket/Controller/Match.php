@@ -14,13 +14,14 @@ use App\Storage\OnlineUser;
 use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
 use EasySwoole\EasySwoole\ServerManager;
+use EasySwoole\ORM\DbManager;
 
 class Match extends Base
 {
 
     /**
-     * 用户进入房间
-     * @throws \Exception
+     * 进入直播间
+     * @throws \Throwable
      */
     public function enter()
     {
@@ -44,30 +45,32 @@ class Match extends Base
 
         //记录房间内用户
         $matchId = $args['match_id'];
-        $uid = $args['user_id'];
-        if (!OnlineUser::getInstance()->get($fd)) {
-            $data = [
-                'match_id' => $matchId,
-                'fd'=> $fd,
-                'user_id' => $uid,
-                'nickname' => isset($user->nickname) ? $user->nickname : '',
-                'level' => isset($user->level) ? $user->level : '',
-            ];
-            OnlineUser::getInstance()->set($fd, $data);
-        } else {
-            OnlineUser::getInstance()->update($fd, ['match_id' => $matchId]);
-        }
+        OnlineUser::getInstance()->update($fd, ['match_id' => $matchId]);
+
         $user['match_id'] = $matchId;
         $user['fd'] = $fd;
         //设置房间对象
         AppFunc::userEnterRoom($args['match_id'], $fd);
         //最近二十条聊天记录
-        $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->order('created_at', 'DESC')->limit(20)->all();
-
+//        $lastMessages = ChatHistory::getInstance()->where('match_id', $args['match_id'])->order('created_at', 'DESC')->limit(20)->all();
+        $lastMessages = DbManager::getInstance()->invoke(function ($client) use ($matchId) {
+            $testUserModel = ChatHistory::invoke($client);
+            $data = $testUserModel->where('match_id', $matchId)->order('created_at', 'DESC')->limit(20)->all();
+            return $data;
+        });
         //比赛状态
-
-        if ($match = AdminMatch::getInstance()->where('match_id', $matchId)->get()) {
-            if ($matchTlive = AdminMatchTlive::getInstance()->where('match_id', $matchId)->get()) {
+        $match = DbManager::getInstance()->invoke(function ($client) use ($matchId) {
+            $matchModel = AdminMatch::invoke($client);
+            $data = $matchModel->where('match_id', $matchId)->get();
+            return $data;
+        });
+        if ($match) {
+            $matchTlive = DbManager::getInstance()->invoke(function ($client) use ($matchId) {
+                $tliveModel = AdminMatchTlive::invoke($client);
+                $data = $tliveModel->where('match_id', $matchId)->get();
+                return $data;
+            });
+            if ($matchTlive) {
                 $tlive = json_decode($matchTlive->tlive, true);
                 $stats = json_decode($matchTlive->stats, true);
                 $score = json_decode($matchTlive->score, true);
@@ -76,28 +79,34 @@ class Match extends Base
                 $corner_tlive = [];
                 $yellow_card_tlive = [];
                 $red_card_tlive = [];
-                foreach ($tlive as $item) {
-                    $item['time'] = intval($item['time']);
-                    if ($item['type'] == 1) { //进球
-                        $goal_tlive[] = $item;
-                    } else if ($item['type'] == 2) { //角球
-                        $corner_tlive[] = $item;
-                    } else if ($item['type'] == 3) { //黄牌
-                        $yellow_card_tlive[] = $item;
-                    } else if ($item['type'] == 4) { //红牌
-                        $red_card_tlive[] = $item;
-                    } else {
-                        continue;
-                    }
+                if ($tlive) {
+                    foreach ($tlive as $item) {
+                        $item['time'] = intval($item['time']);
+                        if ($item['type'] == 1) { //进球
+                            $goal_tlive[] = $item;
+                        } else if ($item['type'] == 2) { //角球
+                            $corner_tlive[] = $item;
+                        } else if ($item['type'] == 3) { //黄牌
+                            $yellow_card_tlive[] = $item;
+                        } else if ($item['type'] == 4) { //红牌
+                            $red_card_tlive[] = $item;
+                        } else {
+                            continue;
+                        }
 
-                    unset($item);
-                }
-                $matchStats = [];
-                foreach ($stats as $stat) {
-                    if ($stat['type'] == 21 || $stat['type'] == 22 || $stat['type'] == 23 || $stat['type'] == 24 ||  $stat['type'] == 25) {
-                        $matchStats[] = $stat;
+                        unset($item);
                     }
                 }
+
+                $matchStats = [];
+                if ($stats) {
+                    foreach ($stats as $stat) {
+                        if ($stat['type'] == 21 || $stat['type'] == 22 || $stat['type'] == 23 || $stat['type'] == 24 ||  $stat['type'] == 25) {
+                            $matchStats[] = $stat;
+                        }
+                    }
+                }
+
                 $return_data = [
                     'signal_count' => ['goal' => $goal_tlive, 'corner' => $corner_tlive, 'yellow_card' => $yellow_card_tlive, 'red_card' => $red_card_tlive],
                     'match_trend' => $match_trend,
@@ -108,18 +117,19 @@ class Match extends Base
                     'score' => ['home' => $score[2], 'away' => $score[3]],
 
                 ];
-            } else {
+            } else if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
                 /**
                  * 比赛刚结束 数据还没同步到sql，几秒钟时差 还是利用Cache做
                  *
                  */
-                $return_data = [];
-                if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
-                    $return_data = json_decode($match_data_info, true);
-                }
+                $return_data = json_decode($match_data_info, true);
                 $tlive = json_decode(Cache::get('match_tlive_' . $matchId), true) ?: [];
                 $stats = json_decode(Cache::get('match_stats_' . $matchId), true) ?: [];
 
+            } else {
+                $return_data = [];
+                $tlive = [];
+                $stats = [];
             }
         } else {
             $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_WRONG_MATCH, WebSocketStatus::$msg[WebSocketStatus::STATUS_WRONG_MATCH]));
@@ -150,18 +160,18 @@ class Match extends Base
         ];
         $this->response()->setMessage($tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $respon));
 
-        $fds = AppFunc::getUsersInRoom($matchId);
-        $server = ServerManager::getInstance()->getSwooleServer();
-        $response = [
-            'event' => 'welcome-user',
-            'data' => $user
-        ];
-        foreach ($fds as $fd) {
-            $connection = $server->connection_info($fd);
-            if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
-                $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $response));
-            }
-        }
+//        $fds = AppFunc::getUsersInRoom($matchId);
+//        $server = ServerManager::getInstance()->getSwooleServer();
+//        $response = [
+//            'event' => 'welcome-user',
+//            'data' => $user
+//        ];
+//        foreach ($fds as $fd) {
+//            $connection = $server->connection_info($fd);
+//            if (is_array($connection) && $connection['websocket_status'] == 3) {  // 用户正常在线时可以进行消息推送
+//                $server->push($fd, $tool->writeJson(WebSocketStatus::STATUS_SUCC, WebSocketStatus::$msg[WebSocketStatus::STATUS_SUCC], $response));
+//            }
+//        }
         return;
     }
 

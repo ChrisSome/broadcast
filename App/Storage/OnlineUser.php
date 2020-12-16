@@ -24,12 +24,11 @@ class OnlineUser
     public function __construct()
     {
         TableManager::getInstance()->add('onlineUsers', [
-            'fd' => ['type' => Table::TYPE_INT, 'size' => 16],
+            'fd' => ['type' => Table::TYPE_INT, 'size' => 64],
             'nickname' => ['type' => Table::TYPE_STRING, 'size' => 128], //昵称
-//            'mid' => ['type' => Table::TYPE_STRING, 'size' => 15], //websocket分配mid
-            'last_heartbeat' => ['type' => Table::TYPE_INT, 'size' => 16], //最后心跳
-            'match_id' => ['type' => Table::TYPE_INT, 'size' => 16], //比赛id
-            'user_id' => ['type' => Table::TYPE_INT, 'size' => 16], //用户id
+            'last_heartbeat' => ['type' => Table::TYPE_STRING, 'size' => 16], //最后心跳
+            'match_id' => ['type' => Table::TYPE_INT, 'size' => 64], //比赛id
+            'user_id' => ['type' => Table::TYPE_INT, 'size' => 32], //用户id
             'level' => ['type' => Table::TYPE_INT, 'size' => 16], //用户级别
         ]);
 
