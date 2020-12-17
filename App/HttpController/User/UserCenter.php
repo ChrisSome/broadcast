@@ -42,10 +42,7 @@ class UserCenter   extends FrontUserController{
     public function UserCenter()
     {
 
-        if (!$uid = $this->auth['id']) {
-            return $this->writeJson(Status::CODE_LOGIN_ERR, Status::$msg[Status::CODE_LOGIN_ERR]);
-
-        }
+        $uid = $this->auth['id'];
 
         $user_info = AdminUser::getInstance()->where('id', $uid)->field(['id', 'nickname', 'photo', 'level', 'is_offical'])->get();
         //我的粉丝数
@@ -892,6 +889,11 @@ class UserCenter   extends FrontUserController{
     public function userDoTask()
     {
         $task_id = $this->params['task_id'];
+        $user_id = $this->auth['id'];
+        if (!in_array($task_id, [1, 4])) {
+            return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
+
+        }
         $user_task_list = AdminUserSerialPoint::USER_TASK;
         if (!$user_task = $user_task_list[$task_id]) {
             return $this->writeJson(Status::CODE_W_PARAM, Status::$msg[Status::CODE_W_PARAM]);
@@ -902,11 +904,30 @@ class UserCenter   extends FrontUserController{
             return $this->writeJson(Status::CODE_TASK_LIMIT, Status::$msg[Status::CODE_TASK_LIMIT]);
 
         }
-        $data['task_id'] = $task_id;
-        $data['user_id'] = $this->auth['id'];
-        TaskManager::getInstance()->async(new SerialPointTask($data));
-        $user = AdminUser::getInstance()->field(['id', 'level', 'point'])->where('id', $this->auth['id'])->get();
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user);
+        $user = DbManager::getInstance()->invoke(function ($client) use ($task_id, $user_id, $user_task) {
+            $intvalModel = AdminUserSerialPoint::invoke($client);
+            $intvalModel->task_id = $task_id;
+            $intvalModel->user_id = $user_id;
+            $intvalModel->point = $user_task['points_per_time'];
+            $intvalModel->task_name = $user_task['name'];
+            $intvalModel->type = 1;
+            $intvalModel->created_at = date('Y-m-d');
+            $intvalModel->save();
+
+            $user = AdminUser::invoke($client)->where('id', $user_id)->get();
+            $user->point += $user_task['points_per_time'];
+            $user->level = AppFunc::getUserLvByPoint($user->point);
+            $user->update();
+            return $user;
+        });
+        $user_info = [
+            'level' => $user->level,
+            'point' => $user->point,
+            'd_value' => AppFunc::getPointsToNextLevel($user_id)
+        ];
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $user_info);
+
+
 
     }
 

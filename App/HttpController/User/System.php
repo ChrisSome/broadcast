@@ -69,7 +69,9 @@ class System extends FrontUserController
 
     function hotreload()
     {
+
         if (isset($this->params['version']) && isset($this->params['phone_type'])) {
+
             $package = AdminSysSettings::getInstance()->order('created_at', 'DESC')->where('sys_key', self::SYS_KEY_HOT_RELOAD)->limit(1)->get();
             if (!$package) {
                 $data['is_new'] = 1;

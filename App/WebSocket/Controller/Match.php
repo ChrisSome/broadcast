@@ -8,6 +8,7 @@ use App\Common\AppFunc;
 use App\lib\Tool;
 use App\Model\AdminMatch;
 use App\Model\AdminMatchTlive;
+use App\Model\AdminUser;
 use App\Model\ChatHistory;
 use App\Storage\MatchLive;
 use App\Storage\OnlineUser;
@@ -70,7 +71,8 @@ class Match extends Base
                 $data = $tliveModel->where('match_id', $matchId)->get();
                 return $data;
             });
-            if ($matchTlive) {
+
+            if ($matchTlive) { //已结束并且同步数据
                 $tlive = json_decode($matchTlive->tlive, true);
                 $stats = json_decode($matchTlive->stats, true);
                 $score = json_decode($matchTlive->score, true);
@@ -119,7 +121,7 @@ class Match extends Base
                 ];
             } else if ($match_data_info = Cache::get('match_data_info' . $matchId)) {
                 /**
-                 * 比赛刚结束 数据还没同步到sql，几秒钟时差 还是利用Cache做
+                 * 比赛未结束 信息从cache中拿
                  *
                  */
                 $return_data = json_decode($match_data_info, true);

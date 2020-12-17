@@ -31,6 +31,7 @@ class BroadcastTask implements TaskInterface
 
     public function __construct($taskData)
     {
+        Log::getInstance()->info('asdf');
         $this->taskData = $taskData;
     }
 
@@ -42,6 +43,7 @@ class BroadcastTask implements TaskInterface
      * @throws \Throwable
      */
     function run(int $taskId, int $workerIndex) {
+
         $taskData = $this->taskData;
         $server = ServerManager::getInstance()->getSwooleServer();
         //获取该房间内所有用户
@@ -64,11 +66,19 @@ class BroadcastTask implements TaskInterface
             return ;
         }
         $tool = Tool::getInstance();
-        $atUserInfo = AdminUser::getInstance()->find($aMessage['atUserId']);
+        $atUserId = $aMessage['atUserId'];
+
+        $atUser = DbManager::getInstance()->invoke(function ($client) use ($atUserId) {
+            $userModel = AdminUser::invoke($client)->field(['nickname', 'level', 'id'])->find($atUserId);
+            return $userModel;
+        });
+
+
         $returnData = [
             'event' => 'broadcast-roomBroadcast',
             'data' => [
                 'sender_user_info' => OnlineUser::getInstance()->get($aMessage['fromUserFd']),
+                'at_user_info' => $atUser ? $atUser : [],
                 'message_info' => [
                     'id' => $insertId,
                     'content' => base64_decode($aMessage['content'])
@@ -76,12 +86,6 @@ class BroadcastTask implements TaskInterface
             ],
 
         ];
-        if ($atUserInfo) {
-            $returnData['data']['at_user_info'] = $atUserInfo;
-        } else {
-            $returnData['data']['at_user_info'] = [];
-        }
-
 
         if ($users = AppFunc::getUsersInRoom($aMessage['matchId'])) {
             foreach ($users as $user) {

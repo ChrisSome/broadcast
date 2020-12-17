@@ -81,7 +81,6 @@ class OnlineUser
     function update($fd, $data)
     {
         if ($info = $this->get($fd)) {
-
             $info = $data + $info;
             $this->table->set($fd, $info);
         }

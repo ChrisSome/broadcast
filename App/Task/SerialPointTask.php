@@ -19,17 +19,16 @@ class SerialPointTask implements TaskInterface
 
     public function __construct($taskData)
     {
+        Log::getInstance()->info('111');
+
         $this->taskData = $taskData;
 
     }
+
+
     function run(int $taskId,int $workerIndex)
     {
-        $this->execData();
 
-    }
-
-    function execData()
-    {
         if ($this->taskData['task_id'] == 1) {
             if (AdminUserSerialPoint::getInstance()->where('user_id', $this->taskData['user_id'])->where('task_id', 1)->where('created_at', date('Y-m-d'))->get()) {
                 return;
@@ -47,9 +46,12 @@ class SerialPointTask implements TaskInterface
                 return;
             }
         }
+        Log::getInstance()->info('222444');
 
         $task_id = $this->taskData['task_id'];
         $user_task = AdminUserSerialPoint::USER_TASK[$task_id];
+        Log::getInstance()->info('aaa');
+
         $data = [
             'created_at' => date('Y-m-d'),
             'task_id' => $task_id,
@@ -59,7 +61,8 @@ class SerialPointTask implements TaskInterface
             'point' => $user_task['points_per_time']
 
         ];
-        AdminUserSerialPoint::getInstance()->insert($data);
+        $bool = AdminUserSerialPoint::getInstance()->insert($data);
+        Log::getInstance()->info('bbb');
 
         $user = AdminUser::getInstance()->find($this->taskData['user_id']);
         $user->point += $user_task['points_per_time'];

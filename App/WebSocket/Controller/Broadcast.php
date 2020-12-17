@@ -9,15 +9,11 @@
 namespace App\WebSocket\Controller;
 
 use App\lib\Tool;
-use App\Model\AdminUser;
-use App\Storage\OnlineUser;
 use App\Task\BroadcastTask;
 use App\Utility\Log\Log;
-use App\WebSocket\Actions\Broadcast\BroadcastMessage;
 use App\WebSocket\WebSocketStatus;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
-use EasySwoole\Socket\AbstractInterface\Controller;
 use EasySwoole\Socket\Client\WebSocket as WebSocketClient;
 
 class Broadcast extends Base
@@ -46,11 +42,9 @@ class Broadcast extends Base
         if (!$sender_user_id = $broadcastPayload['sender_user_id']) {
             return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_NOT_LOGIN, WebSocketStatus::$msg[WebSocketStatus::STATUS_NOT_LOGIN]));
         }
-
         if (!$bool = $this->checkUser($client->getFd(), ['status', 'login'])) {
             return $server->push($fd, $tool = Tool::getInstance()->writeJson(WebSocketStatus::STATUS_W_USER_RIGHT, WebSocketStatus::$msg[WebSocketStatus::STATUS_W_USER_RIGHT]));
         }
-
         if (!empty($broadcastPayload) && !empty($broadcastPayload['content']) && !empty($broadcastPayload['match_id'])) {
 
             $message = [

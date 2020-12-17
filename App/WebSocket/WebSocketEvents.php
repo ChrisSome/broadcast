@@ -4,11 +4,14 @@ namespace App\WebSocket;
 
 use App\lib\pool\Login as Base;
 use App\lib\Tool;
+use App\Model\AdminMatchTlive;
 use App\Model\AdminUser;
+use App\Model\ChatHistory;
 use App\Storage\OnlineUser;
 use App\WebSocket\Actions\Broadcast\BroadcastAdmin;
 use App\WebSocket\Actions\User\UserOutRoom;
 use easySwoole\Cache\Cache;
+use EasySwoole\ORM\DbManager;
 use EasySwoole\Utility\Random;
 use \swoole_server;
 use \swoole_websocket_server;
@@ -63,7 +66,12 @@ class WebSocketEvents
         $user_id = $request->get['user_id'];
         $match_id = isset($request->get['match_id']) ? $request->get['match_id'] : 0;
         if ($user_id) {
-            $user = AdminUser::getInstance()->where('id', $user_id)->get();
+            $user = DbManager::getInstance()->invoke(function ($client) use ($user_id) {
+                $userModel = AdminUser::invoke($client)->find($user_id);
+                return $userModel;
+            });
+
+
         }
         //如果已经有设备登陆,则强制退出, 根据后台配置是否允许多终端登陆
 

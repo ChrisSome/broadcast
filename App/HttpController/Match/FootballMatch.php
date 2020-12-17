@@ -30,7 +30,7 @@ use App\Model\AdminUser;
 use App\Model\AdminUserSetting;
 use App\Model\SeasonMatchList;
 use App\Model\SeasonTeamPlayer;
-use App\Model\SeasonTeamPlayerBak;
+//use App\Model\SeasonTeamPlayerBak;
 use App\Storage\OnlineUser;
 use App\Task\MatchNotice;
 use App\Utility\Log\Log;
@@ -39,6 +39,7 @@ use App\Utility\Message\Status;
 use App\GeTui\BatchSignalPush;
 use App\WebSocket\WebSocketStatus;
 use easySwoole\Cache\Cache;
+use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\ORM\DbManager;
@@ -783,20 +784,16 @@ class FootBallMatch extends FrontUserController
 
     public function test()
     {
-//        AppFunc::getUsersInRoom(3451833);
-//        $users = AppFunc::getUsersInRoom(3439118);
-//        $count = count($users);
-        $table = Manager::getInstance()->getProcessTable();
+//
+//        Config::getInstance()
+        $insertId = DbManager::getInstance()->invoke(function ($client) {
+            $chatModel = AdminUser::invoke($client)->find(1);
 
-        foreach ($table as $item) {
-            $data[] = $item;
-        }
-//        $pid = getmypid();
-//        $size = sizeof($pid);
+            return $chatModel;
+        });
 
 
-
-        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $data);
+        return $this->writeJson(Status::CODE_OK, Status::$msg[Status::CODE_OK], $insertId);
 
     }
 
